@@ -1,0 +1,16 @@
+[Unit]
+Description=Run plane daily operator loop on a schedule
+Documentation=https://github.com/doitupsolutions810-crow/living-intermediate-control-plane/blob/main/docs/daily-loop.md
+Requires=plane-daily.service
+
+[Timer]
+# Every day at 09:00 local time
+OnCalendar=*-*-* 09:00:00
+# Run missed jobs after boot if the machine was off at 09:00
+Persistent=true
+# Optional: randomized delay to avoid thundering herd (e.g. shared hosts)
+# RandomizedDelaySec=5min
+Unit=plane-daily.service
+
+[Install]
+WantedBy=timers.target
