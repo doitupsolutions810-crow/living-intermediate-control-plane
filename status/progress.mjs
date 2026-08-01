@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+/**
+ * Single progress board — readiness, agent auth, last unattended/admit/daily
+ */
+
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
+import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
+import { readPlaneState } from './plane-state.mjs';
+import { isAuthorized, readSession } from '../agents/llama/session.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
+const dataDir = join(root, 'data');
+
+function readJson(name) {
+  const p = join(dataDir, name);
+  if (!existsSync(p)) return null;
+  try {
+    return JSON.parse(readFileSync(p, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+let version = 'unknown';
+try {
+  version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
+} catch {}
+
+const readiness = emitReadinessEvidence({ source: 'progress' });
+const plan = evaluateQuorum(createOrchestrationPlan('progress'));
+const planeState = readPlaneState();
+const agentOk = isAuthorized(root);
+const session = readSession(root);
+
+const unattended = readJson('unattended-last.json');
+const admit = readJson('admit-change-last.json');
+const daily = readJson('daily-loop-last.json');
+const selfDev = readJson('self-develop-last.json');
+
+const board = {
+  timestamp: new Date().toISOString(),
+  version,
+  plane: {
+    paused: planeState.paused,
+    readiness: readiness.overallDecision,
+    orchestration: plan.overallDecision
+  },
+  agent: {
+    authorized: agentOk,
+    expiresAt: session?.expiresAt || null,
+    note: agentOk
+      ? 'Toolkit allowlist active — no per-action approve until expiry or revoke'
+      : 'Run plane agent-chat to authorize (no outside sandbox until then)'
+  },
+  lastRuns: {
+    unattended: unattended ? { ok: unattended.ok, at: unattended.timestamp } : null,
+    admitChange: admit ? { ok: admit.ok, at: admit.timestamp } : null,
+    daily: daily ? { ok: daily.ok, at: daily.timestamp } : null,
+    selfDevelop: selfDev ? { ok: selfDev.ok, at: selfDev.timestamp } : null
+  },
+  successCriteria: [
+    '1. Readiness is READY',
+    '2. Evidence is available (public or local accepted)',
+    '3. Supply-chain enforcement remains active'
+  ],
+  suggested: agentOk
+    ? ['plane unattended', 'plane admit-change', 'plane agent-run -- "propose a verify task"']
+    : ['plane agent-chat', 'plane unattended', 'plane doctor']
+};
+
+console.log(JSON.stringify(board, null, 2));
+const healthy =
+  !planeState.paused &&
+  readiness.overallDecision === 'READY' &&
+  plan.overallDecision === 'READY';
+process.exit(healthy ? 0 : 1);

@@ -1,16 +1,13 @@
 # Living Intermediate Control Plane
 
-Version **0.7.1**
+Version **0.7.2**
 
 ```bash
+plane progress
 plane next
-plane agent-chat      # authorize Llama toolkit
-plane unattended      # daily + self-develop + admit-change + gates
-plane admit-change
+plane agent-chat
+plane unattended
 ```
-
-Agent tools require chat auth. Admission stays plane + CI.  
-See `docs/llama-agent.md`, `docs/unattended.md`.
 
 ## Success criteria
 

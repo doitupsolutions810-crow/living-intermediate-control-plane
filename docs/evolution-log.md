@@ -1,11 +1,10 @@
 # Evolution Log
 
-## 2026-08-01 — Evolve 0.7.1
+## 2026-08-01 — Proceed 0.7.2
 
-- upgrade-check / verify-changes cover Llama agent modules
-- next advisor includes agent auth state + unattended/admit-change
-- unattended now runs admit-change before final gates
+- `plane progress` unified board (readiness, agent auth, last runs)
+- `workspace/proposals/` for agent proposals
 
-## 0.7.0
+## 0.7.1
 
-- Llama agent + chat auth + toolkit
+- Agent-aware verify + unattended admit-change
