@@ -1,0 +1,16 @@
+{
+  "id": "full-admission",
+  "type": "verify",
+  "auto": true,
+  "enabled": true,
+  "description": "Full admission bar: upgrade, verify, doctor, test, checklist, security-scan",
+  "steps": [
+    "upgrade-check",
+    "verify-changes",
+    "doctor",
+    "self-test",
+    "checklist",
+    "security-scan"
+  ],
+  "env": { "ALLOW_SKIP": "1" }
+}

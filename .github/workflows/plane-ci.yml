@@ -11,16 +11,18 @@ permissions:
   contents: read
   id-token: write
   attestations: write
-  packages: read
+  packages: write
   security-events: write
 
 env:
   IMAGE_NAME: living-intermediate-control-plane
   IMAGE_TAG: ci
+  # Optional registry (GHCR by default when push enabled)
+  REGISTRY: ghcr.io
 
 jobs:
   plane-checks:
-    name: Verify, doctor, test, Trivy FS
+    name: Verify, doctor, test, Trivy FS, Snyk
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -71,20 +73,27 @@ jobs:
           format: table
           trivy-config: trivy.yaml
 
+      # Hard fail when SNYK_TOKEN is configured (never soft-skip)
       - name: Snyk open-source scan
+        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions/node@master
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
-        if: ${{ env.SNYK_TOKEN != '' }}
+
+      - name: Snyk open-source skipped (no token)
+        if: ${{ secrets.SNYK_TOKEN == '' }}
+        run: echo "SNYK_TOKEN not set — open-source Snyk skipped (set repo secret to enforce)"
 
   docker-build:
-    name: Docker build, Trivy, OPA, Cosign, SLSA
+    name: Docker, Trivy, OPA, Snyk container, registry, Cosign
     runs-on: ubuntu-latest
     needs: plane-checks
-    timeout-minutes: 25
+    timeout-minutes: 30
+    # Registry push only on main push / manual dispatch (not PR forks)
+    env:
+      PUSH_IMAGE: ${{ github.event_name != 'pull_request' && secrets.SNYK_TOKEN != '' || github.event_name != 'pull_request' }}
 
     steps:
       - name: Checkout
@@ -96,8 +105,34 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Build image
-        id: build
+      - name: Decide registry push
+        id: meta
+        run: |
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "owner_lc=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+          # Push when not a PR and ENABLE_REGISTRY_PUSH is not '0'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "do_push=false" >> "$GITHUB_OUTPUT"
+            echo "image_ref=${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ vars.ENABLE_REGISTRY_PUSH }}" = "0" ]; then
+            echo "do_push=false" >> "$GITHUB_OUTPUT"
+            echo "image_ref=${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "do_push=true" >> "$GITHUB_OUTPUT"
+            echo "image_ref=${{ env.REGISTRY }}/${OWNER_LC}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+            echo "image_ref_sha=${{ env.REGISTRY }}/${OWNER_LC}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to GHCR
+        if: steps.meta.outputs.do_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (load local)
+        if: steps.meta.outputs.do_push != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -109,15 +144,38 @@ jobs:
           provenance: mode=max
           sbom: true
 
-      - name: Run doctor inside image
+      - name: Build and push image
+        id: build_push
+        if: steps.meta.outputs.do_push == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_ref }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.owner_lc }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
+      - name: Run doctor inside image (local load)
+        if: steps.meta.outputs.do_push != 'true'
         run: docker run --rm ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-      - name: Capture image digest
+      - name: Capture image identity
         id: digest
         run: |
-          DIGEST=$(docker inspect --format='{{.Id}}' ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }})
-          echo "image_id=${DIGEST}" >> "$GITHUB_OUTPUT"
-          docker inspect ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} > image-inspect.json
+          if [ "${{ steps.meta.outputs.do_push }}" = "true" ]; then
+            DIGEST="${{ steps.build_push.outputs.digest }}"
+            echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+            echo "sign_ref=${{ steps.meta.outputs.image_ref_sha }}@${DIGEST}" >> "$GITHUB_OUTPUT"
+          else
+            ID=$(docker inspect --format='{{.Id}}' ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }})
+            echo "digest=${ID}" >> "$GITHUB_OUTPUT"
+            echo "sign_ref=${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+            docker inspect ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} > image-inspect.json
+          fi
 
       - name: Write SLSA-style provenance document
         run: |
@@ -125,25 +183,22 @@ jobs:
           {
             "_type": "https://in-toto.io/Statement/v1",
             "subject": [{
-              "name": "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}",
-              "digest": { "sha256": "${{ steps.digest.outputs.image_id }}" }
+              "name": "${{ steps.meta.outputs.image_ref }}",
+              "digest": { "sha256": "${{ steps.digest.outputs.digest }}" }
             }],
             "predicateType": "https://slsa.dev/provenance/v1",
             "predicate": {
               "buildDefinition": {
                 "buildType": "https://slsa.dev/container/v1",
                 "externalParameters": {
-                  "dockerfile": "Dockerfile",
                   "ref": "${{ github.ref }}",
                   "repository": "${{ github.repository }}",
-                  "builder": "docker-buildx"
+                  "pushed": "${{ steps.meta.outputs.do_push }}"
                 }
               },
               "runDetails": {
                 "builder": { "id": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" },
-                "metadata": {
-                  "invocationId": "${{ github.run_id }}-${{ github.run_attempt }}"
-                }
+                "metadata": { "invocationId": "${{ github.run_id }}-${{ github.run_attempt }}" }
               }
             }
           }
@@ -153,41 +208,24 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slsa-provenance-buildx
-          path: |
-            slsa-provenance.json
-            image-inspect.json
+          path: slsa-provenance.json
 
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        continue-on-error: true
-        with:
-          subject-path: image-inspect.json
-
-      - name: Cosign version
-        run: cosign version
-
-      - name: Cosign sign (best-effort keyless)
-        continue-on-error: true
-        env:
-          IMAGE_REF: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-        run: node status/cosign-sign.mjs
-
-      - name: Trivy image scan (table)
+      - name: Trivy image scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: image
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image-ref: ${{ steps.meta.outputs.image_ref }}
           severity: CRITICAL,HIGH
           exit-code: "1"
           ignore-unfixed: true
           format: table
           trivy-config: trivy.yaml
 
-      - name: Trivy image scan (JSON for OPA)
+      - name: Trivy image JSON for OPA
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: image
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image-ref: ${{ steps.meta.outputs.image_ref }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           format: json
@@ -201,22 +239,46 @@ jobs:
           files: trivy-report.json
           policy: policy
 
+      # Hard fail when token present — never continue-on-error
       - name: Snyk container scan
+        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions/docker@master
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image: ${{ steps.meta.outputs.image_ref }}
           args: --severity-threshold=high
-        if: ${{ env.SNYK_TOKEN != '' }}
 
-      - name: Trivy image scan (SARIF)
-        uses: aquasecurity/trivy-action@0.28.0
+      - name: Snyk container skipped (no token)
+        if: ${{ secrets.SNYK_TOKEN == '' }}
+        run: echo "SNYK_TOKEN not set — container Snyk skipped (set secret to enforce hard gate)"
+
+      # Hard Cosign sign + verify only when image was pushed to registry
+      - name: Cosign sign (keyless, registry digest)
+        if: steps.meta.outputs.do_push == 'true'
+        run: |
+          cosign sign --yes "${{ steps.digest.outputs.sign_ref }}"
+
+      - name: Cosign verify (hard)
+        if: steps.meta.outputs.do_push == 'true'
+        run: |
+          cosign verify \
+            --certificate-identity-regexp ".*" \
+            --certificate-oidc-issuer-regexp ".*" \
+            "${{ steps.digest.outputs.sign_ref }}"
+
+      - name: Cosign local note
+        if: steps.meta.outputs.do_push != 'true'
+        run: |
+          echo "Registry push disabled (PR or ENABLE_REGISTRY_PUSH=0)."
+          echo "Cosign hard verify requires a pushed digest — skipped."
+
+      - name: Trivy SARIF
         if: always()
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: image
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image-ref: ${{ steps.meta.outputs.image_ref }}
           severity: CRITICAL,HIGH,MEDIUM
           format: sarif
           output: trivy-image.sarif
@@ -225,8 +287,8 @@ jobs:
           trivy-config: trivy.yaml
 
       - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@v3
         if: always()
         continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif

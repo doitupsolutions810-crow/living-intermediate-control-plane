@@ -1,19 +1,20 @@
 # Living Intermediate Control Plane
 
-Version **0.9.0**
+Version **0.9.1**
 
 ```bash
 plane upgrade-check
 plane supply-chain
 plane unattended
 plane admit-change
-plane progress
+plane notify-hints
 ```
 
-Host schedule: `docs/operator-host-setup.md` (prefer **unattended** timer).
+CI: GHCR push + hard Cosign on main; set `SNYK_TOKEN` for hard Snyk gates.  
+See `docs/ci-registry-cosign.md`, `docs/optional-notify.md`.
 
 ## Success criteria
 
 1. Readiness is READY  
-2. Evidence is available (public or local accepted)  
+2. Evidence is available  
 3. Supply-chain enforcement stays active  

@@ -1,0 +1,9 @@
+{
+  "id": "supply-chain-integrated",
+  "type": "security",
+  "auto": true,
+  "enabled": true,
+  "description": "Integrated supply-chain command (scan + summary)",
+  "steps": ["supply-chain"],
+  "env": { "ALLOW_SKIP": "1" }
+}

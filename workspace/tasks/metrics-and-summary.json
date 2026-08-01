@@ -1,0 +1,8 @@
+{
+  "id": "metrics-and-summary",
+  "type": "verify",
+  "auto": true,
+  "enabled": true,
+  "description": "Posture metrics + security summary",
+  "steps": ["metrics", "security-summary"]
+}

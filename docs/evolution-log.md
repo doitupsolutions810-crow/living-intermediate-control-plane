@@ -1,13 +1,12 @@
 # Evolution Log
 
-## 2026-08-01 — Fix · supply-chain · agent tasks · host schedule · admit (0.9.0)
+## 2026-08-01 — Next evolutions (0.9.1)
 
-- Agent tasks: admit-gates + supply-chain-baseline auto tasks
-- self-develop allowlist includes supply-chain + admit-change
-- Host schedule prefers plane-unattended systemd timer
-- upgrade-check covers 0.9.0 critical paths
-- Chat authorization noted under workspace/proposals
+1. CI registry push (GHCR) + **hard Cosign sign/verify** on digest  
+2. **SNYK_TOKEN** hard-fails open-source + container scans (no continue-on-error)  
+3. Optional Drive/Gmail via `plane notify-hints` + docs  
+4. Richer auto tasks: full-admission, metrics-and-summary, supply-chain-integrated  
 
-## 0.8.1
+## 0.9.0
 
-- Integrated plane supply-chain
+- Admit path + host unattended schedule
