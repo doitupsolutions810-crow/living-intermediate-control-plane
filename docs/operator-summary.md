@@ -1,37 +1,28 @@
-# Operator Summary — Living Intermediate Control Plane
+# Operator Summary
 
-**Last updated:** 2026-07-31 (proceed + procurement bridge)
-
-## Simple success rule
-
-The system is ready to procure the next stage when:
-
-1. Readiness is READY (five roles clear, zero failed gates)
-2. Evidence is available (public console **or** local plane accepted)
-3. Supply-chain enforcement stays active
-
-## Commands that work today
+**One command for the full picture:**
 
 ```bash
-# One-shot readiness
-node lattice/readiness-poller.mjs
-
-# Full plane status
-node status/plane-status.mjs
-
-# Procurement decision (local authority)
-ACCEPT_LOCAL_EVIDENCE=1 node status/procurement-bridge.mjs
-
-# LaunchDesk-style action
-node launchdesk/actions.mjs status evolve
-
-# Continuous readiness
-node status/continuous-readiness.mjs
+ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs
 ```
 
-## Current blockers (external only)
+## What the integrated check does
 
-- Public evidence-console domain still 404
-- GitHub Actions automatic runs disabled at account level
+1. Emits deterministic readiness evidence
+2. Builds and evaluates a five-role orchestration plan
+3. Runs the request through the LaunchDesk action bridge
+4. Returns a clear procurement decision
 
-Everything else needed for a limited-technicality procurement decision is already present inside this plane under Control704 override.
+## Possible decisions
+
+- `READY_FOR_PROCUREMENT` — all core checks passed and local evidence accepted
+- `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` — core systems READY, waiting on public console or explicit local acceptance
+- `HOLD` — readiness or orchestration not yet clear
+
+## Success criteria (kept minimal)
+
+1. Readiness READY
+2. Evidence available (public or local)
+3. Supply-chain still enforced
+
+All other concerns (full production acceptance, automatic CI, etc.) stay outside this iteration.

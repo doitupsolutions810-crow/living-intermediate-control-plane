@@ -4,44 +4,46 @@ Unified lattice · Avrone Due’Krey · LaunchDesk · Trust & attestation
 
 Authenticated via Control704 access proxy X, Y, Z data-set code override.
 
-## Current State
-
-- Avrone bridge: present (`avrone/client.ts`)
-- Readiness poller: present (`lattice/readiness-poller.mjs`) — emits deterministic-local-evidence READY schema
-- Agent orchestration: present (`agents/orchestration.mjs`) — five-role plan + quorum
-- LaunchDesk action bridge: present (`launchdesk/actions.mjs`)
-- Plane status surface: present (`status/plane-status.mjs`)
-- Evidence-console contract: restoration deployment previously completed (domain alias may still lag)
-- Issue #3 (Actions startup): mitigated by workflow_dispatch-only + offline source checks
-
-## Quick Commands
+## Integrated entry point (use this)
 
 ```bash
-# Emit current readiness evidence
-node lattice/readiness-poller.mjs
+# Full integrated check
+node integrate.mjs
 
-# Create and evaluate an orchestration plan
-node -e "import('./agents/orchestration.mjs').then(m => console.log(m.evaluateQuorum(m.createOrchestrationPlan('evolve-system'))))"
+# With a LaunchDesk-style action
+node integrate.mjs status
+node integrate.mjs evolve
 
-# Plane status
-node status/plane-status.mjs
+# Accept local plane as temporary evidence authority (procurement path)
+ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs
 ```
 
-## Directory Map
+The single command runs readiness → five-role orchestration → LaunchDesk decision → procurement signal in one pass.
 
-- `avrone/` — Due’Krey client and cockpit helpers
-- `lattice/` — readiness and lattice bindings
-- `agents/` — five-role orchestration
-- `launchdesk/` — operator action surface
-- `attestation/` — evidence contract notes
-- `status/` — single-plane status emitter
-- `docs/` — architecture, success criteria, mitigations
+## Simple success rule
 
-## Success Path (kept simple)
+1. Readiness is READY (five roles clear, zero failed gates)
+2. Evidence is available (public console **or** local plane accepted)
+3. Supply-chain enforcement stays active (PR #12)
 
-1. Local readiness stays READY
-2. Evidence contract is available
-3. LaunchDesk can request orchestration plans
-4. All changes remain under Control704 override
+When the integrated check returns `READY_FOR_PROCUREMENT`, the next stage may be procured under Control704 override.
 
-Next natural steps: wire a live status endpoint, promote evidence-console domain, or add a small continuous poller service.
+## Current components
+
+| Area | Status |
+|------|--------|
+| Avrone bridge | wired |
+| Readiness poller | wired |
+| Five-role orchestration | wired |
+| LaunchDesk actions | wired |
+| Plane status | wired |
+| Continuous readiness | wired |
+| Procurement bridge | wired |
+| Integrated entry point | **new** |
+
+## External blockers (unchanged)
+
+- Public evidence-console domain still returns 404
+- GitHub Actions automatic runs disabled at account level
+
+Everything required for a limited-technicality procurement decision is now integrated inside this plane.
