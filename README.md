@@ -1,29 +1,27 @@
 # Living Intermediate Control Plane
 
-Version **0.4.8**
+Version **0.4.9**
 
 ## CLI
 
 ```bash
 node bin/plane.mjs checklist
 node bin/plane.mjs procure
-node bin/plane.mjs doctor
+plane rekor version
 ```
 
 ## Cosign + Rekor
 
 ```bash
-IMAGE_REF=living-intermediate-control-plane:0.4.8 npm run cosign:sign
-IMAGE_REF=living-intermediate-control-plane:0.4.8 npm run cosign:verify
-REKOR_ARTIFACT_HASH=sha256:... npm run rekor:search
+# Install rekor-cli (optional for log queries)
+brew install rekor-cli
+
+IMAGE_REF=living-intermediate-control-plane:0.4.9 npm run cosign:sign
+IMAGE_REF=living-intermediate-control-plane:0.4.9 npm run cosign:verify
+
+npm run rekor -- version
+npm run rekor -- search --sha <hex>
+npm run rekor -- get --uuid <uuid>
 ```
 
-Signatures are recorded in the Rekor transparency log by default.
-
-See `docs/cli.md` and `docs/cosign.md`.
-
-## Success criteria
-
-1. Readiness is READY  
-2. Evidence is available (public or local accepted)  
-3. Supply-chain enforcement stays active  
+See `docs/cosign.md` and `docs/cli.md`.

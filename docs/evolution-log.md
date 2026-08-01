@@ -1,12 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Rekor transparency log (0.4.8)
+## 2026-08-01 — rekor-cli integration + Homebrew (0.4.9)
 
-- Cosign sign explicitly uploads to Rekor (`--tlog-upload=true`)
-- Cosign verify documents Rekor check path
-- `rekor:search` / `rekor:get` via rekor-cli helpers
-- Docs updated for transparency log workflow
+- Unified `npm run rekor -- <cmd>` and `plane rekor <cmd>` passthrough
+- Homebrew install documented: `brew install rekor-cli`
+- Env helpers for search/get (REKOR_ARTIFACT_HASH, REKOR_UUID)
 
-## 0.4.7
+## 0.4.8
 
-- Concrete plane CLI + Cosign sign/verify
+- Rekor tlog upload on Cosign sign; rekor search helpers

@@ -50,7 +50,7 @@ const commands = {
   test: { script: 'test/self-test.mjs', desc: 'Self-test' },
   'cosign-sign': { script: 'status/cosign-sign.mjs', desc: 'Cosign sign + Rekor upload (IMAGE_REF)' },
   'cosign-verify': { script: 'status/cosign-verify.mjs', desc: 'Cosign verify via Rekor (IMAGE_REF)' },
-  'rekor-search': { script: 'status/rekor-search.mjs', desc: 'Search Rekor log (REKOR_ARTIFACT_HASH)' }
+  rekor: { script: 'status/rekor-cli.mjs', desc: 'rekor-cli passthrough (version|search|get|…)' }
 };
 
 const cmd = process.argv[2] || 'help';
@@ -58,14 +58,16 @@ const extra = process.argv.slice(3);
 
 if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
   console.log('Living Intermediate Control Plane CLI\n');
-  console.log('Usage: plane <command>\n');
+  console.log('Usage: plane <command> [args]\n');
   for (const name of Object.keys(commands).sort()) {
     console.log(`  ${name.padEnd(18)} ${commands[name].desc}`);
   }
   console.log('\nExamples:');
   console.log('  plane checklist && plane procure');
   console.log('  IMAGE_REF=my:tag plane cosign-sign');
-  console.log('  IMAGE_REF=my:tag plane cosign-verify');
+  console.log('  plane rekor version');
+  console.log('  plane rekor search --sha <hex>');
+  console.log('  plane rekor get --uuid <uuid>');
   process.exit(0);
 }
 
