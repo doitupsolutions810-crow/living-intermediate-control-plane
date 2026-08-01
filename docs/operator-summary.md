@@ -1,28 +1,43 @@
 # Operator Summary
 
-**One command for the full picture:**
+**Recommended command:**
 
 ```bash
+npm run procure
+# or
 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs
 ```
 
-## What the integrated check does
+## What you get
 
-1. Emits deterministic readiness evidence
-2. Builds and evaluates a five-role orchestration plan
-3. Runs the request through the LaunchDesk action bridge
-4. Returns a clear procurement decision
+One pass that checks:
 
-## Possible decisions
+1. Deterministic readiness (must be READY)
+2. Five-role orchestration (must be READY)
+3. LaunchDesk action acceptance
+4. Final procurement decision
 
-- `READY_FOR_PROCUREMENT` — all core checks passed and local evidence accepted
-- `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` — core systems READY, waiting on public console or explicit local acceptance
-- `HOLD` — readiness or orchestration not yet clear
+## Decisions you may see
 
-## Success criteria (kept minimal)
+| Decision | Meaning |
+|----------|---------|
+| `READY_FOR_PROCUREMENT` | Core systems clear and local evidence accepted — next stage may proceed |
+| `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` | Core systems clear; public evidence-console domain still needed (or set ACCEPT_LOCAL_EVIDENCE=1) |
+| `HOLD` | Readiness or orchestration not yet clear |
 
-1. Readiness READY
-2. Evidence available (public or local)
-3. Supply-chain still enforced
+## Other useful commands
 
-All other concerns (full production acceptance, automatic CI, etc.) stay outside this iteration.
+```bash
+npm run check      # integrated check without forcing local evidence
+npm run status     # plane-wide snapshot
+npm run readiness  # one-shot readiness only
+npm test           # minimal self-test
+```
+
+## Success criteria (still only three)
+
+1. Readiness is READY
+2. Evidence is available (public console or local plane accepted)
+3. Supply-chain enforcement remains active
+
+Everything else stays outside this iteration.
