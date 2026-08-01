@@ -1,0 +1,9 @@
+{
+  "provider": "ollama",
+  "baseUrl": "http://127.0.0.1:11434",
+  "model": "llama3.2",
+  "timeoutMs": 120000,
+  "sessionMinutes": 60,
+  "workspaceOnlyWrites": true,
+  "requireChatAuth": true
+}

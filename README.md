@@ -1,23 +1,23 @@
 # Living Intermediate Control Plane
 
-Version **0.6.0**
+Version **0.7.0**
 
-## Unattended (self-maintain under gates)
+## Llama coding agent
+
+```bash
+ollama pull llama3.2
+plane agent-chat          # authorize via chat, then use tools
+plane unattended          # admit/maintain under gates
+plane admit-change        # explicit admission suite
+```
+
+Tools need **chat authorization**. No external sandbox without it.  
+Details: `docs/llama-agent.md`
+
+## Unattended
 
 ```bash
 plane unattended
-npm run unattended
-```
-
-Runs daily loop + auto workspace tasks + final verify/doctor.  
-See `docs/unattended.md`.
-
-## Daily / manual
-
-```bash
-plane daily
-plane checklist
-plane procure
 ```
 
 ## Success criteria
