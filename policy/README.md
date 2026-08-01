@@ -1,31 +1,28 @@
-# Policy enforcement (OPA / Conftest)
+# OPA / Conftest policies
 
-## Active policy (CI)
+## Active (CI + `npm run security-scan`)
+
+`trivy-results.rego` customized deny rules:
+
+1. CRITICAL vulnerabilities  
+2. HIGH vulnerabilities  
+3. Denied package name patterns (`denied_packages` set)  
+4. CRITICAL/HIGH secret findings  
+5. CRITICAL/HIGH misconfigurations  
+6. Missing `Results` array  
+
+```bash
+conftest test --policy policy data/trivy-report.json
+```
+
+## Examples (`policy/examples/`)
 
 | File | Rule |
 |------|------|
-| `trivy-results.rego` | Deny CRITICAL and HIGH in Trivy JSON reports |
+| `deny-critical-only.rego` | CRITICAL vulns only |
+| `require-results.rego` | Report must include Results |
+| `max-vuln-count.rego` | Total vuln cap |
+| `deny-fixed-only.rego` | HIGH/CRITICAL only when FixedVersion is set |
+| `deny-secret-any.rego` | Any secret finding |
 
-```bash
-conftest test --policy policy trivy-report.json
-```
-
-## Example policies (`policy/examples/`)
-
-| File | What it shows |
-|------|----------------|
-| `deny-critical-only.rego` | Deny CRITICAL only |
-| `require-results.rego` | Require a non-empty `Results` array |
-| `max-vuln-count.rego` | Fail if total vulns exceed a threshold |
-
-Examples are **not** loaded by CI (Conftest uses the `policy/` root only). Copy an example into `policy/` to activate it.
-
-```bash
-conftest test --policy policy/examples/deny-critical-only.rego trivy-report.json
-```
-
-Flow in CI:
-
-```text
-Trivy (trivy.yaml + .trivyignore) → JSON → Conftest (policy/*.rego) → pass/fail
-```
+Examples are **not** loaded by default. Copy into `policy/` or pass the file path to Conftest to try them.

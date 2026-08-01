@@ -1,7 +1,4 @@
-# Example Rego policy — require a well-formed Trivy report
-#
-# Ensures the scan produced a Results array (guards against empty/failed scans
-# being treated as success).
+# Example: require a well-formed Trivy report
 
 package examples.require_results
 

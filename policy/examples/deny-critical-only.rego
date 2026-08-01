@@ -1,8 +1,6 @@
-# Example Rego policy — deny CRITICAL only (stricter teams may keep HIGH in main policy)
+# Example: deny CRITICAL vulnerabilities only
 #
-# Copy or adapt into policy/ if you want CRITICAL-only enforcement.
-# Test with:
-#   conftest test --policy policy/examples/deny-critical-only.rego trivy-report.json
+#   conftest test --policy policy/examples/deny-critical-only.rego data/trivy-report.json
 
 package examples.critical_only
 

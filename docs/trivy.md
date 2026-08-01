@@ -1,48 +1,52 @@
-# Trivy + OPA integration
+# Trivy + Snyk + OPA integration
 
-## Local (plane-integrated)
+## Local
 
 ```bash
-# FS scan + OPA policy on the JSON report
 npm run security-scan
-
-# Also scan an image
-IMAGE_REF=living-intermediate-control-plane:0.4.2 npm run security-scan
-
-# Require tools (fail if trivy/conftest missing)
-ALLOW_SKIP=0 npm run security-scan
-
-# Trivy only / OPA only
-SKIP_OPA=1 npm run security-scan
-SKIP_TRIVY=1 npm run security-scan   # needs existing data/trivy-report.json
+IMAGE_REF=living-intermediate-control-plane:0.4.3 npm run security-scan
 ```
 
-`npm run ci` includes `security-scan` with `ALLOW_SKIP=1` by default so local runs without Trivy still pass. Set `REQUIRE_SECURITY_TOOLS=1` to force tools.
+Order:
 
-## Config files
+1. **Trivy** FS (+ image if `IMAGE_REF` set) using `trivy.yaml`  
+2. **Snyk** `test` (+ `container test` if image set) — needs CLI + `SNYK_TOKEN` or prior `snyk auth`  
+3. **Conftest/OPA** on Trivy JSON using customized `policy/trivy-results.rego`  
 
-| File | Role |
-|------|------|
-| `trivy.yaml` | Severity, ignore-unfixed, scanners, skip-dirs, ignorefile |
-| `.trivyignore` | Optional CVE/GHSA exceptions |
-| `policy/trivy-results.rego` | OPA deny CRITICAL/HIGH on Trivy JSON |
+| Env | Effect |
+|-----|--------|
+| `ALLOW_SKIP=1` | Skip missing tools |
+| `SKIP_TRIVY=1` | Skip Trivy |
+| `SKIP_SNYK=1` | Skip Snyk |
+| `SKIP_OPA=1` | Skip Conftest |
+| `IMAGE_REF` | Enable image/container scans |
+| `SNYK_TOKEN` | Authenticate Snyk |
 
-## Flow
+## Why both Trivy and Snyk
 
-```text
-Trivy (trivy.yaml + .trivyignore)
-  → data/trivy-report.json
-  → conftest test --policy policy
-  → pass/fail
-```
+| Tool | Strength |
+|------|----------|
+| Trivy | Fast FS/image/secret/misconfig; offline-friendly; feeds OPA JSON |
+| Snyk | Strong app dependency graph + prioritization; container layer analysis |
+
+OPA policy is applied to **Trivy JSON** (stable schema for Rego). Snyk results are gate checks on their own exit codes.
+
+## Customized OPA deny rules (active)
+
+See `policy/trivy-results.rego`:
+
+- CRITICAL / HIGH vulnerabilities  
+- Denied package name patterns  
+- CRITICAL / HIGH secrets  
+- CRITICAL / HIGH misconfigurations  
+- Missing `Results` array  
+
+## Example Rego
+
+Under `policy/examples/` — not loaded unless you point Conftest at them or copy into `policy/`.
 
 ## GitHub Actions
 
-Still runs native `aquasecurity/trivy-action` + `conftest-action` in `plane-ci.yml` (FS, Buildx image, Kaniko image).
-
-## Install tools (examples)
-
-```bash
-# Trivy — https://aquasecurity.github.io/trivy/latest/getting-started/installation/
-# Conftest — https://www.conftest.dev/install/
-```
+- Trivy FS + image (required gate)  
+- Conftest on Trivy JSON (required gate)  
+- Snyk node + container (optional, needs `secrets.SNYK_TOKEN`)  
