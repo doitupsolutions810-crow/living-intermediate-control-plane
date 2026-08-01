@@ -10,6 +10,7 @@ const commands = {
   help: { desc: 'Show this help' },
   connectors: { script: 'status/connectors.mjs', desc: 'Connectors, toolsets, skills registry' },
   progress: { script: 'status/progress.mjs', desc: 'Unified progress board' },
+  'supply-chain': { script: 'status/supply-chain.mjs', desc: 'Integrated scan/policy/sign path' },
   init: { script: 'status/init.mjs', desc: 'Create local data dir and config' },
   checklist: { script: 'status/checklist.mjs', desc: 'Pre-flight before procure' },
   daily: { script: 'status/daily-loop.mjs', desc: 'Daily operator loop' },

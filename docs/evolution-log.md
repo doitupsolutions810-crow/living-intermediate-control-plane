@@ -1,12 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Connectors registry (0.8.0)
+## 2026-08-01 — Supply-chain integration (0.8.1)
 
-- connectors/manifest.json — GitHub, Drive, Vercel, Figma, Gmail, Automations, Llama, security, plane core
-- plane connectors — live registry + local tool presence
-- toolsets: admission, unattended, agent, supply_chain
-- skills mapped for operator deliverables
+- `plane supply-chain` unifies Trivy/Snyk/OPA + optional Cosign sign/verify
+- docs/supply-chain.md
+- connectors toolset lists supply-chain command
 
-## 0.7.2
+## 0.8.0
 
-- progress board + proposals workspace
+- Connectors registry

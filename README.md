@@ -1,15 +1,16 @@
 # Living Intermediate Control Plane
 
-Version **0.8.0**
+Version **0.8.1**
 
 ```bash
-plane connectors    # registry of connectors / toolsets / skills
+plane connectors
+plane supply-chain
+IMAGE_REF=living-intermediate-control-plane:0.8.1 plane supply-chain
 plane progress
-plane agent-chat
 plane unattended
 ```
 
-See `docs/connectors.md`.
+Supply chain: `docs/supply-chain.md`
 
 ## Success criteria
 
