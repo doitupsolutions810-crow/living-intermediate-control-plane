@@ -1,49 +1,39 @@
-# Next ops checklist (0.9.1+)
+# Next ops checklist
 
 ## 1. Set SNYK_TOKEN (CI Snyk never skips)
 
-GitHub → repo **Settings → Secrets and variables → Actions → New repository secret**
+GitHub → **Settings → Secrets and variables → Actions → New repository secret**
 
 | Name | Value |
 |------|--------|
-| `SNYK_TOKEN` | From [snyk.io](https://app.snyk.io) → Account settings → Auth token |
+| `SNYK_TOKEN` | From [app.snyk.io](https://app.snyk.io) → Account settings → Auth token |
 
-Effect when set:
+When set: open-source **and** container Snyk **hard-fail** the job on high+.  
+When unset: CI prints an explicit skip (not a silent pass).
 
-- Open-source Snyk and container Snyk **run and hard-fail** the job on high+ issues  
-- When unset, CI prints an explicit skip (not a silent pass)  
+After the next workflow run, confirm the Snyk steps ran (or failed for real findings).
 
-Verify after next workflow run: Actions → Plane CI → steps “Snyk open-source scan” / “Snyk container scan” are green or real failures (not “skipped”).
-
-## 2. Confirm GHCR packages + Cosign on next main push
+## 2. Confirm GHCR + Cosign on the next main push
 
 After a **push to `main`** (not only a PR):
 
-1. **Actions** → latest **Plane CI** → `docker-build` job  
-   - Login to GHCR  
-   - Build and push image  
-   - Cosign sign (keyless, registry digest)  
-   - Cosign verify (**hard**)  
+1. **Actions → Plane CI → docker-build**  
+   - Login GHCR → Build and push → **Cosign sign** → **Cosign verify (hard)**  
+2. **Packages** → `living-intermediate-control-plane` tags `ci` / `sha-<commit>`  
 
-2. **Packages** (repo sidebar or `https://github.com/OWNER?tab=packages`)  
-   - Package: `living-intermediate-control-plane`  
-   - Tags: `ci`, `sha-<commit>`  
-
-3. Optional local verify (after pull):
+Optional verify:
 
 ```bash
-# replace OWNER with lowercase github owner
 cosign verify \
   --certificate-identity-regexp ".*" \
   --certificate-oidc-issuer-regexp ".*" \
-  ghcr.io/OWNER/living-intermediate-control-plane:ci
+  ghcr.io/<owner-lowercase>/living-intermediate-control-plane:ci
 ```
 
-Disable registry push if needed: repo **variable** `ENABLE_REGISTRY_PUSH=0`.
+Disable push: repo variable `ENABLE_REGISTRY_PUSH=0`.  
+OIDC keyless: `docs/oidc-cosign-keyless.md` · CI detail: `docs/ci-registry-cosign.md`
 
-Details: `docs/ci-registry-cosign.md`.
-
-## 3. Enable plane-unattended.timer on the operator host
+## 3. Enable plane-unattended.timer on the host
 
 ```bash
 cd /path/to/living-intermediate-control-plane
@@ -52,48 +42,62 @@ git pull --ff-only origin main
 mkdir -p ~/.config/systemd/user
 cp docs/systemd/plane-unattended.service ~/.config/systemd/user/
 cp docs/systemd/plane-unattended.timer   ~/.config/systemd/user/
-
-# Edit WorkingDirectory / node path if needed
-nano ~/.config/systemd/user/plane-unattended.service
+nano ~/.config/systemd/user/plane-unattended.service   # WorkingDirectory + node path
 
 systemctl --user daemon-reload
 systemctl --user enable --now plane-unattended.timer
 loginctl enable-linger $USER
-
-# Smoke once
 systemctl --user start plane-unattended.service
 journalctl --user -u plane-unattended.service -n 50 --no-pager
 systemctl --user list-timers plane-unattended.timer
 ```
 
-Default schedule: **09:15** local every day.  
-Do **not** also enable `plane-daily.timer` unless you want double runs.
-
-Helper:
+Or:
 
 ```bash
 npm run operator-host
-# or
-bash scripts/install-operator-host.sh
 ```
 
-## 4. Use agent-chat only for toolkit work in workspace/
+Default: **09:15** daily. Do **not** also enable `plane-daily.timer`.
 
-| Situation | Command |
-|-----------|--------|
-| Need Llama tools / write under `workspace/` | `plane agent-chat` → authorize `y` or `/auth` |
-| Only operate the plane (procure, unattended, supply-chain) | **Do not** open agent-chat |
-| End toolkit authority | `plane agent-revoke` or `/revoke` in chat |
-
-Rules:
-
-- No outside sandbox without chat authorization  
-- Writes only under `workspace/`  
-- Admission still `plane unattended` / `admit-change` / CI  
+## 4. Optionally enable Gitsign (commit signing)
 
 ```bash
-plane agent-status    # authorized?
-plane progress        # board includes agent auth
+go install github.com/sigstore/gitsign@latest
+
+git config --global gpg.x509.program gitsign
+git config --global gpg.format x509
+git config --global commit.gpgsign true
+
+# verify later
+gitsign verify HEAD
 ```
 
+Details: `docs/gitsign.md`. Image admission still uses **Cosign**, not Gitsign.
+
+## 5. Use agent-chat only for toolkit work in workspace/
+
+| Need | Action |
+|------|--------|
+| Allowlisted tools / writes under `workspace/` | `plane agent-chat` → authorize `y` or `/auth` |
+| Operate plane only (unattended, supply-chain, admit) | **Do not** open agent-chat |
+| End toolkit authority | `plane agent-revoke` or `/revoke` |
+
+```bash
+plane agent-status
+plane progress
+```
+
+Rules: no outside sandbox without chat auth; admission still unattended / admit-change / CI.  
 See `docs/llama-agent.md`.
+
+---
+
+## Quick status after setup
+
+```bash
+plane upgrade-check
+plane progress
+plane supply-chain
+plane unattended
+```
