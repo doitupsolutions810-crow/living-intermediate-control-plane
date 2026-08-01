@@ -2,18 +2,15 @@
 
 Version **0.5.3**
 
-## Operator host (timer + cron + Rekor)
+## Operator host
 
 ```bash
-# Rekor CLI
 brew install rekor-cli
-
-# Helper (copies systemd units, shows cron)
 npm run operator-host
-
-# Or read the full guide
-# docs/operator-host-setup.md
 ```
+
+Full setup (systemd, cron template, Rekor): `docs/operator-host-setup.md`  
+Cron template only: `docs/cron/plane-daily.crontab`
 
 ## Daily
 

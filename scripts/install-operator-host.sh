@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Operator host helper: systemd units, cron template, rekor-cli check
+# Operator host helper: systemd units, point to cron template, rekor-cli check
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,9 +13,7 @@ echo "== Rekor CLI =="
 if command -v rekor-cli >/dev/null 2>&1; then
   rekor-cli version || true
 else
-  echo "rekor-cli not found."
-  echo "  Homebrew: brew install rekor-cli"
-  echo "  Linux:    see docs/cosign.md / docs/operator-host-setup.md"
+  echo "rekor-cli not found. Install: brew install rekor-cli  (see docs/cosign.md)"
 fi
 echo
 
@@ -25,24 +23,17 @@ if command -v systemctl >/dev/null 2>&1; then
   cp "$ROOT/docs/systemd/plane-daily.service" "$USER_SYSTEMD/"
   cp "$ROOT/docs/systemd/plane-daily.timer" "$USER_SYSTEMD/"
   echo "Copied to $USER_SYSTEMD"
-  echo "Edit WorkingDirectory/ExecStart if needed, then:"
+  echo "Edit WorkingDirectory/ExecStart, then:"
   echo "  systemctl --user daemon-reload"
   echo "  systemctl --user enable --now plane-daily.timer"
-  echo "  loginctl enable-linger \$USER"
 else
-  echo "systemctl not available — use cron instead."
+  echo "systemctl not available — use cron template instead."
 fi
 echo
 
-echo "== cron template =="
-echo "File: $ROOT/docs/cron/plane-daily.crontab"
-echo "Example line:"
-grep -v '^#' "$ROOT/docs/cron/plane-daily.crontab" | grep -v '^$' | head -5
-echo
-echo "Install example:"
-echo "  (crontab -l 2>/dev/null; cat docs/cron/plane-daily.crontab) | crontab -"
-echo
-echo "Use either systemd timer OR cron for daily loop (not both)."
+echo "== cron =="
+echo "Canonical template: $ROOT/docs/cron/plane-daily.crontab"
+echo "(Use either systemd timer or cron, not both.)"
 echo
 echo "== smoke =="
 echo "  cd \"$PLANE_HOME\" && node status/upgrade-check.mjs && node status/daily-loop.mjs"
