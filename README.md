@@ -1,24 +1,16 @@
 # Living Intermediate Control Plane
 
-Version **0.7.0**
-
-## Llama coding agent
+Version **0.7.1**
 
 ```bash
-ollama pull llama3.2
-plane agent-chat          # authorize via chat, then use tools
-plane unattended          # admit/maintain under gates
-plane admit-change        # explicit admission suite
+plane next
+plane agent-chat      # authorize Llama toolkit
+plane unattended      # daily + self-develop + admit-change + gates
+plane admit-change
 ```
 
-Tools need **chat authorization**. No external sandbox without it.  
-Details: `docs/llama-agent.md`
-
-## Unattended
-
-```bash
-plane unattended
-```
+Agent tools require chat auth. Admission stays plane + CI.  
+See `docs/llama-agent.md`, `docs/unattended.md`.
 
 ## Success criteria
 

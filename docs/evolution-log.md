@@ -1,12 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Llama agent + chat auth (0.7.0)
+## 2026-08-01 — Evolve 0.7.1
 
-- agents/llama: Ollama client, allowlisted toolkit, chat session auth
-- No outside toolkit without chat authorization
-- Within session: no per-action approval (allowlist only)
-- admit-change + unattended + CI remain admission gates
+- upgrade-check / verify-changes cover Llama agent modules
+- next advisor includes agent auth state + unattended/admit-change
+- unattended now runs admit-change before final gates
 
-## 0.6.0
+## 0.7.0
 
-- Unattended self-develop loop
+- Llama agent + chat auth + toolkit

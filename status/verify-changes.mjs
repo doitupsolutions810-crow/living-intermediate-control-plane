@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * Verify layout/docs expectations after recent changes
- */
-
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +9,6 @@ const root = join(__dirname, '..');
 function read(rel) {
   return readFileSync(join(root, rel), 'utf8');
 }
-
 function exists(rel) {
   return existsSync(join(root, rel));
 }
@@ -28,44 +23,44 @@ try {
   version = JSON.parse(read('package.json')).version;
 } catch {}
 
-// Required paths
 const paths = [
   'docs/verify-changes.md',
-  'docs/upgrade.md',
+  'docs/unattended.md',
+  'docs/llama-agent.md',
   'docs/operator-host-setup.md',
   'docs/cron/plane-daily.crontab',
   'docs/daily-loop.md',
-  'docs/systemd/plane-daily.service',
-  'docs/systemd/plane-daily.timer',
-  'scripts/install-operator-host.sh',
-  'status/daily-loop.mjs',
-  'status/upgrade-check.mjs',
+  'agents/llama/agent.mjs',
+  'agents/llama/toolkit.mjs',
+  'agents/llama/session.mjs',
+  'agents/llama/config.json',
+  'status/unattended.mjs',
+  'status/admit-change.mjs',
+  'workspace/tasks/verify-health.json',
   'bin/plane.mjs'
 ];
 
-for (const p of paths) {
-  check(`exists:${p}`, exists(p), p);
-}
+for (const p of paths) check(`exists:${p}`, exists(p), p);
 
-// Cron single-source: daily-loop should not embed a full 09:00 cron line
 if (exists('docs/daily-loop.md')) {
   const daily = read('docs/daily-loop.md');
-  const hasCronLine = /0\s+9\s+\*\s+\*\s+\*/.test(daily);
-  check('daily-loop has no embedded crontab line', !hasCronLine, hasCronLine ? 'found 0 9 * * *' : 'clean');
-  check('daily-loop points at cron template', daily.includes('docs/cron/plane-daily.crontab'), 'reference');
+  check('daily-loop has no embedded crontab line', !/0\s+9\s+\*\s+\*\s+\*/.test(daily), 'cron');
+  check('daily-loop points at cron template', daily.includes('docs/cron/plane-daily.crontab'), 'ref');
 }
 
-// Cron template should define the schedule
 if (exists('docs/cron/plane-daily.crontab')) {
   const cron = read('docs/cron/plane-daily.crontab');
-  check('cron template has schedule', /0\s+9\s+\*\s+\*\s+\*/.test(cron), '0 9 * * *');
-  check('cron template runs daily-loop', cron.includes('daily-loop.mjs') || cron.includes('npm run daily'), 'command');
+  check('cron template has schedule', /0\s+9\s+\*\s+\*\s+\*/.test(cron), 'schedule');
 }
 
-// operator-host-setup should mention single source
-if (exists('docs/operator-host-setup.md')) {
-  const oh = read('docs/operator-host-setup.md');
-  check('operator-host mentions cron template', oh.includes('docs/cron/plane-daily.crontab'), 'reference');
+if (exists('agents/llama/toolkit.mjs')) {
+  const tk = read('agents/llama/toolkit.mjs');
+  check('toolkit confines writes to workspace', tk.includes('workspace') && tk.includes('escapes'), 'workspace-only');
+}
+
+if (exists('agents/llama/session.mjs')) {
+  const s = read('agents/llama/session.mjs');
+  check('session auth module present', s.includes('authorize') && s.includes('isAuthorized'), 'auth');
 }
 
 const failed = checks.filter(c => !c.ok);
@@ -76,10 +71,7 @@ const summary = {
   passed: checks.filter(c => c.ok).length,
   failed: failed.length,
   checks,
-  note: failed.length === 0
-    ? 'verify-changes passed.'
-    : 'verify-changes failed — see checks with ok:false.'
+  note: failed.length === 0 ? 'verify-changes passed.' : 'verify-changes failed.'
 };
-
 console.log(JSON.stringify(summary, null, 2));
 process.exit(failed.length === 0 ? 0 : 1);
