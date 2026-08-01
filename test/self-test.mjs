@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Minimal self-test for the Living Intermediate Control Plane
- * Confirms the integrated path produces a well-formed decision.
  * Control704 high-priority override surface
  */
 
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
-import { handleLaunchDeskAction } from '../launchdesk/actions.mjs';
+import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
+import { readPlaneState } from '../status/plane-state.mjs';
 
 let passed = 0;
 let failed = 0;
@@ -36,6 +36,12 @@ assert(plan.roles.length === 5, 'five roles present');
 const action = handleLaunchDeskAction('status', 'self-test');
 assert(action.accepted === true, 'LaunchDesk action accepted');
 assert(action.decision === 'READY', 'LaunchDesk decision is READY');
+
+const named = listNamedActions();
+assert(named.length >= 5, 'named LaunchDesk actions present');
+
+const state = readPlaneState();
+assert(typeof state.paused === 'boolean', 'plane state readable');
 
 console.log(`\nResult: ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

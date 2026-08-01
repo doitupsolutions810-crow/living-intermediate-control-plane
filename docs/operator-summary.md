@@ -6,23 +6,24 @@
 npm run procure
 ```
 
-## Useful commands
+## Control actions
 
 ```bash
-npm run check      # integrated check
-npm run status     # plane snapshot
-npm run readiness  # one-shot readiness
-npm run log        # recent decisions
-npm run actions    # list named LaunchDesk actions
-npm test           # self-test
+npm run pause     # hold further procure decisions
+npm run resume    # clear pause
+npm run state     # show current pause state
+npm run log       # recent decisions
+npm run actions   # list named LaunchDesk actions
+npm test          # self-test
 ```
 
-## Decisions
+## Decisions you may see
 
 | Result | Meaning |
 |--------|--------|
-| `READY_FOR_PROCUREMENT` | Core clear + local evidence accepted → next stage may proceed |
+| `READY_FOR_PROCUREMENT` | Core clear + local evidence accepted |
 | `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` | Core clear; public console still needed |
+| `PAUSED` | Operator has paused the plane |
 | `HOLD` | Readiness or orchestration not clear |
 
 ## Success criteria (only three)

@@ -1,13 +1,12 @@
 # Evolution Log
 
-## 2026-07-31 — Evolve system
+## 2026-07-31 — Evolve again
 
-- Added append-only decision log (`status/decision-log.mjs` + `data/decisions.jsonl`)
-- Integrated entry point now records every decision
-- Named LaunchDesk actions: status, evolve, pause, procure, resume
-- package scripts updated (`log`, `actions`)
-- Next-actions list refreshed
+- Added persistent pause / resume state (`status/plane-state.mjs`)
+- Integrated entry point now respects pause and exposes pause/resume actions
+- Self-test expanded to cover named actions and plane state
+- package scripts: pause, resume, state
 
 ## Previous
 
-- Integrated entry point, package scripts, self-test, procurement bridge, continuous readiness, plane status, and Avrone bridge already present
+- Decision log, named LaunchDesk actions, integrated entry point, procurement bridge, and supporting surfaces already present
