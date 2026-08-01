@@ -1,0 +1,8 @@
+{
+  "id": "admit-gates",
+  "type": "verify",
+  "auto": true,
+  "enabled": true,
+  "description": "Core admission gates before promote",
+  "steps": ["upgrade-check", "verify-changes", "doctor", "checklist"]
+}

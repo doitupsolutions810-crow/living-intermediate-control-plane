@@ -18,6 +18,9 @@ const required = [
   'status/unattended.mjs',
   'status/self-develop.mjs',
   'status/admit-change.mjs',
+  'status/supply-chain.mjs',
+  'status/progress.mjs',
+  'status/connectors.mjs',
   'status/doctor.mjs',
   'status/checklist.mjs',
   'status/security-scan.mjs',
@@ -26,11 +29,15 @@ const required = [
   'agents/llama/agent.mjs',
   'agents/llama/toolkit.mjs',
   'agents/llama/session.mjs',
+  'connectors/manifest.json',
+  'workspace/tasks/verify-health.json',
+  'workspace/tasks/admit-gates.json',
+  'workspace/tasks/supply-chain-baseline.json',
+  'docs/systemd/plane-unattended.timer',
+  'docs/operator-host-setup.md',
   'policy/trivy-results.rego',
   'policy/snyk-results.rego',
   'Dockerfile',
-  'docs/unattended.md',
-  'docs/llama-agent.md',
   '.github/workflows/plane-ci.yml'
 ];
 
@@ -50,7 +57,7 @@ const summary = {
   passed: results.filter(r => r.ok).length,
   results,
   next: failed === 0
-    ? ['plane doctor', 'plane unattended', 'plane agent-status']
+    ? ['plane supply-chain', 'plane unattended', 'plane admit-change']
     : ['git pull --ff-only origin main', 'plane upgrade-check'],
   note: failed === 0 ? 'Upgrade check passed.' : 'Missing required files.'
 };

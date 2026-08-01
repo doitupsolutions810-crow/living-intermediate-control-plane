@@ -1,11 +1,13 @@
 # Evolution Log
 
-## 2026-08-01 — Supply-chain integration (0.8.1)
+## 2026-08-01 — Fix · supply-chain · agent tasks · host schedule · admit (0.9.0)
 
-- `plane supply-chain` unifies Trivy/Snyk/OPA + optional Cosign sign/verify
-- docs/supply-chain.md
-- connectors toolset lists supply-chain command
+- Agent tasks: admit-gates + supply-chain-baseline auto tasks
+- self-develop allowlist includes supply-chain + admit-change
+- Host schedule prefers plane-unattended systemd timer
+- upgrade-check covers 0.9.0 critical paths
+- Chat authorization noted under workspace/proposals
 
-## 0.8.0
+## 0.8.1
 
-- Connectors registry
+- Integrated plane supply-chain

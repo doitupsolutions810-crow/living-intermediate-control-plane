@@ -1,62 +1,26 @@
 {
-  "version": "0.8.1",
+  "version": "0.9.0",
   "plane": "living-intermediate-control-plane",
   "connectors": [
-    {
-      "id": "github",
-      "status": "active",
-      "role": "source-of-truth repo, CI, push, PRs"
-    },
-    {
-      "id": "google_drive",
-      "status": "optional",
-      "role": "export reports"
-    },
-    {
-      "id": "vercel",
-      "status": "optional",
-      "role": "status microsite"
-    },
-    {
-      "id": "figma",
-      "status": "optional",
-      "role": "UI design reference"
-    },
-    {
-      "id": "gmail",
-      "status": "optional",
-      "role": "failure alerts"
-    },
-    {
-      "id": "automations",
-      "status": "optional",
-      "role": "scheduled checks"
-    },
-    {
-      "id": "ollama_llama",
-      "status": "active",
-      "role": "coding agent + toolkit under chat auth"
-    },
-    {
-      "id": "security_toolset",
-      "status": "active",
-      "role": "Trivy, Snyk, OPA, Cosign, Rekor — via plane supply-chain"
-    },
-    {
-      "id": "plane_core",
-      "status": "active",
-      "role": "checklist, procure, doctor, unattended, admit-change"
-    }
+    { "id": "github", "status": "active", "role": "repo, CI, push" },
+    { "id": "ollama_llama", "status": "active", "role": "agent toolkit under chat auth" },
+    { "id": "security_toolset", "status": "active", "role": "plane supply-chain" },
+    { "id": "plane_core", "status": "active", "role": "unattended + admit-change" },
+    { "id": "google_drive", "status": "optional", "role": "export reports" },
+    { "id": "vercel", "status": "optional", "role": "status host" },
+    { "id": "figma", "status": "optional", "role": "UI design" },
+    { "id": "gmail", "status": "optional", "role": "alerts" },
+    { "id": "automations", "status": "optional", "role": "scheduled prompts" }
   ],
   "toolsets": {
-    "admission": ["upgrade-check", "verify-changes", "doctor", "checklist", "security-scan", "admit-change", "ci"],
+    "admission": ["upgrade-check", "verify-changes", "doctor", "checklist", "admit-change", "ci"],
     "unattended": ["daily", "self-develop", "unattended"],
     "agent": ["agent-chat", "agent-run", "agent-status", "agent-revoke"],
-    "supply_chain": ["supply-chain", "security-scan", "cosign:sign", "cosign:verify", "rekor", "docker:build"]
+    "supply_chain": ["supply-chain", "security-scan", "cosign:sign", "cosign:verify", "rekor"]
   },
   "gate": {
-    "external_sandbox": "requires plane agent-chat authorization",
-    "admission": "plane unattended | admit-change | CI",
-    "supply_chain": "plane supply-chain"
+    "chat_auth": "operator-granted for allowlisted toolkit",
+    "admission": "unattended | admit-change | CI",
+    "host_schedule": "plane-unattended.timer preferred"
   }
 }

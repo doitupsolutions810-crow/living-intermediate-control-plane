@@ -1,6 +1,6 @@
 # Operator host setup
 
-Configure **systemd timer**, **cron**, and **rekor-cli** for the daily plane loop.
+**Preferred schedule:** unattended loop (includes daily + self-develop + admit-change + final gates).
 
 ## 0. Prerequisites
 
@@ -16,71 +16,62 @@ export PLANE_HOME="$HOME/living-intermediate-control-plane"
 cd "$PLANE_HOME"
 ```
 
----
-
-## 1. Rekor CLI installation
+## 1. Rekor CLI (optional log queries)
 
 ```bash
 brew install rekor-cli
-rekor-cli version
 plane rekor version
 ```
 
-Other platforms: `docs/cosign.md`.
+## 2. Host schedule — systemd (recommended)
 
----
-
-## 2. systemd timer (recommended on Linux)
+Use **unattended** timer (not both daily and unattended).
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp docs/systemd/plane-daily.service ~/.config/systemd/user/
-cp docs/systemd/plane-daily.timer   ~/.config/systemd/user/
+cp docs/systemd/plane-unattended.service ~/.config/systemd/user/
+cp docs/systemd/plane-unattended.timer   ~/.config/systemd/user/
 
-nano ~/.config/systemd/user/plane-daily.service
-# Set WorkingDirectory and ExecStart (absolute node path if needed)
+nano ~/.config/systemd/user/plane-unattended.service
+# WorkingDirectory + ExecStart=/usr/bin/node status/unattended.mjs
 
 systemctl --user daemon-reload
-systemctl --user enable --now plane-daily.timer
+systemctl --user enable --now plane-unattended.timer
 loginctl enable-linger $USER
 
-systemctl --user start plane-daily.service
-journalctl --user -u plane-daily.service -n 50 --no-pager
+systemctl --user start plane-unattended.service
+journalctl --user -u plane-unattended.service -n 50 --no-pager
 ```
 
-Units: `docs/systemd/` · Debug: `docs/systemd-debug.md`
+Default: daily **09:15** (`plane-unattended.timer`).
 
----
+Daily-only units remain in `docs/systemd/plane-daily.*` if you prefer the lighter loop.
 
-## 3. Cron (alternative)
+## 3. Cron alternative (single source)
 
-Canonical template only — do not duplicate lines elsewhere:
+Template: **`docs/cron/plane-daily.crontab`**
 
-**`docs/cron/plane-daily.crontab`**
+For unattended instead of daily, schedule:
+
+```cron
+15 9 * * * cd $HOME/living-intermediate-control-plane && /usr/bin/node status/unattended.mjs >> $HOME/plane-unattended.log 2>&1
+```
+
+Use **either** systemd **or** cron — not both.
+
+## 4. Chat-authorized agent (optional on host)
 
 ```bash
-# Review, adjust paths, then:
-crontab -e
-# paste from docs/cron/plane-daily.crontab
+ollama pull llama3.2
+plane agent-chat    # authorize session
 ```
 
-Use **either** systemd timer **or** cron, not both.
-
----
-
-## 4. Helper
-
-```bash
-npm run operator-host
-```
-
----
-
-## 5. Smoke test
+## 5. Smoke / admit
 
 ```bash
 plane upgrade-check
-plane daily
-plane rekor version
-cat data/daily-loop-last.json
+plane supply-chain
+plane unattended
+plane admit-change
+plane progress
 ```

@@ -1,5 +1,5 @@
 [Unit]
-Description=Living Intermediate Control Plane unattended self-develop loop
+Description=Living Intermediate Control Plane unattended loop (daily+tasks+admit)
 After=network-online.target
 Wants=network-online.target
 
@@ -8,7 +8,6 @@ Type=oneshot
 WorkingDirectory=%h/living-intermediate-control-plane
 ExecStart=/usr/bin/node status/unattended.mjs
 Environment=ALLOW_SKIP=1
-# Environment=UNATTENDED_CONTINUE_ON_FAIL=1
 Nice=10
 TimeoutStartSec=45min
 

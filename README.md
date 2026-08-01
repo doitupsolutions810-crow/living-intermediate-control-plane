@@ -1,16 +1,16 @@
 # Living Intermediate Control Plane
 
-Version **0.8.1**
+Version **0.9.0**
 
 ```bash
-plane connectors
+plane upgrade-check
 plane supply-chain
-IMAGE_REF=living-intermediate-control-plane:0.8.1 plane supply-chain
-plane progress
 plane unattended
+plane admit-change
+plane progress
 ```
 
-Supply chain: `docs/supply-chain.md`
+Host schedule: `docs/operator-host-setup.md` (prefer **unattended** timer).
 
 ## Success criteria
 

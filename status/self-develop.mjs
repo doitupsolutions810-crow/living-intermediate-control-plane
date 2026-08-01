@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 /**
- * Self-develop runner — executes auto-enabled workspace tasks under plane gates.
- *
- * Unattended-safe step allowlist only (no arbitrary shell from task files).
+ * Self-develop runner — allowlisted steps only
  */
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -24,6 +22,8 @@ const STEP_MAP = {
   checklist: { file: 'status/checklist.mjs' },
   health: { file: 'status/health.mjs' },
   'security-scan': { file: 'status/security-scan.mjs' },
+  'supply-chain': { file: 'status/supply-chain.mjs' },
+  'admit-change': { file: 'status/admit-change.mjs' },
   metrics: { file: 'status/metrics.mjs' },
   'security-summary': { file: 'status/security-summary.mjs' },
   daily: { file: 'status/daily-loop.mjs' },
@@ -34,9 +34,7 @@ const continueOnFail = process.env.SELF_DEVELOP_CONTINUE_ON_FAIL === '1';
 
 function runStep(name, env = {}) {
   const def = STEP_MAP[name];
-  if (!def) {
-    return { name, ok: false, detail: `unknown step (not in allowlist): ${name}` };
-  }
+  if (!def) return { name, ok: false, detail: `unknown step: ${name}` };
   process.stdout.write(`\n-- step: ${name} --\n`);
   const r = spawnSync(process.execPath, [join(root, def.file)], {
     cwd: root,
@@ -86,12 +84,7 @@ for (const task of tasks) {
 
   const ok = taskFailed === 0 && steps.length > 0;
   if (!ok) failed++;
-  taskResults.push({
-    id: task.id || task.file,
-    type: task.type || null,
-    ok,
-    steps: stepResults
-  });
+  taskResults.push({ id: task.id || task.file, type: task.type || null, ok, steps: stepResults });
   if (!ok && !continueOnFail) break;
 }
 
@@ -102,9 +95,7 @@ const summary = {
   tasksRun: taskResults.length,
   taskResults,
   allowlist: Object.keys(STEP_MAP),
-  note: failed === 0
-    ? 'Self-develop auto tasks passed under plane allowlist.'
-    : 'One or more self-develop tasks failed.'
+  note: failed === 0 ? 'Self-develop auto tasks passed.' : 'Self-develop had failures.'
 };
 
 writeFileSync(outPath, JSON.stringify(summary, null, 2) + '\n');
