@@ -1,0 +1,43 @@
+name: Plane CI
+
+on:
+  # Manual run (reliable while account-level Actions issues may exist)
+  workflow_dispatch:
+  # Optional automatic runs — may still hit account-level startup_failure (see docs/ci.md)
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  plane-checks:
+    name: Doctor, test, smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Init local data
+        run: node status/init.mjs
+
+      - name: Doctor
+        run: node status/doctor.mjs
+
+      - name: Self-test
+        run: node test/self-test.mjs
+
+      - name: Health
+        run: node status/health.mjs
+
+      - name: Smoke
+        run: node status/smoke.mjs
+
+      - name: Dry-run procure
+        run: DRY_RUN=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure

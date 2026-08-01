@@ -1,10 +1,14 @@
 # Evolution Log
 
-## 2026-07-31 — Evolve even further (0.3.1)
+## 2026-07-31 — CI integration (0.3.2)
 
-- `npm run doctor` — deeper integrity diagnostics (modules, config, data dir, READY signals)
-- `npm run export` — export / filter decision log (`--decision`, `--limit`)
-- Help and operator docs updated
+- Added `.github/workflows/plane-ci.yml` (workflow_dispatch + push/PR)
+- Added `npm run ci` local suite (init → doctor → test → health → dry-run)
+- Added `docs/ci.md` with exit codes and Issue #3 caveat
+
+## 0.3.1
+
+- doctor, export/filter decisions
 
 ## 0.3.0
 

@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 /**
  * Help — list all operator commands
- * Control704 high-priority override surface
  */
 
 const help = `
 Living Intermediate Control Plane — operator commands
-Authenticated via Control704 access proxy X, Y, Z data-set code override
 
 Setup
   npm run init         Create local data dir and ensure config exists
@@ -36,7 +34,8 @@ Background
   npm run continuous   Keep status file fresh
   npm run watch        Periodically run integrated check
 
-Maintenance
+CI / maintenance
+  npm run ci           Full CI suite (local)
   npm run smoke        Health + self-test
   npm run reset-local -- --confirm
   npm test
