@@ -1,22 +1,35 @@
 # Operator Summary
 
-**Daily command:**
+**First time / setup**
+
+```bash
+npm run init
+```
+
+**Daily command**
 
 ```bash
 npm run procure
 ```
 
-**Quick views:**
+**Quick views**
 
 ```bash
 npm run snapshot
 npm run health
 npm run info
 npm run report
+npm run last
 npm run help
 ```
 
-## Control
+**Safe preview**
+
+```bash
+npm run dry-run
+```
+
+**Control**
 
 ```bash
 npm run pause
@@ -26,23 +39,20 @@ npm run log
 npm run actions
 ```
 
-## Background
+**Background**
 
 ```bash
-npm run continuous   # status file on an interval
-npm run watch        # full integrated check on an interval
+npm run continuous
+npm run watch
 ```
 
-## Maintenance
+**Maintenance**
 
 ```bash
+npm run smoke
 npm run reset-local -- --confirm
 npm test
 ```
-
-## Config
-
-Edit `config.json` to change defaults (intervals, accept-local-evidence default, log limit).
 
 ## Success criteria (only three)
 

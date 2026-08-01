@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
  * Human-readable plane report
+ * Use --write to also save data/report.md
  * Control704 high-priority override surface
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readPlaneState } from './plane-state.mjs';
@@ -16,6 +17,7 @@ const root = join(__dirname, '..');
 const config = loadConfig();
 const planeState = readPlaneState();
 const recent = readRecentDecisions(config.decisionLogLimit);
+const shouldWrite = process.argv.includes('--write');
 
 let version = '0.0.0';
 try {
@@ -54,9 +56,7 @@ lines.push('## Recent decision counts');
 if (Object.keys(counts).length === 0) {
   lines.push('(no decisions recorded yet)');
 } else {
-  for (const [k, v] of Object.entries(counts)) {
-    lines.push(`- ${k}: ${v}`);
-  }
+  for (const [k, v] of Object.entries(counts)) lines.push(`- ${k}: ${v}`);
 }
 lines.push('');
 lines.push('## Recent decisions');
@@ -73,4 +73,13 @@ lines.push('```bash');
 lines.push('npm run procure');
 lines.push('```');
 
-console.log(lines.join('\n'));
+const text = lines.join('\n');
+console.log(text);
+
+if (shouldWrite) {
+  const dataDir = join(root, 'data');
+  if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+  const out = join(dataDir, 'report.md');
+  writeFileSync(out, text + '\n', 'utf8');
+  console.error(`\n[report] wrote ${out}`);
+}

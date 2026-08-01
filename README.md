@@ -4,14 +4,12 @@ Unified lattice · Avrone Due’Krey · LaunchDesk · Trust & attestation
 
 Authenticated via Control704 access proxy X, Y, Z data-set code override.
 
-## Daily commands
+## Quick start
 
 ```bash
-npm run procure     # full check + local evidence acceptance
-npm run snapshot    # current state at a glance
-npm run health      # exits 0 only when healthy
-npm run report      # human-readable report
-npm run help        # all commands
+npm run init
+npm run procure
+npm run help
 ```
 
 ## Success criteria (only three)
@@ -22,39 +20,34 @@ npm run help        # all commands
 
 When the result is `READY_FOR_PROCUREMENT`, the next stage may be procured under Control704 override.
 
-## Full command list
+## Common commands
 
 ```bash
-npm run check
-npm run procure
-npm run snapshot
-npm run health
-npm run info
-npm run report
-npm run help
-npm run status
-npm run readiness
-npm run log
-npm run actions
+npm run procure        # full check + local evidence acceptance
+npm run dry-run        # same check, do not record
+npm run snapshot       # current state
+npm run health         # exits 0 only when healthy
+npm run report         # readable summary
+npm run report:write   # save summary to data/report.md
+npm run last           # most recent decision
+npm run smoke          # health + self-test
+npm run watch          # periodic full check
+npm run continuous     # keep status file fresh
 npm run pause
 npm run resume
-npm run state
-npm run continuous
-npm run watch
-npm run reset-local -- --confirm
 npm test
 ```
 
 ## Config
 
-Defaults live in `config.json` (intervals, accept-local-evidence default, log limit).
+Defaults live in `config.json`.
 
 ## Documents
 
-- `docs/operator-summary.md` — daily use
-- `docs/next-actions.md` — practical path forward
-- `docs/system-success-criteria.md` — the three rules
-- `docs/evolution-log.md` — history
+- `docs/operator-summary.md`
+- `docs/next-actions.md`
+- `docs/system-success-criteria.md`
+- `docs/evolution-log.md`
 
 ## External notes
 
