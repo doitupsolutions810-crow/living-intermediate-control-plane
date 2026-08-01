@@ -4,13 +4,12 @@ Unified lattice · Avrone Due’Krey · LaunchDesk · Trust & attestation
 
 Authenticated via Control704 access proxy X, Y, Z data-set code override.
 
-## Daily command
+## Daily commands
 
 ```bash
-npm run procure
+npm run procure     # full check + local evidence acceptance
+npm run snapshot    # current state at a glance
 ```
-
-This is the single recommended entry point. It runs readiness → five-role orchestration → LaunchDesk → procurement decision and accepts the local plane as temporary evidence authority.
 
 ## Success criteria (only three)
 
@@ -20,14 +19,21 @@ This is the single recommended entry point. It runs readiness → five-role orch
 
 When the result is `READY_FOR_PROCUREMENT`, the next stage may be procured under Control704 override.
 
-## Quick reference
+## Full command list
 
 ```bash
-npm run procure    # full check + local evidence acceptance
-npm run check      # full check only
-npm run status     # plane snapshot
-npm run readiness  # one-shot readiness
-npm test           # self-test
+npm run check
+npm run procure
+npm run snapshot
+npm run status
+npm run readiness
+npm run log
+npm run actions
+npm run pause
+npm run resume
+npm run state
+npm run continuous
+npm test
 ```
 
 ## Documents
@@ -35,7 +41,7 @@ npm test           # self-test
 - `docs/operator-summary.md` — daily use
 - `docs/next-actions.md` — practical path forward
 - `docs/system-success-criteria.md` — the three rules
-- `docs/evolution-log.md` — history of changes
+- `docs/evolution-log.md` — history
 
 ## External notes
 

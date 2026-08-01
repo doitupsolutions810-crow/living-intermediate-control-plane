@@ -2,11 +2,10 @@
 
 ## 2026-07-31 — Evolve
 
-- Added live status file writer (`data/status.json`)
-- Integrated entry point and continuous-readiness now update the status file
-- Continuous readiness respects plane pause state
-- Status file gives a readable snapshot without re-running Node
+- Added operator snapshot command (`npm run snapshot`)
+- Snapshot combines pause state, live status file, and recent decisions in one view
+- package version 0.1.4
 
 ## Previous
 
-- Pause/resume state, decision log, named LaunchDesk actions, integrated entry point, procurement bridge, and supporting surfaces already present
+- Live status file, continuous readiness with pause respect, decision log, pause/resume, named actions, integrated entry point, and supporting surfaces already present

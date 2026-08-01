@@ -6,7 +6,13 @@
 npm run procure
 ```
 
-## Control
+**Quick view of current state:**
+
+```bash
+npm run snapshot
+```
+
+## Control commands
 
 ```bash
 npm run pause
@@ -14,18 +20,17 @@ npm run resume
 npm run state
 npm run log
 npm run actions
+npm run continuous
 npm test
 ```
 
 ## Live status file
 
-After any integrated check or while continuous readiness is running, the latest state is written to:
-
 ```
 data/status.json
 ```
 
-This can be read by other tools without executing Node again.
+Updated by every integrated check and by continuous readiness.
 
 ## Decisions
 
