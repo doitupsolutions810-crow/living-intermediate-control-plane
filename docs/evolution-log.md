@@ -1,12 +1,11 @@
 # Evolution Log
 
-## 2026-07-31 — Proceed (package + self-test)
+## 2026-07-31 — Proceed (roadmap)
 
-- Added package.json with simple scripts (`check`, `procure`, `status`, `readiness`, `test`)
-- Added minimal self-test that confirms readiness, orchestration, and LaunchDesk paths
-- Operator summary updated for daily use
-- Integrated entry point remains the primary surface under Control704 override
+- Added practical next-actions list ordered by value and ease
+- Operator summary updated to point at the daily command and the next-actions doc
+- System remains under Control704 high-priority override with the three simple success criteria
 
 ## Previous
 
-- Integrated entry point, procurement bridge, continuous readiness, plane status, LaunchDesk actions, Avrone bridge, and issue tracking already present
+- Integrated entry point, package scripts, self-test, procurement bridge, continuous readiness, plane status, LaunchDesk actions, and Avrone bridge already present

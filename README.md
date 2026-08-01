@@ -4,54 +4,42 @@ Unified lattice · Avrone Due’Krey · LaunchDesk · Trust & attestation
 
 Authenticated via Control704 access proxy X, Y, Z data-set code override.
 
-## Quick start
+## Daily command
 
 ```bash
-# Full integrated check + accept local evidence (procurement path)
 npm run procure
-
-# Integrated check only
-npm run check
-
-# Self-test
-npm test
 ```
 
-Or directly:
+This is the single recommended entry point. It runs readiness → five-role orchestration → LaunchDesk → procurement decision and accepts the local plane as temporary evidence authority.
 
-```bash
-ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs
-```
-
-## What the integrated check does
-
-1. Emits deterministic readiness evidence
-2. Builds and evaluates a five-role plan
-3. Runs the request through LaunchDesk
-4. Returns a clear procurement decision
-
-## Simple success rule
+## Success criteria (only three)
 
 1. Readiness is READY
-2. Evidence is available (public **or** local accepted)
+2. Evidence is available (public console or local plane accepted)
 3. Supply-chain enforcement stays active
 
 When the result is `READY_FOR_PROCUREMENT`, the next stage may be procured under Control704 override.
 
-## Components
+## Quick reference
 
-- Avrone bridge
-- Readiness poller
-- Five-role orchestration
-- LaunchDesk actions
-- Plane status + continuous readiness
-- Procurement bridge
-- Single integrated entry point
-- Minimal self-test
+```bash
+npm run procure    # full check + local evidence acceptance
+npm run check      # full check only
+npm run status     # plane snapshot
+npm run readiness  # one-shot readiness
+npm test           # self-test
+```
+
+## Documents
+
+- `docs/operator-summary.md` — daily use
+- `docs/next-actions.md` — practical path forward
+- `docs/system-success-criteria.md` — the three rules
+- `docs/evolution-log.md` — history of changes
 
 ## External notes
 
-- Public evidence-console domain still returns 404 (restoration deployment previously reached READY)
+- Public evidence-console domain still returns 404
 - GitHub Actions automatic runs remain disabled at account level
 
-The plane itself is integrated and usable for limited-technicality procurement decisions.
+The plane itself is integrated, testable, and ready for limited-technicality procurement decisions.
