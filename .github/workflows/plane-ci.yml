@@ -20,7 +20,7 @@ env:
 
 jobs:
   plane-checks:
-    name: Doctor, test, smoke, Trivy FS
+    name: Verify, doctor, test, Trivy FS
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -36,6 +36,12 @@ jobs:
       - name: Init local data
         run: node status/init.mjs
 
+      - name: Upgrade check
+        run: node status/upgrade-check.mjs
+
+      - name: Verify changes
+        run: node status/verify-changes.mjs
+
       - name: Doctor
         run: node status/doctor.mjs
 
@@ -44,6 +50,9 @@ jobs:
 
       - name: Health
         run: node status/health.mjs
+
+      - name: Checklist
+        run: node status/checklist.mjs
 
       - name: Smoke
         run: node status/smoke.mjs
@@ -154,8 +163,6 @@ jobs:
         with:
           subject-path: image-inspect.json
 
-      # Cosign keyless signing works best on a registry digest.
-      # With load-only images this step is best-effort and non-blocking.
       - name: Cosign version
         run: cosign version
 

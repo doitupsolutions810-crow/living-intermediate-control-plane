@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * CI entry point
- * Order: init → doctor → self-test → health → dry-run procure → security-scan (optional skip)
+ * Local CI entry — mirrors plane-checks verification steps
+ * Order: init → upgrade-check → verify-changes → doctor → self-test →
+ *        health → checklist → dry-run procure → security-scan (optional skip)
  */
 
 import { spawnSync } from 'node:child_process';
@@ -13,9 +14,12 @@ const root = join(__dirname, '..');
 
 const steps = [
   { name: 'init', file: join(root, 'status/init.mjs') },
+  { name: 'upgrade-check', file: join(root, 'status/upgrade-check.mjs') },
+  { name: 'verify-changes', file: join(root, 'status/verify-changes.mjs') },
   { name: 'doctor', file: join(root, 'status/doctor.mjs') },
   { name: 'self-test', file: join(root, 'test/self-test.mjs') },
   { name: 'health', file: join(root, 'status/health.mjs') },
+  { name: 'checklist', file: join(root, 'status/checklist.mjs') },
   {
     name: 'dry-run procure',
     file: join(root, 'integrate.mjs'),
@@ -23,9 +27,8 @@ const steps = [
     env: { DRY_RUN: '1', ACCEPT_LOCAL_EVIDENCE: '1' }
   },
   {
-    name: 'security-scan (Trivy + OPA)',
+    name: 'security-scan',
     file: join(root, 'status/security-scan.mjs'),
-    // In local/default CI without tools installed, allow skip; GitHub job still runs native Trivy actions
     env: { ALLOW_SKIP: process.env.REQUIRE_SECURITY_TOOLS === '1' ? '0' : '1' }
   }
 ];
