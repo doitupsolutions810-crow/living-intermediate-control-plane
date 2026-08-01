@@ -1,12 +1,12 @@
 # Evolution Log
 
-## 2026-08-01 — Snyk Rego + Gatekeeper (0.4.4)
+## 2026-08-01 — Evolve (0.4.5)
 
-- `policy/snyk-results.rego` for Snyk JSON
-- security-scan runs Conftest on Snyk reports
-- OPA Gatekeeper ConstraintTemplates/Constraints under `k8s/gatekeeper/`
-- Example Snyk Rego policies
+- `npm run metrics` — decision outcome counts
+- Doctor checks for Trivy policy, Snyk policy, Gatekeeper dir
+- security-summary lists Snyk + Gatekeeper posture
+- next advisor suggests security-scan and metrics
 
-## 0.4.3
+## 0.4.4
 
-- Snyk CLI beside Trivy; customized Trivy OPA rules
+- Snyk Rego + Gatekeeper K8s manifests

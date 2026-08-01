@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Security & supply-chain summary for operators
- * Plain-language overview of what the plane and CI enforce.
+ * Security & supply-chain summary
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -23,17 +22,20 @@ try {
 const files = {
   trivyConfig: existsSync(join(root, 'trivy.yaml')),
   trivyIgnore: existsSync(join(root, '.trivyignore')),
-  opaPolicy: existsSync(join(root, 'policy/trivy-results.rego')),
+  trivyPolicy: existsSync(join(root, 'policy/trivy-results.rego')),
+  snykPolicy: existsSync(join(root, 'policy/snyk-results.rego')),
   dockerfile: existsSync(join(root, 'Dockerfile')),
-  ciWorkflow: existsSync(join(root, '.github/workflows/plane-ci.yml'))
+  ciWorkflow: existsSync(join(root, '.github/workflows/plane-ci.yml')),
+  gatekeeperDir: existsSync(join(root, 'k8s/gatekeeper'))
 };
 
-const summary = {
+console.log(JSON.stringify({
   timestamp: new Date().toISOString(),
   version,
   plane: {
     paused: planeState.paused,
-    securityValue: config.securityValue
+    securityValue: config.securityValue,
+    gateDoctorOnProcure: config.gateDoctorOnProcure === true
   },
   successCriteria: [
     '1. Readiness is READY',
@@ -43,27 +45,28 @@ const summary = {
   supplyChain: {
     container: 'distroless nodejs nonroot runtime',
     builders: ['docker-buildx', 'kaniko'],
-    vulnerabilityScan: 'Trivy FS + image (CRITICAL/HIGH)',
-    policy: 'OPA/Conftest on Trivy JSON',
+    vulnerabilityScan: 'Trivy FS/image + Snyk test/container',
+    policy: 'OPA/Conftest on Trivy JSON and Snyk JSON',
+    kubernetesAdmission: 'OPA Gatekeeper templates under k8s/gatekeeper/',
     sbom: 'Syft SPDX + CycloneDX (Kaniko path)',
     provenance: 'SLSA-style in-toto statements + optional GitHub attestations',
     filesPresent: files
   },
   operatorCommands: {
     daily: 'npm run procure',
+    next: 'npm run next',
     health: 'npm run doctor',
+    securityScan: 'npm run security-scan',
+    metrics: 'npm run metrics',
     localCi: 'npm run ci',
     image: 'npm run docker:build && npm run docker:doctor'
   },
   docs: [
     'docs/security.md',
-    'docs/ci.md',
-    'docs/docker.md',
     'docs/trivy.md',
-    'docs/kaniko.md',
+    'docs/gatekeeper.md',
+    'docs/ci.md',
     'docs/slsa.md'
   ],
   note: 'CI is a helper. Readiness and doctor remain the authority for limited-technicality decisions.'
-};
-
-console.log(JSON.stringify(summary, null, 2));
+}, null, 2));

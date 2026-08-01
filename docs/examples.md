@@ -2,65 +2,38 @@
 
 ## `npm run doctor` (healthy)
 
+Includes core readiness checks plus presence of Trivy policy, Snyk policy, and Gatekeeper manifests.
+
 ```bash
 npm run doctor
 ```
 
+Expect `ok: true` and checks for:
+
+- package.json / config / data dir
+- readiness READY, orchestration READY
+- LaunchDesk actions
+- plane state
+- trivy policy present
+- snyk policy present
+- gatekeeper manifests present
+
+## `npm run metrics`
+
+```bash
+npm run metrics
+```
+
 ```json
 {
-  "timestamp": "2026-08-01T03:19:23.102Z",
-  "ok": true,
-  "passed": 7,
-  "failed": 0,
-  "checks": [
-    {
-      "name": "package.json readable",
-      "ok": true,
-      "detail": "version 0.3.1"
-    },
-    {
-      "name": "config loadable",
-      "ok": true,
-      "detail": "securityValue=High"
-    },
-    {
-      "name": "data directory writable",
-      "ok": true,
-      "detail": "/path/to/living-intermediate-control-plane/data"
-    },
-    {
-      "name": "readiness READY",
-      "ok": true,
-      "detail": "deterministic-local-evidence"
-    },
-    {
-      "name": "orchestration READY",
-      "ok": true,
-      "detail": "5 roles"
-    },
-    {
-      "name": "LaunchDesk actions",
-      "ok": true,
-      "detail": "5 named actions"
-    },
-    {
-      "name": "plane state readable",
-      "ok": true,
-      "detail": "active"
-    }
-  ],
-  "securityValue": "High",
-  "note": "Doctor checks passed under Control704 override."
+  "total": 3,
+  "byDecision": {
+    "READY_FOR_PROCUREMENT": 2,
+    "HOLD": 1
+  }
 }
 ```
 
-Plain reading:
+## `npm run next`
 
-| Field | Meaning |
-|-------|--------|
-| `ok` | Overall pass/fail |
-| `passed` / `failed` | How many checks succeeded or failed |
-| `checks` | Each individual check with a short detail |
-| exit code | `0` if healthy, non-zero if not |
-
-If a check fails, that entry will show `"ok": false` and a short error in `detail`.
+State-aware recommended commands (procure, security-scan, metrics, …).

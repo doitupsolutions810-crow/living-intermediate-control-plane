@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Next-steps advisor — recommends what to run based on current plane state
+ * Next-steps advisor
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -66,8 +66,20 @@ if (recent.length === 0) {
 
 recommendations.push({
   priority: 4,
+  command: 'npm run security-scan',
+  reason: 'Run Trivy + Snyk + OPA policy checks when tools are available.'
+});
+
+recommendations.push({
+  priority: 4,
   command: 'npm run security-summary',
-  reason: 'Review supply-chain and CI posture.'
+  reason: 'Review supply-chain and policy posture.'
+});
+
+recommendations.push({
+  priority: 5,
+  command: 'npm run metrics',
+  reason: 'See decision outcome counts from the local log.'
 });
 
 recommendations.push({
@@ -78,7 +90,7 @@ recommendations.push({
 
 recommendations.sort((a, b) => a.priority - b.priority);
 
-const result = {
+console.log(JSON.stringify({
   timestamp: new Date().toISOString(),
   paused: planeState.paused,
   readiness: readiness.overallDecision,
@@ -86,6 +98,4 @@ const result = {
   lastDecision: live?.decision || recent[recent.length - 1]?.decision || null,
   recommendations,
   note: 'Ordered by priority. Lower number = do this first.'
-};
-
-console.log(JSON.stringify(result, null, 2));
+}, null, 2));
