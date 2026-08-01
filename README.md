@@ -1,22 +1,23 @@
 # Living Intermediate Control Plane
 
-Version **0.5.3**
+Version **0.6.0**
 
-## Operator host
+## Unattended (self-maintain under gates)
 
 ```bash
-brew install rekor-cli
-npm run operator-host
+plane unattended
+npm run unattended
 ```
 
-Full setup (systemd, cron template, Rekor): `docs/operator-host-setup.md`  
-Cron template only: `docs/cron/plane-daily.crontab`
+Runs daily loop + auto workspace tasks + final verify/doctor.  
+See `docs/unattended.md`.
 
-## Daily
+## Daily / manual
 
 ```bash
 plane daily
-plane upgrade-check
+plane checklist
+plane procure
 ```
 
 ## Success criteria

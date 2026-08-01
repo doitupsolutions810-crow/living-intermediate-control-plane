@@ -1,0 +1,11 @@
+[Unit]
+Description=Run plane unattended loop daily
+Requires=plane-unattended.service
+
+[Timer]
+OnCalendar=*-*-* 09:15:00
+Persistent=true
+Unit=plane-unattended.service
+
+[Install]
+WantedBy=timers.target

@@ -1,7 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Snyk container integration (0.5.6)
+## 2026-08-01 — Unattended self-develop (0.6.0)
 
-- security-scan: explicit Snyk container test + JSON + OPA on container report
-- docs/snyk-container.md
-- CI docker-build continues Snyk container via SNYK_TOKEN
+- `plane unattended` — daily + workspace auto tasks + final gates
+- `workspace/tasks` allowlisted self-develop steps
+- systemd samples: plane-unattended.service/timer
+
+## 0.5.6
+
+- Snyk container scanning

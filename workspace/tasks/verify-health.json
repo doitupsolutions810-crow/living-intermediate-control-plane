@@ -1,0 +1,8 @@
+{
+  "id": "verify-health",
+  "type": "verify",
+  "auto": true,
+  "enabled": true,
+  "description": "Upgrade check, verify layout, doctor, self-test",
+  "steps": ["upgrade-check", "verify-changes", "doctor", "self-test", "checklist"]
+}
