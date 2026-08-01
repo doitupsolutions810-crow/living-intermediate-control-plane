@@ -1,11 +1,15 @@
 # Evolution Log
 
+## 2026-07-31 — Proceed pass
+
+- Added continuous readiness stub (`status/continuous-readiness.mjs`)
+- Added operator summary for quick daily use
+- Posted progress comments on control12-lattice-ops issues #11 and #3
+- Evidence-console primary domain still 404; restoration deployment previously reached READY
+- System remains under Control704 high-priority override
+
 ## 2026-07-31 — Evolve pass
 
-- Added plane-wide status emitter (`status/plane-status.mjs`)
-- Added LaunchDesk action bridge (`launchdesk/actions.mjs`)
-- Updated README with current state and simple success path
-- Evidence-console primary domain still shows prior 404; restoration deployment exists and is READY on its deployment URL
-- Issue #3 remains mitigated (manual dispatch + offline checks)
-
-System remains under Control704 high-priority override.
+- Added plane-wide status emitter
+- Added LaunchDesk action bridge
+- Updated README and success path
