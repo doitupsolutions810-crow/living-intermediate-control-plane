@@ -4,34 +4,27 @@ const help = `
 Living Intermediate Control Plane — operator commands
 
 Setup
-  npm run init              Create local data dir and ensure config exists
+  npm run init
 
 Daily
-  npm run procure           Full check + accept local evidence
-  npm run dry-run           Same check without recording
-  npm run snapshot          Current state + recent decisions
-  npm run health            Exit 0 only when healthy
-  npm run doctor            Integrity diagnostics
-  npm run info              Version + success criteria
-  npm run security-summary  Supply-chain / CI posture
-  npm run report            Human-readable report
-  npm run last              Most recent decision
-  npm run help              This list
+  npm run procure            Full check + local evidence
+  npm run procure:gated      Same, but doctor must pass first
+  npm run dry-run            Preview without recording
+  npm run next               Recommended next commands from current state
+  npm run snapshot           State + decisions + security files
+  npm run doctor / health / info / security-summary / report / last
 
 Control
-  npm run pause / resume / state
-  npm run log / export / actions
+  npm run pause / resume / state / log / export / actions
 
 Background
   npm run continuous / watch
 
 CI & containers
-  npm run ci                Local CI suite
-  npm run docker:build      Build image
-  npm run docker:doctor     Run doctor in image
-  npm run smoke / test
+  npm run ci / smoke / test
+  npm run docker:build / docker:doctor
 
-Success criteria (only three)
+Success criteria
   1. Readiness is READY
   2. Evidence is available (public or local accepted)
   3. Supply-chain enforcement remains active

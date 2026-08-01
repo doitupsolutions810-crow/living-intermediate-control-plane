@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 /**
- * Operator snapshot — one view of current plane state
- * Combines pause state, live status file, and recent decisions.
- * Control704 high-priority override surface
+ * Operator snapshot — pause state, live status, recent decisions, security files
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -12,7 +10,8 @@ import { readPlaneState } from './plane-state.mjs';
 import { readRecentDecisions } from './decision-log.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const STATUS_FILE = join(__dirname, '..', 'data', 'status.json');
+const root = join(__dirname, '..');
+const STATUS_FILE = join(root, 'data', 'status.json');
 
 function readStatusFile() {
   if (!existsSync(STATUS_FILE)) return null;
@@ -44,10 +43,17 @@ const snapshot = {
     action: d.action,
     recordedAt: d.recordedAt
   })),
+  securityFiles: {
+    trivyConfig: existsSync(join(root, 'trivy.yaml')),
+    trivyIgnore: existsSync(join(root, '.trivyignore')),
+    opaPolicy: existsSync(join(root, 'policy/trivy-results.rego')),
+    dockerfile: existsSync(join(root, 'Dockerfile')),
+    ciWorkflow: existsSync(join(root, '.github/workflows/plane-ci.yml'))
+  },
   securityValue: 'High',
   note: planeState.paused
     ? 'Plane is paused. Use npm run resume to clear.'
-    : 'Plane is active. Use npm run procure for a full check.'
+    : 'Plane is active. Use npm run procure for a full check, or npm run next for advice.'
 };
 
 console.log(JSON.stringify(snapshot, null, 2));

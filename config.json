@@ -1,5 +1,6 @@
 {
   "acceptLocalEvidenceByDefault": false,
+  "gateDoctorOnProcure": false,
   "readinessIntervalMs": 30000,
   "watchIntervalMs": 60000,
   "decisionLogLimit": 20,

@@ -1,20 +1,13 @@
 #!/usr/bin/env node
 /**
- * Living Intermediate Control Plane — integrated entry point
- *
- * Runs readiness → orchestration → LaunchDesk → procurement decision,
- * respects pause state, records the decision (unless DRY_RUN=1),
- * and updates the live status file.
- *
- * Usage:
- *   node integrate.mjs
- *   node integrate.mjs status
- *   ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure
- *   DRY_RUN=1 node integrate.mjs procure
- *
- * Control704 high-priority override surface
+ * Integrated entry point
+ * readiness → orchestration → LaunchDesk → procurement decision
+ * Optional doctor gate when gateDoctorOnProcure or GATE_DOCTOR=1
  */
 
+import { spawnSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { emitReadinessEvidence } from './lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from './agents/orchestration.mjs';
 import { handleLaunchDeskAction } from './launchdesk/actions.mjs';
@@ -23,10 +16,15 @@ import { readPlaneState, pausePlane, resumePlane } from './status/plane-state.mj
 import { writeStatusFile } from './status/write-status-file.mjs';
 import { loadConfig } from './lib/config.mjs';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
 const action = process.argv[2] || 'status';
 const goal = process.argv[3] || 'integrated-check';
 const dryRun = process.env.DRY_RUN === '1' || process.env.DRY_RUN === 'true';
+const gateDoctor =
+  process.env.GATE_DOCTOR === '1' ||
+  process.env.GATE_DOCTOR === 'true' ||
+  config.gateDoctorOnProcure === true;
 
 if (action === 'pause') {
   const state = pausePlane(goal || 'operator-pause');
@@ -36,7 +34,7 @@ if (action === 'pause') {
     decision: 'PAUSED',
     state,
     dryRun,
-    note: 'Plane paused under Control704 override. Further procure decisions will be held.',
+    note: 'Plane paused. Further procure decisions will be held.',
     securityValue: config.securityValue
   };
   if (!dryRun) {
@@ -55,7 +53,7 @@ if (action === 'resume') {
     decision: 'RESUMED',
     state,
     dryRun,
-    note: 'Plane resumed under Control704 override.',
+    note: 'Plane resumed.',
     securityValue: config.securityValue
   };
   if (!dryRun) {
@@ -64,6 +62,40 @@ if (action === 'resume') {
   }
   console.log(JSON.stringify(result, null, 2));
   process.exit(0);
+}
+
+let doctorPassed = null;
+if (gateDoctor && (action === 'procure' || action === 'status')) {
+  const doctor = spawnSync(process.execPath, [join(__dirname, 'status/doctor.mjs')], {
+    cwd: __dirname,
+    encoding: 'utf8'
+  });
+  doctorPassed = doctor.status === 0;
+  if (!doctorPassed && action === 'procure') {
+    const result = {
+      timestamp: new Date().toISOString(),
+      action,
+      goal,
+      decision: 'HOLD_DOCTOR',
+      dryRun,
+      doctorPassed: false,
+      note: 'Doctor gate failed. Fix doctor checks before procure, or disable gateDoctorOnProcure / GATE_DOCTOR.',
+      securityValue: config.securityValue
+    };
+    if (!dryRun) {
+      try {
+        recordDecision({
+          decision: result.decision,
+          action,
+          goal,
+          doctorPassed: false
+        });
+      } catch {}
+      try { writeStatusFile({ source: 'integrate', ...result }); } catch {}
+    }
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(1);
+  }
 }
 
 const planeState = readPlaneState();
@@ -100,6 +132,8 @@ const result = {
   goal,
   decision,
   dryRun,
+  doctorGated: gateDoctor,
+  doctorPassed,
   paused: planeState.paused,
   pauseReason: planeState.reason,
   readiness: {
@@ -126,9 +160,9 @@ const result = {
       : decision === 'PAUSED'
         ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
         : decision === 'READY_FOR_PROCUREMENT'
-          ? 'Integrated check passed. Local plane accepted as temporary evidence authority under Control704 override.'
+          ? 'Integrated check passed. Local evidence accepted.'
           : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-            ? 'Core systems READY. Public evidence-console domain still required or set ACCEPT_LOCAL_EVIDENCE=1.'
+            ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
             : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
@@ -142,7 +176,8 @@ if (!dryRun) {
       readinessOverall: result.readiness.overall,
       orchestrationOverall: result.orchestration.overall,
       localEvidenceAccepted: result.localEvidenceAccepted,
-      paused: result.paused
+      paused: result.paused,
+      doctorPassed: result.doctorPassed
     });
   } catch (err) {
     result.logError = String(err.message || err);

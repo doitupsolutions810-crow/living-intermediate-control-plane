@@ -1,22 +1,12 @@
 # Evolution Log
 
-## 2026-08-01 — Evolve system 0.4.0
+## 2026-08-01 — Evolve even more (0.4.1)
 
-Milestone: operator surface + supply-chain stack in one line.
+- `npm run next` — state-aware recommended commands
+- `npm run procure:gated` / `GATE_DOCTOR=1` / `gateDoctorOnProcure` — doctor must pass before procure
+- Snapshot includes security file presence
+- Config default `gateDoctorOnProcure: false`
 
-- `npm run security-summary` — plain JSON posture of plane + CI controls
-- `docs/security.md` — single security overview
-- Help / operator summary updated for CI and containers
-- Version **0.4.0**
+## 0.4.0
 
-## 0.3.8
-
-- Example Rego, SLSA provenance, optimized Kaniko cache keys
-
-## 0.3.7
-
-- Kaniko cache, Syft SBOM, OPA on Trivy JSON
-
-## 0.3.x
-
-- Distroless, Trivy, Buildx/Kaniko, doctor, CI suite, Docker
+- security-summary, docs/security.md, operator consolidation
