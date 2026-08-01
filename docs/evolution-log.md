@@ -1,11 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Sigstore ecosystem expansion (0.9.3)
+## 2026-08-01 — 0.10.0 control-plane milestone
 
-- docs/sigstore-ecosystem.md, docs/gitsign.md
-- cosign:attest-sbom (SBOM attest/attach)
-- Fulcio/TSA/Gitsign mapped next to Cosign+Rekor
+- Progress board includes supply-chain last run + ops checklist pointers
+- `plane operator-host` CLI command
+- Milestone tag: mature gated control + Sigstore path
 
-## 0.9.2
+## 0.9.3
 
-- OIDC keyless docs + operator-host
+- Sigstore ecosystem (gitsign, attest-sbom, Fulcio/TSA map)

@@ -1,28 +1,16 @@
 {
-  "version": "0.9.3",
+  "version": "0.10.0",
   "plane": "living-intermediate-control-plane",
+  "milestone": "control-plane",
   "connectors": [
-    { "id": "github", "status": "active", "role": "repo, CI, OIDC for keyless Cosign" },
-    { "id": "sigstore", "status": "active", "role": "Cosign, Rekor, Fulcio, optional Gitsign/attest" },
-    { "id": "ollama_llama", "status": "active", "role": "agent toolkit under chat auth" },
-    { "id": "security_toolset", "status": "active", "role": "plane supply-chain" },
-    { "id": "plane_core", "status": "active", "role": "unattended + admit-change" },
-    { "id": "google_drive", "status": "optional", "role": "export reports" },
-    { "id": "gmail", "status": "optional", "role": "alerts" }
+    { "id": "github", "status": "active", "role": "repo, CI, OIDC" },
+    { "id": "sigstore", "status": "active", "role": "Cosign, Rekor, Fulcio, Gitsign optional" },
+    { "id": "ollama_llama", "status": "active", "role": "agent under chat auth" },
+    { "id": "plane_core", "status": "active", "role": "unattended + admit" }
   ],
-  "toolsets": {
-    "supply_chain": [
-      "supply-chain",
-      "security-scan",
-      "cosign:sign",
-      "cosign:verify",
-      "cosign:attest-sbom",
-      "rekor"
-    ],
-    "sigstore": ["cosign", "rekor-cli", "gitsign", "fulcio-via-oidc", "tsa-optional"]
-  },
   "gate": {
     "admission": "unattended | admit-change | CI",
-    "signing": "Cosign keyless OIDC on GHCR digest"
+    "signing": "Cosign keyless OIDC on GHCR",
+    "agent": "chat auth required for toolkit"
   }
 }

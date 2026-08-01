@@ -8,10 +8,11 @@ const root = join(__dirname, '..');
 
 const commands = {
   help: { desc: 'Show this help' },
+  progress: { script: 'status/progress.mjs', desc: 'Progress board (0.10 milestone)' },
   connectors: { script: 'status/connectors.mjs', desc: 'Connectors registry' },
-  progress: { script: 'status/progress.mjs', desc: 'Progress board' },
-  'supply-chain': { script: 'status/supply-chain.mjs', desc: 'Integrated supply-chain path' },
+  'supply-chain': { script: 'status/supply-chain.mjs', desc: 'Integrated supply-chain' },
   'notify-hints': { script: 'status/notify-hints.mjs', desc: 'Optional Drive/Gmail hints' },
+  'operator-host': { script: 'scripts/install-operator-host.sh', shell: true, desc: 'Install unattended timer helpers' },
   init: { script: 'status/init.mjs', desc: 'Init local data' },
   checklist: { script: 'status/checklist.mjs', desc: 'Pre-flight' },
   daily: { script: 'status/daily-loop.mjs', desc: 'Daily loop' },
@@ -41,7 +42,7 @@ const commands = {
     script: 'integrate.mjs',
     args: ['procure'],
     env: { ACCEPT_LOCAL_EVIDENCE: '1', DRY_RUN: '1' },
-    desc: 'Dry-run procure'
+    desc: 'Dry-run'
   },
   doctor: { script: 'status/doctor.mjs', desc: 'Doctor' },
   health: { script: 'status/health.mjs', desc: 'Health' },
@@ -67,7 +68,7 @@ const cmd = process.argv[2] || 'help';
 const extra = process.argv.slice(3);
 
 if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
-  console.log('Living Intermediate Control Plane CLI\n');
+  console.log('Living Intermediate Control Plane CLI (0.10)\n');
   for (const name of Object.keys(commands).sort()) {
     console.log(`  ${name.padEnd(18)} ${commands[name].desc}`);
   }
@@ -78,6 +79,15 @@ const def = commands[cmd];
 if (!def) {
   console.error(`Unknown command: ${cmd}`);
   process.exit(1);
+}
+
+if (def.shell) {
+  const result = spawnSync('bash', [join(root, def.script), ...extra], {
+    cwd: root,
+    env: process.env,
+    stdio: 'inherit'
+  });
+  process.exit(result.status === 0 ? 0 : result.status || 1);
 }
 
 const result = spawnSync(

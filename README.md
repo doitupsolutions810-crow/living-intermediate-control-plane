@@ -1,16 +1,18 @@
 # Living Intermediate Control Plane
 
-Version **0.9.3**
+Version **0.10.0** — control-plane milestone
 
 ```bash
-npm run operator-host
-npm run cosign:attest-sbom   # IMAGE_REF=... optional SBOM_PATH=
-plane supply-chain
+plane progress
+plane operator-host
 plane unattended
+plane supply-chain
+plane admit-change
 ```
 
-Sigstore ecosystem: **`docs/sigstore-ecosystem.md`**  
-OIDC keyless: **`docs/oidc-cosign-keyless.md`**
+Timer copy-paste: `docs/timer-copy-paste.md`  
+Next ops: `docs/next-ops.md`  
+Sigstore: `docs/sigstore-ecosystem.md`
 
 ## Success criteria
 
