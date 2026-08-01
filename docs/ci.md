@@ -2,35 +2,43 @@
 
 ## What CI runs
 
-1. `node status/init.mjs` — create local data dir
-2. `node status/doctor.mjs` — integrity checks (exit 0 only if healthy)
-3. `node test/self-test.mjs` — unit-style self-test
-4. `node status/health.mjs` — READY + not paused
-5. `node status/smoke.mjs` — health + self-test together (in the workflow)
-6. Dry-run procure — decision path without writing a permanent record
+### Job 1 — Node checks
+1. Init local data
+2. Doctor
+3. Self-test
+4. Health
+5. Smoke
+6. Dry-run procure
 
-Local equivalent:
+### Job 2 — Docker (after Job 1 passes)
+1. Build image from `Dockerfile`
+2. Run doctor inside the image
+
+Local equivalents:
 
 ```bash
 npm run ci
+npm run docker:build
+npm run docker:doctor
 ```
 
-Or the workflow file: `.github/workflows/plane-ci.yml`
+Workflow file: `.github/workflows/plane-ci.yml`
 
 ## Triggers
 
 - **workflow_dispatch** — manual run (preferred)
-- **push** / **pull_request** to `main` — optional automatic runs
+- **push** / **pull_request** to `main`
 
 ## Account-level caveat (Issue #3)
 
 Some runs may still fail with `startup_failure` before any job starts. That is an account/org Actions restriction, not a failure of these checks.
 
-When that happens:
+When that happens, run the same checks locally:
 
-- Run the same checks locally: `npm run ci`
-- Treat offline results as authoritative
-- Keep using readiness + doctor for procurement decisions
+```bash
+npm run ci
+npm run docker:build
+```
 
 ## Exit codes
 
@@ -40,7 +48,7 @@ When that happens:
 | `npm run health` | Not paused and READY |
 | `npm test` | Self-test passed |
 | `npm run smoke` | Health and self-test both passed |
-| `npm run ci` | Full CI suite passed |
+| `npm run ci` | Full local CI suite passed |
 
 ## Design rule
 

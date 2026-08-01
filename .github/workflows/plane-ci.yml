@@ -1,9 +1,7 @@
 name: Plane CI
 
 on:
-  # Manual run (reliable while account-level Actions issues may exist)
   workflow_dispatch:
-  # Optional automatic runs — may still hit account-level startup_failure (see docs/ci.md)
   push:
     branches: [main]
   pull_request:
@@ -41,3 +39,28 @@ jobs:
 
       - name: Dry-run procure
         run: DRY_RUN=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: plane-checks
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: living-intermediate-control-plane:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run doctor inside image
+        run: docker run --rm living-intermediate-control-plane:ci

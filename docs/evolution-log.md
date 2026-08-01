@@ -1,10 +1,16 @@
 # Evolution Log
 
-## 2026-07-31 — CI integration (0.3.2)
+## 2026-07-31 — Docker build (0.3.3)
 
-- Added `.github/workflows/plane-ci.yml` (workflow_dispatch + push/PR)
-- Added `npm run ci` local suite (init → doctor → test → health → dry-run)
-- Added `docs/ci.md` with exit codes and Issue #3 caveat
+- Added `Dockerfile` (node:20-alpine)
+- Added `.dockerignore`
+- Added Docker build job to Plane CI (runs after Node checks)
+- Added `npm run docker:build` and `npm run docker:doctor`
+- Added `docs/docker.md`
+
+## 0.3.2
+
+- GitHub Actions workflow + `npm run ci`
 
 ## 0.3.1
 
@@ -13,7 +19,3 @@
 ## 0.3.0
 
 - init, dry-run, last, report:write, smoke
-
-## 0.2.x
-
-- config, help, report, watch, metrics, continuous/status/pause surfaces
