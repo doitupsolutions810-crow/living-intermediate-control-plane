@@ -2,16 +2,21 @@
 
 Version **0.9.1**
 
-```bash
-plane upgrade-check
-plane supply-chain
-plane unattended
-plane admit-change
-plane notify-hints
-```
+## Next ops
 
-CI: GHCR push + hard Cosign on main; set `SNYK_TOKEN` for hard Snyk gates.  
-See `docs/ci-registry-cosign.md`, `docs/optional-notify.md`.
+1. Set GitHub secret **`SNYK_TOKEN`**  
+2. On next **main** push, confirm **GHCR** package + **Cosign** sign/verify in Actions  
+3. Enable **`plane-unattended.timer`** on the operator host  
+4. Use **`plane agent-chat`** only for toolkit work under `workspace/`  
+
+Details: **`docs/next-ops.md`**
+
+```bash
+plane progress
+plane unattended
+plane supply-chain
+plane admit-change
+```
 
 ## Success criteria
 
