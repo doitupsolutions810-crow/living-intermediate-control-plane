@@ -30,7 +30,7 @@ const recommendations = [];
 if (planeState.paused) {
   recommendations.push({
     priority: 1,
-    command: 'npm run resume',
+    command: 'plane resume',
     reason: 'Plane is paused; clear the hold before procuring.'
   });
 }
@@ -38,7 +38,7 @@ if (planeState.paused) {
 if (readiness.overallDecision !== 'READY' || plan.overallDecision !== 'READY') {
   recommendations.push({
     priority: 1,
-    command: 'npm run doctor',
+    command: 'plane doctor',
     reason: 'Readiness or orchestration is not READY.'
   });
 }
@@ -46,46 +46,45 @@ if (readiness.overallDecision !== 'READY' || plan.overallDecision !== 'READY') {
 if (!planeState.paused && readiness.overallDecision === 'READY' && plan.overallDecision === 'READY') {
   recommendations.push({
     priority: 2,
-    command: 'npm run procure',
+    command: 'plane checklist',
+    reason: 'Run pre-flight before procure.'
+  });
+  recommendations.push({
+    priority: 2,
+    command: 'plane procure',
     reason: 'Core systems READY; run a full procurement check.'
   });
-  recommendations.push({
-    priority: 3,
-    command: 'npm run dry-run',
-    reason: 'Preview the decision without recording it.'
-  });
-}
-
-if (recent.length === 0) {
-  recommendations.push({
-    priority: 3,
-    command: 'npm run init && npm run procure',
-    reason: 'No decisions recorded yet.'
-  });
 }
 
 recommendations.push({
-  priority: 4,
-  command: 'npm run security-scan',
-  reason: 'Run Trivy + Snyk + OPA policy checks when tools are available.'
+  priority: 3,
+  command: 'plane security-scan',
+  reason: 'Trivy + Snyk + OPA when tools are installed.'
 });
 
+if (existsSync(join(root, 'Dockerfile'))) {
+  recommendations.push({
+    priority: 4,
+    command: 'npm run docker:build && IMAGE_REF=living-intermediate-control-plane:0.5.0 plane cosign-sign',
+    reason: 'Build image then sign with Cosign (Rekor upload on by default).'
+  });
+  recommendations.push({
+    priority: 4,
+    command: 'IMAGE_REF=living-intermediate-control-plane:0.5.0 plane cosign-verify',
+    reason: 'Verify Cosign signature / Rekor entry when image was signed.'
+  });
+}
+
 recommendations.push({
-  priority: 4,
-  command: 'npm run security-summary',
-  reason: 'Review supply-chain and policy posture.'
+  priority: 5,
+  command: 'plane rekor version',
+  reason: 'Confirm rekor-cli (brew install rekor-cli) for log queries.'
 });
 
 recommendations.push({
   priority: 5,
-  command: 'npm run metrics',
-  reason: 'See decision outcome counts from the local log.'
-});
-
-recommendations.push({
-  priority: 5,
-  command: 'npm run report',
-  reason: 'Human-readable summary of state and history.'
+  command: 'plane metrics',
+  reason: 'Decision outcome counts.'
 });
 
 recommendations.sort((a, b) => a.priority - b.priority);

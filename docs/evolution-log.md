@@ -1,11 +1,20 @@
 # Evolution Log
 
-## 2026-08-01 — rekor-cli integration + Homebrew (0.4.9)
+## 2026-08-01 — Evolve 0.5.0 (signed supply-chain milestone)
 
-- Unified `npm run rekor -- <cmd>` and `plane rekor <cmd>` passthrough
-- Homebrew install documented: `brew install rekor-cli`
-- Env helpers for search/get (REKOR_ARTIFACT_HASH, REKOR_UUID)
+- security-summary reports Cosign/Rekor tools + scripts
+- next advisor suggests build → cosign-sign → verify → rekor
+- Docs mark signed path (Cosign + Rekor) as first-class operator flow
+- Version **0.5.0**
+
+## 0.4.9
+
+- rekor-cli integration + Homebrew install
 
 ## 0.4.8
 
-- Rekor tlog upload on Cosign sign; rekor search helpers
+- Rekor tlog on Cosign sign
+
+## 0.4.7
+
+- plane CLI + Cosign
