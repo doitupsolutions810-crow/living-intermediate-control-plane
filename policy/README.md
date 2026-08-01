@@ -1,18 +1,31 @@
 # Policy enforcement (OPA / Conftest)
 
-Rego policies applied to **Trivy JSON reports** after each image scan.
+## Active policy (CI)
 
 | File | Rule |
 |------|------|
-| `trivy-results.rego` | Deny CRITICAL and HIGH vulnerabilities in the report |
-
-## Local use
+| `trivy-results.rego` | Deny CRITICAL and HIGH in Trivy JSON reports |
 
 ```bash
-trivy image --format json -o trivy-report.json living-intermediate-control-plane:0.3.7
 conftest test --policy policy trivy-report.json
 ```
 
-Exit code non-zero means policy denied the report.
+## Example policies (`policy/examples/`)
 
-These policies complement Trivy’s own severity exit codes: Trivy filters/ignores first (via `trivy.yaml` / `.trivyignore`), then OPA enforces the remaining findings.
+| File | What it shows |
+|------|----------------|
+| `deny-critical-only.rego` | Deny CRITICAL only |
+| `require-results.rego` | Require a non-empty `Results` array |
+| `max-vuln-count.rego` | Fail if total vulns exceed a threshold |
+
+Examples are **not** loaded by CI (Conftest uses the `policy/` root only). Copy an example into `policy/` to activate it.
+
+```bash
+conftest test --policy policy/examples/deny-critical-only.rego trivy-report.json
+```
+
+Flow in CI:
+
+```text
+Trivy (trivy.yaml + .trivyignore) → JSON → Conftest (policy/*.rego) → pass/fail
+```

@@ -1,17 +1,13 @@
 # Evolution Log
 
-## 2026-08-01 — Kaniko cache, Syft SBOM, OPA policy (0.3.7)
+## 2026-08-01 — Example Rego, SLSA provenance, Kaniko cache keys (0.3.8)
 
-- Kaniko: `--cache`, `--cache-dir`, `--cache-ttl`, `--compressed-caching`, optional `--cache-repo`
-- Kaniko layer cache persisted with `actions/cache`
-- Syft SBOM (SPDX + CycloneDX) for Kaniko images, uploaded as artifacts
-- OPA/Conftest policy on Trivy JSON (`policy/trivy-results.rego`) for Buildx and Kaniko paths
-- Docs: `docs/kaniko.md`, updated `docs/trivy.md` and `docs/ci.md`
+- Example Rego policies under `policy/examples/`
+- SLSA-style provenance JSON for Buildx and Kaniko; GitHub attestations (best-effort)
+- Buildx `provenance: mode=max` and `sbom: true`
+- Optimized Kaniko cache keys with layered restore-keys
+- Docs: `docs/slsa.md`, updated kaniko/trivy/policy docs
 
-## 0.3.6
+## 0.3.7
 
-- trivy.yaml, .trivyignore example, Kaniko job introduced
-
-## 0.3.5
-
-- Distroless runtime, Trivy FS/image, Buildx GHA cache
+- Kaniko cache flags, Syft SBOM, OPA on Trivy JSON

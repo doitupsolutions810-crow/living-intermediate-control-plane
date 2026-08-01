@@ -1,69 +1,35 @@
 # Kaniko build alternative
 
-Kaniko builds the same `Dockerfile` without a Docker daemon. Used in CI job `kaniko-build`.
+## Optimized cache keys
 
-## Cache configuration
-
-| Flag | Value in CI | Purpose |
-|------|-------------|--------|
-| `--cache` | `true` | Enable layer caching |
-| `--cache-dir` | `/cache` | Local cache directory inside the executor |
-| `--cache-ttl` | `2160h` (~90 days) | Max age of cached layers |
-| `--compressed-caching` | on | Smaller on-disk cache |
-| `--cache-repo` | optional | Remote cache repository |
-
-### Local cache (default)
-
-CI mounts `/tmp/kaniko-cache` → `/cache` and persists it with `actions/cache`:
-
-- **Key** includes hashes of `Dockerfile`, `package.json`, `config.json`, and main source trees
-- **restore-keys** fall back to the latest OS-level Kaniko cache
-
-### Remote cache (optional)
-
-Set repository secret **`KANIKO_CACHE_REPO`** to a writable image reference, for example:
+`actions/cache` key layout (most specific → broadest restore):
 
 ```text
-ghcr.io/<org>/living-intermediate-control-plane/kaniko-cache
+kaniko-<os>-df-<Dockerfile hash>-meta-<package+config hash>-src-<source tree hash>
 ```
 
-When set, Kaniko also uses `--cache-repo` so layers can be shared across runners.
+**restore-keys** (in order):
 
-## SBOM (Syft)
+1. Same Dockerfile + package/config (any source) — reuse when only app source changed  
+2. Same Dockerfile only — reuse when metadata/source changed but Dockerfile did not  
+3. OS prefix only — last-resort partial hit  
 
-After a successful Kaniko build, Syft generates:
+This matches Dockerfile layer order: metadata and base change less often than `status/` or `integrate.mjs`.
 
-| Format | Artifact |
-|--------|----------|
-| SPDX JSON | `sbom-kaniko.spdx.json` |
-| CycloneDX JSON | `sbom-kaniko.cdx.json` |
+## Cache flags
 
-Both are uploaded as workflow artifacts.
+| Flag | Value | Purpose |
+|------|--------|--------|
+| `--cache` | `true` | Enable caching |
+| `--cache-dir` | `/cache` | Local dir (backed by actions/cache) |
+| `--cache-ttl` | `2160h` | ~90 days |
+| `--compressed-caching` | on | Smaller disk use |
+| `--cache-repo` | secret `KANIKO_CACHE_REPO` | Optional remote cache |
 
-## Policy
+## SBOM + SLSA
 
-Trivy JSON for the Kaniko image is checked with Conftest/OPA (`policy/trivy-results.rego`).
+- Syft: SPDX + CycloneDX artifacts  
+- SLSA-style provenance JSON for the Kaniko image  
+- `actions/attest-build-provenance` on SBOM files  
 
-## Local sketch
-
-```bash
-mkdir -p /tmp/kaniko-out /tmp/kaniko-cache
-
-docker run --rm \
-  -v "$PWD:/workspace" \
-  -v "/tmp/kaniko-out:/out" \
-  -v "/tmp/kaniko-cache:/cache" \
-  gcr.io/kaniko-project/executor:v1.23.2-debug \
-  --dockerfile=/workspace/Dockerfile \
-  --context=dir:///workspace \
-  --no-push \
-  --tarPath=/out/plane.tar \
-  --destination=living-intermediate-control-plane:kaniko \
-  --cache=true \
-  --cache-dir=/cache \
-  --cache-ttl=2160h \
-  --compressed-caching \
-  --verbosity=info
-
-docker load -i /tmp/kaniko-out/plane.tar
-```
+See `docs/slsa.md`.

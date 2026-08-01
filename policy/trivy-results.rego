@@ -1,10 +1,8 @@
 # OPA / Conftest policy for Trivy JSON reports
-# Enforce: no CRITICAL findings; HIGH findings must be absent unless ignored upstream by Trivy.
+# Enforce: no CRITICAL or HIGH findings remain after Trivy filtering.
 #
 # Usage:
 #   conftest test --policy policy trivy-report.json
-#
-# Input shape: Trivy JSON (--format json)
 
 package main
 
@@ -25,7 +23,6 @@ deny[msg] if {
 	msg := sprintf("HIGH vulnerability not allowed: %s (%s)", [vuln.VulnerabilityID, vuln.PkgName])
 }
 
-# Fail closed if the report is missing Results entirely (malformed / empty scan output)
 deny[msg] if {
 	not input.Results
 	msg := "Trivy report missing Results array — treat as policy failure"
