@@ -1,14 +1,10 @@
 # Evolution Log
 
-## 2026-08-01 — Upgrade path (0.5.2)
+## 2026-08-01 — verify-changes (0.5.4)
 
-- `docs/upgrade.md` — software + capability upgrade ladder
-- `plane upgrade-check` / `npm run upgrade-check` — post-pull file verification
+- `docs/verify-changes.md` — step-by-step verification
+- `npm run verify-changes` — layout/docs assertions (incl. single cron source)
 
-## 0.5.1
+## 0.5.3
 
-- Automated daily operator loop + systemd samples
-
-## 0.5.0
-
-- Signed supply-chain milestone
+- Operator host setup; cron single-sourced
