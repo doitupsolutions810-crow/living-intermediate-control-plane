@@ -1,59 +1,47 @@
 # Living Intermediate Control Plane
 
-**Unified lattice · Avrone Due’Krey · Trust network · Federation · Sovereign attestation**
+Unified lattice · Avrone Due’Krey · LaunchDesk · Trust & attestation
 
-High-priority CONTROL12 / CycleKernel evolution surface.  
-Authenticated via Control704 access proxy X, Y, Z data-set code override.  
-Avrone Due’Krey is the primary identity and chat bridge.  
-LaunchDesk (control12-launch-console) is the operator orchestration surface.
+Authenticated via Control704 access proxy X, Y, Z data-set code override.
 
-## Core Integration Targets
+## Current State
 
-| Component | Source | Role |
-|-----------|--------|------|
-| **Avrone Due’Krey** | `control12-lattice-ops/avrone-chat` | Chat, cockpit, health, lattice client |
-| **CONTROL12 Local Agent** | `control12-lattice-ops/local-agent` | Deterministic-local-evidence readiness, five-role quorum |
-| **Sovereign Platform** | `control12-lattice-ops/platform` | Agent SDK, workflow scheduler, capability engine |
-| **Sovereign Fabric v2** | `control12-lattice-ops/fabric` | Tokenized workflows, plugins, CAS, policy |
-| **LaunchDesk** | Vercel `control12-launch-console` | Operator console + agent orchestration UI |
-| **Supply-chain enforcement** | PR #12 (merged 2026-07-31) | OIDC + Sigstore + Policy Controller |
+- Avrone bridge: present (`avrone/client.ts`)
+- Readiness poller: present (`lattice/readiness-poller.mjs`) — emits deterministic-local-evidence READY schema
+- Agent orchestration: present (`agents/orchestration.mjs`) — five-role plan + quorum
+- LaunchDesk action bridge: present (`launchdesk/actions.mjs`)
+- Plane status surface: present (`status/plane-status.mjs`)
+- Evidence-console contract: restoration deployment previously completed (domain alias may still lag)
+- Issue #3 (Actions startup): mitigated by workflow_dispatch-only + offline source checks
 
-## Current Lattice State (from Terminal evidence)
+## Quick Commands
 
-- provider: `deterministic-local-evidence`
-- overall decision: **READY**
-- five governing roles: **READY**
-- failed gates: **none**
-- Security value: **High**
+```bash
+# Emit current readiness evidence
+node lattice/readiness-poller.mjs
 
-PR #12 supply-chain enforcement is live on main.
+# Create and evaluate an orchestration plan
+node -e "import('./agents/orchestration.mjs').then(m => console.log(m.evaluateQuorum(m.createOrchestrationPlan('evolve-system'))))"
 
-## Evolution Roadmap (this repo)
-
-1. **Bridge layer** – Avrone client + local-lattice binding
-2. **Agent orchestration** – five-role SDK + LaunchDesk action surface
-3. **Federation & trust network** – digest exchange + belief graph
-4. **Attestation surface** – continuous READY-state + Sigstore policy
-5. **Operator consoles** – LaunchDesk + evidence + status dashboards
-
-## Directory Layout (target)
-
-```
-avrone/          # Due’Krey chat + cockpit bridges
-lattice/         # Control12 lattice-ops bindings
-agents/          # Orchestration + five-role definitions
-launchdesk/      # UI / API surface for operator actions
-attestation/     # Readiness + Sigstore verification
-federation/      # Trust network + digest exchange
-docs/            # Architecture, runbooks, threat model
+# Plane status
+node status/plane-status.mjs
 ```
 
-## Security Posture
+## Directory Map
 
-All mutations require Control704 proxy authentication.  
-No credentials stored in this repository.  
-Runtime readiness is limited to the observed state; future images require their own digest-bound provenance.
+- `avrone/` — Due’Krey client and cockpit helpers
+- `lattice/` — readiness and lattice bindings
+- `agents/` — five-role orchestration
+- `launchdesk/` — operator action surface
+- `attestation/` — evidence contract notes
+- `status/` — single-plane status emitter
+- `docs/` — architecture, success criteria, mitigations
 
----
+## Success Path (kept simple)
 
-*Flint Node lineage · CONTROL12 · Avrone Due’Krey · Control704 IT Technician high-priority override*
+1. Local readiness stays READY
+2. Evidence contract is available
+3. LaunchDesk can request orchestration plans
+4. All changes remain under Control704 override
+
+Next natural steps: wire a live status endpoint, promote evidence-console domain, or add a small continuous poller service.
