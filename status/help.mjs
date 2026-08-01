@@ -4,12 +4,12 @@ const help = `
 Living Intermediate Control Plane — operator commands
 
 Daily
+  npm run checklist          Pre-flight before procure
   npm run next / procure / procure:gated / dry-run
   npm run doctor / health / snapshot / report / metrics / last
 
 Security
-  npm run security-scan       Trivy + Snyk + OPA (Trivy & Snyk Rego)
-  npm run security-summary    Posture overview
+  npm run security-scan / security-summary
 
 Control
   npm run pause / resume / state / log / export / actions

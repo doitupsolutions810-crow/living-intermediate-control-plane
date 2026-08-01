@@ -1,12 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Evolve (0.4.5)
+## 2026-08-01 — Evolve (0.4.6)
 
-- `npm run metrics` — decision outcome counts
-- Doctor checks for Trivy policy, Snyk policy, Gatekeeper dir
-- security-summary lists Snyk + Gatekeeper posture
-- next advisor suggests security-scan and metrics
+- `npm run checklist` — pre-flight before procure
+- Report includes decision metrics section
+- Self-test covers policy files, checklist, metrics modules
 
-## 0.4.4
+## 0.4.5
 
-- Snyk Rego + Gatekeeper K8s manifests
+- metrics, richer doctor/security-summary, next advisor updates

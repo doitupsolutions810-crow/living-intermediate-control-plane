@@ -1,10 +1,10 @@
 # Living Intermediate Control Plane
 
-Version **0.4.5**
+Version **0.4.6**
 
 ```bash
 npm run init
-npm run next
+npm run checklist
 npm run procure
 npm run doctor
 npm run security-scan
@@ -17,4 +17,4 @@ npm run metrics
 2. Evidence is available (public or local accepted)  
 3. Supply-chain enforcement stays active  
 
-See `docs/security.md` and `docs/gatekeeper.md`.
+See `docs/security.md`.

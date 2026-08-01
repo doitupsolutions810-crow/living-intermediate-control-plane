@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 /**
- * Minimal self-test for the Living Intermediate Control Plane
- * Control704 high-priority override surface
+ * Self-test for Living Intermediate Control Plane
  */
 
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
 import { readPlaneState } from '../status/plane-state.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
 
 let passed = 0;
 let failed = 0;
@@ -47,6 +52,12 @@ assert(named.some(a => a.name === 'pause'), 'pause action exists');
 
 const state = readPlaneState();
 assert(typeof state.paused === 'boolean', 'plane state readable');
+
+assert(existsSync(join(root, 'policy/trivy-results.rego')), 'trivy policy present');
+assert(existsSync(join(root, 'policy/snyk-results.rego')), 'snyk policy present');
+assert(existsSync(join(root, 'Dockerfile')), 'Dockerfile present');
+assert(existsSync(join(root, 'status/checklist.mjs')), 'checklist present');
+assert(existsSync(join(root, 'status/metrics.mjs')), 'metrics present');
 
 console.log(`\nResult: ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
