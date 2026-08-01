@@ -7,18 +7,10 @@ node bin/plane.mjs procure
 npm run plane -- doctor
 ```
 
-## Command list
-
-| Command | Purpose |
-|---------|--------|
-| `plane checklist` | Pre-flight |
-| `plane procure` / `procure-gated` / `dry-run` | Decisions |
-| `plane doctor` / `health` / `snapshot` / `report` / `metrics` | Status |
-| `plane security-scan` / `security-summary` | Scans + posture |
-| `plane cosign-sign` / `cosign-verify` | Cosign + Rekor |
-| `plane pause` / `resume` / `ci` / `test` | Control / CI |
-
 ## Cosign / Rekor
+
+Install **Cosign** for sign/verify.  
+Install **rekor-cli** only if you need log search/get (see `docs/cosign.md`).
 
 ```bash
 IMAGE_REF=living-intermediate-control-plane:0.4.8 plane cosign-sign
