@@ -1,45 +1,32 @@
-# Security overview (plain language)
+# Security overview
 
-## What the plane itself does
+## Local plane
 
-1. Checks readiness before important decisions  
-2. Uses five fixed roles and a simple READY / not-READY rule  
-3. Can pause and resume under operator control  
-4. Records decisions locally  
+1. Readiness + five roles before important decisions  
+2. Optional doctor gate on procure  
+3. Decision log and pause control  
 
-Local authority for “may we proceed?” stays with readiness + doctor, not with CI alone.
-
-## What CI adds
-
-| Layer | Tool | Purpose |
-|-------|------|--------|
-| Code / FS scan | Trivy | Catch known issues in the repo |
-| Image scan | Trivy | Catch issues in the built container |
-| Policy | OPA / Conftest | Fail the job if CRITICAL/HIGH remain |
-| SBOM | Syft | List what’s inside the Kaniko image |
-| Provenance | SLSA-style JSON + attestations | Record how/when the image was built |
-| Image shape | Distroless non-root | Smaller attack surface, no shell |
-
-## Build paths
-
-- **Buildx** — default, best layer cache on GitHub runners  
-- **Kaniko** — when a Docker daemon is not available; includes cache, SBOM, provenance  
-
-Both use the same Dockerfile.
-
-## Operator commands
+## Vulnerability scanning + policy (integrated)
 
 ```bash
-npm run doctor              # local integrity
-npm run ci                  # full local check suite
-npm run security-summary    # this posture as JSON
-npm run docker:build
-npm run docker:doctor
+npm run security-scan
 ```
 
-## Config files
+Runs **Trivy** (using `trivy.yaml`) then **OPA/Conftest** (`policy/trivy-results.rego`) on the JSON report.
 
-- `trivy.yaml` — scan settings  
-- `.trivyignore` — optional accepted findings (empty by default)  
-- `policy/trivy-results.rego` — active OPA rules  
-- `policy/examples/` — sample policies, not loaded unless copied  
+| Step | Tool | Config |
+|------|------|--------|
+| FS / image scan | Trivy | `trivy.yaml`, `.trivyignore` |
+| Policy enforce | Conftest / OPA | `policy/*.rego` |
+
+Also included at the end of `npm run ci` (skips cleanly if tools are not installed unless `REQUIRE_SECURITY_TOOLS=1`).
+
+## CI containers
+
+- Distroless non-root image  
+- Buildx + Kaniko  
+- Trivy FS + image  
+- OPA on scan JSON  
+- Syft SBOM + SLSA-style provenance  
+
+See `docs/trivy.md`, `docs/ci.md`, `docs/slsa.md`.

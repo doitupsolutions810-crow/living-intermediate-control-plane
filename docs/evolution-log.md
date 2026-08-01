@@ -1,12 +1,15 @@
 # Evolution Log
 
-## 2026-08-01 — Evolve even more (0.4.1)
+## 2026-08-01 — Trivy + OPA local integration (0.4.2)
 
-- `npm run next` — state-aware recommended commands
-- `npm run procure:gated` / `GATE_DOCTOR=1` / `gateDoctorOnProcure` — doctor must pass before procure
-- Snapshot includes security file presence
-- Config default `gateDoctorOnProcure: false`
+- `npm run security-scan` — Trivy FS/image using `trivy.yaml`, then Conftest on JSON
+- Wired into `npm run ci` (ALLOW_SKIP by default; REQUIRE_SECURITY_TOOLS=1 to force)
+- Docs updated for local + Actions paths
+
+## 0.4.1
+
+- next advisor, doctor gate, richer snapshot
 
 ## 0.4.0
 
-- security-summary, docs/security.md, operator consolidation
+- security-summary, security docs milestone

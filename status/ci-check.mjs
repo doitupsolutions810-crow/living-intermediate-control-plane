@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 /**
- * CI entry point — runs the same checks CI expects, with clear exit codes.
- * Order: init → doctor → self-test → health → dry-run procure
- *
- * Usage:
- *   node status/ci-check.mjs
- *   npm run ci
+ * CI entry point
+ * Order: init → doctor → self-test → health → dry-run procure → security-scan (optional skip)
  */
 
 import { spawnSync } from 'node:child_process';
@@ -25,6 +21,12 @@ const steps = [
     file: join(root, 'integrate.mjs'),
     extraArgs: ['procure'],
     env: { DRY_RUN: '1', ACCEPT_LOCAL_EVIDENCE: '1' }
+  },
+  {
+    name: 'security-scan (Trivy + OPA)',
+    file: join(root, 'status/security-scan.mjs'),
+    // In local/default CI without tools installed, allow skip; GitHub job still runs native Trivy actions
+    env: { ALLOW_SKIP: process.env.REQUIRE_SECURITY_TOOLS === '1' ? '0' : '1' }
   }
 ];
 

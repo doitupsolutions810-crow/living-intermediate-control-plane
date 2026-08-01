@@ -7,18 +7,16 @@ Setup
   npm run init
 
 Daily
-  npm run procure            Full check + local evidence
-  npm run procure:gated      Same, but doctor must pass first
-  npm run dry-run            Preview without recording
-  npm run next               Recommended next commands from current state
-  npm run snapshot           State + decisions + security files
-  npm run doctor / health / info / security-summary / report / last
+  npm run next / procure / procure:gated / dry-run
+  npm run doctor / health / snapshot / report / last
+
+Security (Trivy + OPA)
+  npm run security-scan              Trivy FS + Conftest policy
+  IMAGE_REF=tag npm run security-scan  Also scan container image
+  npm run security-summary           Posture overview
 
 Control
   npm run pause / resume / state / log / export / actions
-
-Background
-  npm run continuous / watch
 
 CI & containers
   npm run ci / smoke / test

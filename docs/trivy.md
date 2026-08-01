@@ -1,49 +1,48 @@
-# Trivy configuration and OPA policy
+# Trivy + OPA integration
 
-## Files
-
-| File | Purpose |
-|------|--------|
-| `trivy.yaml` | Shared scan settings |
-| `.trivyignore` | Optional accepted findings |
-| `policy/trivy-results.rego` | OPA rules applied to Trivy JSON reports |
-
-## Trivy options (`trivy.yaml`)
-
-- Severity: CRITICAL, HIGH
-- `ignore-unfixed: true`
-- `ignorefile: .trivyignore`
-- Scanners: vuln, secret, misconfig
-- Skip dirs: data, .git, docs
-
-CI passes `trivy-config: trivy.yaml` into Trivy steps.
-
-## OPA / Conftest enforcement
-
-After Trivy writes JSON (`trivy-report.json` or `trivy-kaniko-report.json`), Conftest evaluates `policy/`:
-
-1. **Deny** any remaining CRITICAL vulnerability
-2. **Deny** any remaining HIGH vulnerability
-3. **Deny** malformed reports with no `Results` array
-
-Flow:
-
-```text
-Trivy (severity + ignorefile) → JSON report → Conftest/OPA → pass/fail
-```
-
-Local:
+## Local (plane-integrated)
 
 ```bash
-trivy image --config trivy.yaml --format json -o trivy-report.json living-intermediate-control-plane:0.3.7
-conftest test --policy policy trivy-report.json
+# FS scan + OPA policy on the JSON report
+npm run security-scan
+
+# Also scan an image
+IMAGE_REF=living-intermediate-control-plane:0.4.2 npm run security-scan
+
+# Require tools (fail if trivy/conftest missing)
+ALLOW_SKIP=0 npm run security-scan
+
+# Trivy only / OPA only
+SKIP_OPA=1 npm run security-scan
+SKIP_TRIVY=1 npm run security-scan   # needs existing data/trivy-report.json
 ```
 
-## Ignore file example (`.trivyignore`)
+`npm run ci` includes `security-scan` with `ALLOW_SKIP=1` by default so local runs without Trivy still pass. Set `REQUIRE_SECURITY_TOOLS=1` to force tools.
 
-```
-# CVE-2023-12345  # reason: not reachable
-# CVE-2024-00000 exp:2026-12-31  # accepted until base image bump
+## Config files
+
+| File | Role |
+|------|------|
+| `trivy.yaml` | Severity, ignore-unfixed, scanners, skip-dirs, ignorefile |
+| `.trivyignore` | Optional CVE/GHSA exceptions |
+| `policy/trivy-results.rego` | OPA deny CRITICAL/HIGH on Trivy JSON |
+
+## Flow
+
+```text
+Trivy (trivy.yaml + .trivyignore)
+  → data/trivy-report.json
+  → conftest test --policy policy
+  → pass/fail
 ```
 
-Prefer fixes over permanent ignores.
+## GitHub Actions
+
+Still runs native `aquasecurity/trivy-action` + `conftest-action` in `plane-ci.yml` (FS, Buildx image, Kaniko image).
+
+## Install tools (examples)
+
+```bash
+# Trivy — https://aquasecurity.github.io/trivy/latest/getting-started/installation/
+# Conftest — https://www.conftest.dev/install/
+```
