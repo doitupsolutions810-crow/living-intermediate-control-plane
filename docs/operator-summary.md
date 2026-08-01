@@ -11,6 +11,7 @@ npm run procure
 ```bash
 npm run snapshot   # state + recent decisions
 npm run health     # exits 0 only when healthy
+npm run info       # version + success criteria + high-level state
 ```
 
 ## Control
@@ -25,13 +26,15 @@ npm run continuous
 npm test
 ```
 
-## Live status file
+## Local data
 
 ```
-data/status.json
+data/status.json        # latest status
+data/plane-state.json   # pause / resume
+data/decisions.jsonl    # decision history
 ```
 
-(Local only — ignored by git)
+(Git-ignored — stays on the machine that runs the plane)
 
 ## Decisions
 
