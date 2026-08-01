@@ -1,28 +1,24 @@
 # Living Intermediate Control Plane
 
-Version **0.4.7**
+Version **0.4.8**
 
-## Concrete CLI
+## CLI
 
 ```bash
-node bin/plane.mjs help
 node bin/plane.mjs checklist
 node bin/plane.mjs procure
 node bin/plane.mjs doctor
-node bin/plane.mjs security-scan
-
-# or
-npm run plane -- checklist
-npm run plane -- procure
 ```
 
-## Cosign (Sigstore)
+## Cosign + Rekor
 
 ```bash
-npm run docker:build
-IMAGE_REF=living-intermediate-control-plane:0.4.7 npm run cosign:sign
-IMAGE_REF=living-intermediate-control-plane:0.4.7 npm run cosign:verify
+IMAGE_REF=living-intermediate-control-plane:0.4.8 npm run cosign:sign
+IMAGE_REF=living-intermediate-control-plane:0.4.8 npm run cosign:verify
+REKOR_ARTIFACT_HASH=sha256:... npm run rekor:search
 ```
+
+Signatures are recorded in the Rekor transparency log by default.
 
 See `docs/cli.md` and `docs/cosign.md`.
 

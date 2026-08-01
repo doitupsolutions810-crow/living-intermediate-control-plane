@@ -1,12 +1,6 @@
 #!/usr/bin/env node
 /**
  * Concrete CLI for Living Intermediate Control Plane
- *
- * Usage:
- *   plane <command> [args]
- *   node bin/plane.mjs <command>
- *
- * Commands map 1:1 to operator actions.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -54,8 +48,9 @@ const commands = {
   info: { script: 'status/info.mjs', desc: 'Version + success criteria' },
   ci: { script: 'status/ci-check.mjs', desc: 'Full local CI suite' },
   test: { script: 'test/self-test.mjs', desc: 'Self-test' },
-  'cosign-sign': { script: 'status/cosign-sign.mjs', desc: 'Sign image with Cosign (IMAGE_REF)' },
-  'cosign-verify': { script: 'status/cosign-verify.mjs', desc: 'Verify Cosign signature (IMAGE_REF)' }
+  'cosign-sign': { script: 'status/cosign-sign.mjs', desc: 'Cosign sign + Rekor upload (IMAGE_REF)' },
+  'cosign-verify': { script: 'status/cosign-verify.mjs', desc: 'Cosign verify via Rekor (IMAGE_REF)' },
+  'rekor-search': { script: 'status/rekor-search.mjs', desc: 'Search Rekor log (REKOR_ARTIFACT_HASH)' }
 };
 
 const cmd = process.argv[2] || 'help';
@@ -64,15 +59,11 @@ const extra = process.argv.slice(3);
 if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
   console.log('Living Intermediate Control Plane CLI\n');
   console.log('Usage: plane <command>\n');
-  const names = Object.keys(commands).sort();
-  for (const name of names) {
+  for (const name of Object.keys(commands).sort()) {
     console.log(`  ${name.padEnd(18)} ${commands[name].desc}`);
   }
   console.log('\nExamples:');
-  console.log('  plane checklist');
-  console.log('  plane procure');
-  console.log('  plane doctor');
-  console.log('  plane security-scan');
+  console.log('  plane checklist && plane procure');
   console.log('  IMAGE_REF=my:tag plane cosign-sign');
   console.log('  IMAGE_REF=my:tag plane cosign-verify');
   process.exit(0);
@@ -85,9 +76,7 @@ if (!def) {
   process.exit(1);
 }
 
-if (!def.script) {
-  process.exit(0);
-}
+if (!def.script) process.exit(0);
 
 const args = [join(root, def.script), ...(def.args || []), ...extra];
 const result = spawnSync(process.execPath, args, {

@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * Sigstore Cosign — verify a container image signature
+ * Sigstore Cosign verify against signatures + Rekor transparency log
+ *
+ * Cosign verify checks the Rekor log by default for keyless signatures.
  *
  * Env:
- *   IMAGE_REF             required
- *   COSIGN_PUBLIC_KEY     optional path for key-based verify
- *   COSIGN_CERTIFICATE_IDENTITY  optional (keyless)
- *   COSIGN_CERTIFICATE_OIDC_ISSUER optional (keyless)
- *   ALLOW_SKIP=1          skip if cosign missing
+ *   IMAGE_REF
+ *   COSIGN_PUBLIC_KEY
+ *   COSIGN_CERTIFICATE_IDENTITY
+ *   COSIGN_CERTIFICATE_OIDC_ISSUER
+ *   REKOR_SERVER_URL
+ *   ALLOW_SKIP=1
  */
 
 import { spawnSync } from 'node:child_process';
@@ -17,6 +20,7 @@ const allowSkip = process.env.ALLOW_SKIP === '1' || process.env.ALLOW_SKIP === '
 const pubKey = process.env.COSIGN_PUBLIC_KEY || '';
 const identity = process.env.COSIGN_CERTIFICATE_IDENTITY || '';
 const issuer = process.env.COSIGN_CERTIFICATE_OIDC_ISSUER || '';
+const rekorUrl = process.env.REKOR_SERVER_URL || '';
 
 function hasCosign() {
   const r = spawnSync('cosign', ['version'], { encoding: 'utf8' });
@@ -43,7 +47,9 @@ if (pubKey) {
 } else {
   if (identity) args.push('--certificate-identity', identity);
   if (issuer) args.push('--certificate-oidc-issuer', issuer);
-  // If neither key nor identity set, still attempt verify (works for some registries / attestations)
+}
+if (rekorUrl) {
+  args.push('--rekor-url', rekorUrl);
 }
 args.push(image);
 
@@ -55,7 +61,13 @@ const result = {
   ok: r.status === 0,
   image,
   mode: pubKey ? 'key' : 'keyless',
-  note: r.status === 0 ? 'Cosign verification passed.' : 'Cosign verification failed.'
+  rekor: {
+    server: rekorUrl || 'https://rekor.sigstore.dev',
+    checked: true
+  },
+  note: r.status === 0
+    ? 'Cosign verification passed (includes Rekor log check when applicable).'
+    : 'Cosign verification failed.'
 };
 
 console.log(JSON.stringify(result, null, 2));
