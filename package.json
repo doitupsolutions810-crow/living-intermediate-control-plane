@@ -1,6 +1,6 @@
 {
   "name": "living-intermediate-control-plane",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   "description": "Unified lattice · Avrone Due’Krey · LaunchDesk · Control704 high-priority surface",
   "scripts": {
     "plane": "node bin/plane.mjs",
+    "connectors": "node status/connectors.mjs",
     "progress": "node status/progress.mjs",
     "daily": "node status/daily-loop.mjs",
     "unattended": "node status/unattended.mjs",
@@ -54,8 +55,8 @@
     "help": "node bin/plane.mjs help",
     "smoke": "node status/smoke.mjs",
     "ci": "node status/ci-check.mjs",
-    "docker:build": "docker build -t living-intermediate-control-plane:0.7.2 .",
-    "docker:doctor": "docker run --rm living-intermediate-control-plane:0.7.2",
+    "docker:build": "docker build -t living-intermediate-control-plane:0.8.0 .",
+    "docker:doctor": "docker run --rm living-intermediate-control-plane:0.8.0",
     "reset-local": "node status/reset-local.mjs",
     "test": "node test/self-test.mjs"
   },

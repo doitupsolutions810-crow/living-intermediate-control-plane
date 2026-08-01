@@ -1,10 +1,12 @@
 # Evolution Log
 
-## 2026-08-01 — Proceed 0.7.2
+## 2026-08-01 — Connectors registry (0.8.0)
 
-- `plane progress` unified board (readiness, agent auth, last runs)
-- `workspace/proposals/` for agent proposals
+- connectors/manifest.json — GitHub, Drive, Vercel, Figma, Gmail, Automations, Llama, security, plane core
+- plane connectors — live registry + local tool presence
+- toolsets: admission, unattended, agent, supply_chain
+- skills mapped for operator deliverables
 
-## 0.7.1
+## 0.7.2
 
-- Agent-aware verify + unattended admit-change
+- progress board + proposals workspace

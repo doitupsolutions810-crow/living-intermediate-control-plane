@@ -1,0 +1,80 @@
+{
+  "version": "0.8.0",
+  "plane": "living-intermediate-control-plane",
+  "connectors": [
+    {
+      "id": "github",
+      "status": "active",
+      "role": "source-of-truth repo, CI, push, PRs, advisories",
+      "usedBy": ["CI", "upgrade-check", "human/agent commits"]
+    },
+    {
+      "id": "google_drive",
+      "status": "optional",
+      "role": "export reports and decision logs for offline share",
+      "usedBy": ["status/export-decisions", "report:write → upload manually or via automation"]
+    },
+    {
+      "id": "vercel",
+      "status": "optional",
+      "role": "host status microsite when promoted",
+      "usedBy": ["docs/connectors.md deploy notes"]
+    },
+    {
+      "id": "figma",
+      "status": "optional",
+      "role": "LaunchDesk / Avrone UI design reference",
+      "usedBy": ["design-to-code when file key provided"]
+    },
+    {
+      "id": "gmail",
+      "status": "optional",
+      "role": "notify on unattended failure",
+      "usedBy": ["operator host alerts"]
+    },
+    {
+      "id": "automations",
+      "status": "optional",
+      "role": "scheduled Grok prompts mirroring plane daily/unattended",
+      "usedBy": ["docs/connectors.md"]
+    },
+    {
+      "id": "ollama_llama",
+      "status": "active",
+      "role": "coding agent + toolkit under chat auth",
+      "usedBy": ["agents/llama", "plane agent-chat"]
+    },
+    {
+      "id": "security_toolset",
+      "status": "active",
+      "role": "Trivy, Snyk, OPA, Cosign, Rekor",
+      "usedBy": ["security-scan", "CI docker-build"]
+    },
+    {
+      "id": "plane_core",
+      "status": "active",
+      "role": "checklist, procure, doctor, unattended, admit-change",
+      "usedBy": ["bin/plane.mjs"]
+    }
+  ],
+  "skills": [
+    { "id": "docx", "use": "operator reports as Word when requested" },
+    { "id": "pdf", "use": "PDF export of plane reports when requested" },
+    { "id": "xlsx", "use": "metrics / decision tables when requested" },
+    { "id": "pptx", "use": "LaunchDesk briefings when requested" },
+    { "id": "ffmpeg", "use": "media only if plane content requires it" },
+    { "id": "skill-creator", "use": "extend plane skills" },
+    { "id": "memory-edit", "use": "durable operator prefs only when user states them" }
+  ],
+  "toolsets": {
+    "admission": ["upgrade-check", "verify-changes", "doctor", "checklist", "security-scan", "admit-change", "ci"],
+    "unattended": ["daily", "self-develop", "unattended"],
+    "agent": ["agent-chat", "agent-run", "agent-status", "agent-revoke"],
+    "supply_chain": ["cosign:sign", "cosign:verify", "rekor", "docker:build"]
+  },
+  "gate": {
+    "external_sandbox": "requires plane agent-chat authorization",
+    "admission": "plane unattended | admit-change | CI",
+    "per_action_approve": "off inside authorized allowlisted session"
+  }
+}

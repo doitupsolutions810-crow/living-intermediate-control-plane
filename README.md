@@ -1,13 +1,15 @@
 # Living Intermediate Control Plane
 
-Version **0.7.2**
+Version **0.8.0**
 
 ```bash
+plane connectors    # registry of connectors / toolsets / skills
 plane progress
-plane next
 plane agent-chat
 plane unattended
 ```
+
+See `docs/connectors.md`.
 
 ## Success criteria
 

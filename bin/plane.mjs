@@ -8,6 +8,7 @@ const root = join(__dirname, '..');
 
 const commands = {
   help: { desc: 'Show this help' },
+  connectors: { script: 'status/connectors.mjs', desc: 'Connectors, toolsets, skills registry' },
   progress: { script: 'status/progress.mjs', desc: 'Unified progress board' },
   init: { script: 'status/init.mjs', desc: 'Create local data dir and config' },
   checklist: { script: 'status/checklist.mjs', desc: 'Pre-flight before procure' },
