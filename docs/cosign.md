@@ -1,18 +1,14 @@
 # Sigstore Cosign + Rekor
 
-## Learn keyless signing (GitHub OIDC)
+## Keyless (GitHub OIDC)
 
-Full guide: **`docs/oidc-cosign-keyless.md`**
+**`docs/oidc-cosign-keyless.md`** — Fulcio + OIDC + Rekor flow used in CI.
 
-Short version:
+## Ecosystem
 
-1. CI has `permissions: id-token: write`  
-2. Cosign signs the **registry digest** without a stored private key  
-3. Fulcio binds a short-lived cert to the GitHub workflow identity  
-4. Rekor records the signature  
-5. `cosign verify` checks cert + log  
+**`docs/sigstore-ecosystem.md`** — Cosign, Rekor, Fulcio, TSA, Gitsign, attest/SBOM, Policy Controller.
 
-Production path in this repo: **GHCR push on main + hard Cosign verify** (`docs/ci-registry-cosign.md`).
+**`docs/gitsign.md`** — keyless **git commit** signing.
 
 ## Install Cosign
 
@@ -20,41 +16,27 @@ https://docs.sigstore.dev/cosign/system_config/installation/
 
 ## Install rekor-cli
 
-### Homebrew
-
 ```bash
 brew install rekor-cli
-rekor-cli version
-```
-
-### Linux amd64
-
-```bash
-curl -fsSL -o rekor-cli https://github.com/sigstore/rekor/releases/latest/download/rekor-cli-linux-amd64
-chmod +x rekor-cli && sudo mv rekor-cli /usr/local/bin/rekor-cli
-rekor-cli version
-```
-
-### Plane
-
-```bash
 plane rekor version
-npm run rekor -- search --sha <hex>
 ```
 
-## Local Cosign helpers
+## Plane commands
 
 ```bash
-IMAGE_REF=living-intermediate-control-plane:0.9.1 npm run cosign:sign
-IMAGE_REF=living-intermediate-control-plane:0.9.1 npm run cosign:verify
+IMAGE_REF=... npm run cosign:sign
+IMAGE_REF=... npm run cosign:verify
+IMAGE_REF=... npm run cosign:attest-sbom   # SBOM via syft or SBOM_PATH=
 ```
 
-Prefer CI keyless on a **pushed** digest for production trust.
+Optional TSA (timestamp) when signing locally:
+
+```bash
+cosign sign --timestamp-server-url https://timestamp.sigstore.dev/api/v1/timestamp IMAGE@DIGEST
+```
 
 ## Operator host
 
 ```bash
 npm run operator-host
 ```
-
-See `docs/operator-host-setup.md` and `docs/next-ops.md`.

@@ -1,16 +1,16 @@
 # Living Intermediate Control Plane
 
-Version **0.9.2**
+Version **0.9.3**
 
 ```bash
-npm run operator-host    # unattended timer + ops hints
-plane progress
-plane unattended
+npm run operator-host
+npm run cosign:attest-sbom   # IMAGE_REF=... optional SBOM_PATH=
 plane supply-chain
+plane unattended
 ```
 
-**OIDC + Cosign keyless:** `docs/oidc-cosign-keyless.md`  
-**Next ops:** `docs/next-ops.md`
+Sigstore ecosystem: **`docs/sigstore-ecosystem.md`**  
+OIDC keyless: **`docs/oidc-cosign-keyless.md`**
 
 ## Success criteria
 

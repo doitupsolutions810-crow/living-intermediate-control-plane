@@ -1,10 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — OIDC keyless docs + operator-host (0.9.2)
+## 2026-08-01 — Sigstore ecosystem expansion (0.9.3)
 
-- docs/oidc-cosign-keyless.md — GitHub OIDC + Cosign keyless learning path
-- npm run operator-host confirmed (scripts/install-operator-host.sh)
+- docs/sigstore-ecosystem.md, docs/gitsign.md
+- cosign:attest-sbom (SBOM attest/attach)
+- Fulcio/TSA/Gitsign mapped next to Cosign+Rekor
 
-## 0.9.1
+## 0.9.2
 
-- Registry Cosign hard verify, hard Snyk when token set
+- OIDC keyless docs + operator-host

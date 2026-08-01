@@ -1,26 +1,28 @@
 {
-  "version": "0.9.0",
+  "version": "0.9.3",
   "plane": "living-intermediate-control-plane",
   "connectors": [
-    { "id": "github", "status": "active", "role": "repo, CI, push" },
+    { "id": "github", "status": "active", "role": "repo, CI, OIDC for keyless Cosign" },
+    { "id": "sigstore", "status": "active", "role": "Cosign, Rekor, Fulcio, optional Gitsign/attest" },
     { "id": "ollama_llama", "status": "active", "role": "agent toolkit under chat auth" },
     { "id": "security_toolset", "status": "active", "role": "plane supply-chain" },
     { "id": "plane_core", "status": "active", "role": "unattended + admit-change" },
     { "id": "google_drive", "status": "optional", "role": "export reports" },
-    { "id": "vercel", "status": "optional", "role": "status host" },
-    { "id": "figma", "status": "optional", "role": "UI design" },
-    { "id": "gmail", "status": "optional", "role": "alerts" },
-    { "id": "automations", "status": "optional", "role": "scheduled prompts" }
+    { "id": "gmail", "status": "optional", "role": "alerts" }
   ],
   "toolsets": {
-    "admission": ["upgrade-check", "verify-changes", "doctor", "checklist", "admit-change", "ci"],
-    "unattended": ["daily", "self-develop", "unattended"],
-    "agent": ["agent-chat", "agent-run", "agent-status", "agent-revoke"],
-    "supply_chain": ["supply-chain", "security-scan", "cosign:sign", "cosign:verify", "rekor"]
+    "supply_chain": [
+      "supply-chain",
+      "security-scan",
+      "cosign:sign",
+      "cosign:verify",
+      "cosign:attest-sbom",
+      "rekor"
+    ],
+    "sigstore": ["cosign", "rekor-cli", "gitsign", "fulcio-via-oidc", "tsa-optional"]
   },
   "gate": {
-    "chat_auth": "operator-granted for allowlisted toolkit",
     "admission": "unattended | admit-change | CI",
-    "host_schedule": "plane-unattended.timer preferred"
+    "signing": "Cosign keyless OIDC on GHCR digest"
   }
 }
