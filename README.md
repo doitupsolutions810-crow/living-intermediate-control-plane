@@ -10,7 +10,8 @@ Authenticated via Control704 access proxy X, Y, Z data-set code override.
 npm run procure     # full check + local evidence acceptance
 npm run snapshot    # current state at a glance
 npm run health      # exits 0 only when healthy
-npm run info        # version + success criteria
+npm run report      # human-readable report
+npm run help        # all commands
 ```
 
 ## Success criteria (only three)
@@ -29,6 +30,8 @@ npm run procure
 npm run snapshot
 npm run health
 npm run info
+npm run report
+npm run help
 npm run status
 npm run readiness
 npm run log
@@ -37,9 +40,14 @@ npm run pause
 npm run resume
 npm run state
 npm run continuous
+npm run watch
 npm run reset-local -- --confirm
 npm test
 ```
+
+## Config
+
+Defaults live in `config.json` (intervals, accept-local-evidence default, log limit).
 
 ## Documents
 
@@ -47,7 +55,6 @@ npm test
 - `docs/next-actions.md` — practical path forward
 - `docs/system-success-criteria.md` — the three rules
 - `docs/evolution-log.md` — history
-- `data/README.md` — local runtime files
 
 ## External notes
 

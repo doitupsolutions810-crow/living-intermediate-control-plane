@@ -1,0 +1,8 @@
+{
+  "acceptLocalEvidenceByDefault": false,
+  "readinessIntervalMs": 30000,
+  "watchIntervalMs": 60000,
+  "decisionLogLimit": 20,
+  "planeName": "living-intermediate-control-plane",
+  "securityValue": "High"
+}

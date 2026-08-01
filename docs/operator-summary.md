@@ -9,9 +9,11 @@ npm run procure
 **Quick views:**
 
 ```bash
-npm run snapshot   # state + recent decisions
-npm run health     # exits 0 only when healthy
-npm run info       # version + success criteria
+npm run snapshot
+npm run health
+npm run info
+npm run report
+npm run help
 ```
 
 ## Control
@@ -22,34 +24,25 @@ npm run resume
 npm run state
 npm run log
 npm run actions
-npm run continuous
-npm test
 ```
 
-## Reset local data (safe, explicit)
+## Background
+
+```bash
+npm run continuous   # status file on an interval
+npm run watch        # full integrated check on an interval
+```
+
+## Maintenance
 
 ```bash
 npm run reset-local -- --confirm
+npm test
 ```
 
-Clears status, pause state, and decision log only. Source code is untouched.
+## Config
 
-## Local data
-
-```
-data/status.json
-data/plane-state.json
-data/decisions.jsonl
-```
-
-## Decisions
-
-| Result | Meaning |
-|--------|--------|
-| `READY_FOR_PROCUREMENT` | Core clear + local evidence accepted |
-| `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` | Core clear; public console still needed |
-| `PAUSED` | Operator paused the plane |
-| `HOLD` | Readiness or orchestration not clear |
+Edit `config.json` to change defaults (intervals, accept-local-evidence default, log limit).
 
 ## Success criteria (only three)
 

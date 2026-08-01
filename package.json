@@ -1,6 +1,6 @@
 {
   "name": "living-intermediate-control-plane",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Unified lattice · Avrone Due’Krey · LaunchDesk · Control704 high-priority surface",
@@ -15,9 +15,12 @@
     "resume": "node integrate.mjs resume",
     "state": "node status/plane-state.mjs",
     "continuous": "node status/continuous-readiness.mjs",
+    "watch": "node status/watch.mjs",
     "snapshot": "node status/snapshot.mjs",
     "health": "node status/health.mjs",
     "info": "node status/info.mjs",
+    "report": "node status/report.mjs",
+    "help": "node status/help.mjs",
     "reset-local": "node status/reset-local.mjs",
     "test": "node test/self-test.mjs"
   },

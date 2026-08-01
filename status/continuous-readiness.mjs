@@ -10,8 +10,10 @@
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { readPlaneState } from './plane-state.mjs';
 import { writeStatusFile } from './write-status-file.mjs';
+import { loadConfig } from '../lib/config.mjs';
 
-const INTERVAL_MS = Number(process.env.READINESS_INTERVAL_MS) || 30000;
+const config = loadConfig();
+const INTERVAL_MS = Number(process.env.READINESS_INTERVAL_MS) || config.readinessIntervalMs || 30000;
 
 function tick() {
   const planeState = readPlaneState();
@@ -25,7 +27,8 @@ function tick() {
     paused: planeState.paused,
     pauseReason: planeState.reason,
     readiness: evidence,
-    overall: planeState.paused ? 'PAUSED' : evidence.overallDecision
+    overall: planeState.paused ? 'PAUSED' : evidence.overallDecision,
+    securityValue: config.securityValue
   };
 
   writeStatusFile(status);
