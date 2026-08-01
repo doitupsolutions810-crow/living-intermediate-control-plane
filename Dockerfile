@@ -1,21 +1,41 @@
 # Living Intermediate Control Plane
-# Lightweight Node image for doctor / CI / operator commands
+# Optimized layers: metadata first, source by area, non-root runtime
 
-FROM node:20-alpine
+# ── Stage 1: prepare files ───────────────────────────────────────────
+FROM node:20-alpine AS prepare
 
 WORKDIR /app
 
-# Copy package metadata first (better layer caching)
-COPY package.json ./
+# Only metadata in this layer (changes rarely)
+COPY package.json config.json ./
 
-# No production npm dependencies required today; keep install step for future use
-RUN npm install --omit=dev --ignore-scripts || true
+# Source grouped by change frequency / area (better cache hits)
+COPY lib/ ./lib/
+COPY lattice/ ./lattice/
+COPY agents/ ./agents/
+COPY launchdesk/ ./launchdesk/
+COPY avrone/ ./avrone/
+COPY attestation/ ./attestation/
+COPY status/ ./status/
+COPY test/ ./test/
+COPY integrate.mjs ./
 
-# Copy the plane source
-COPY . .
+# No npm dependencies are required for the plane today.
+# Keep package.json for version/info only — skip install to shrink image.
 
-# Ensure data directory exists inside the image
-RUN mkdir -p data && node status/init.mjs
+RUN mkdir -p data \
+  && node status/init.mjs \
+  && chown -R node:node /app
 
-# Default command: doctor diagnostics
+# ── Stage 2: runtime ─────────────────────────────────────────────────
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+# Copy prepared tree as non-root ownership
+COPY --from=prepare --chown=node:node /app /app
+
+USER node
+
+# Default: doctor diagnostics
 CMD ["node", "status/doctor.mjs"]

@@ -1,8 +1,22 @@
+# Runtime / local state
 data/
-.git/
-.github/
-node_modules/
 *.log
 .DS_Store
 .env
 .env.*
+
+# VCS and CI
+.git/
+.github/
+
+# Docs not needed inside the image
+docs/
+README.md
+
+# Dependencies (none required, but exclude if present)
+node_modules/
+
+# Editor / OS
+*.swp
+.idea/
+.vscode/
