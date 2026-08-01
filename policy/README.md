@@ -1,28 +1,35 @@
 # OPA / Conftest policies
 
-## Active (CI + `npm run security-scan`)
+## Active policies
 
-`trivy-results.rego` customized deny rules:
-
-1. CRITICAL vulnerabilities  
-2. HIGH vulnerabilities  
-3. Denied package name patterns (`denied_packages` set)  
-4. CRITICAL/HIGH secret findings  
-5. CRITICAL/HIGH misconfigurations  
-6. Missing `Results` array  
+| File | Input | Rules |
+|------|--------|--------|
+| `trivy-results.rego` | Trivy JSON | CRITICAL/HIGH vulns, secrets, misconfig, package denylist |
+| `snyk-results.rego` | Snyk JSON | CRITICAL/HIGH vulns, package denylist |
 
 ```bash
+# Trivy report
 conftest test --policy policy data/trivy-report.json
+
+# Snyk report (package is snyk — use namespace or file)
+conftest test --policy policy/snyk-results.rego data/snyk-test.json
 ```
 
-## Examples (`policy/examples/`)
+`npm run security-scan` runs Conftest on both reports when present.
 
-| File | Rule |
-|------|------|
-| `deny-critical-only.rego` | CRITICAL vulns only |
-| `require-results.rego` | Report must include Results |
-| `max-vuln-count.rego` | Total vuln cap |
-| `deny-fixed-only.rego` | HIGH/CRITICAL only when FixedVersion is set |
-| `deny-secret-any.rego` | Any secret finding |
+## Examples
 
-Examples are **not** loaded by default. Copy into `policy/` or pass the file path to Conftest to try them.
+| File | Purpose |
+|------|--------|
+| `deny-critical-only.rego` | Trivy CRITICAL only |
+| `require-results.rego` | Trivy Results required |
+| `max-vuln-count.rego` | Trivy total cap |
+| `deny-fixed-only.rego` | Trivy fixable HIGH/CRITICAL |
+| `deny-secret-any.rego` | Any Trivy secret |
+| `snyk-critical-only.rego` | Snyk CRITICAL only |
+| `snyk-max-count.rego` | Snyk total cap |
+
+## Kubernetes Gatekeeper
+
+OPA Gatekeeper manifests live under `k8s/gatekeeper/` (ConstraintTemplates + Constraints).
+Those run in-cluster, not via Conftest on scan JSON.

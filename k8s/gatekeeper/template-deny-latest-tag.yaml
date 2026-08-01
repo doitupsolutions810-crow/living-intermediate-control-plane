@@ -1,0 +1,28 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sdenylatesttag
+  annotations:
+    description: Denies container images tagged :latest
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sDenyLatestTag
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sdenylatesttag
+
+        violation[{"msg": msg}] {
+          c := input.review.object.spec.containers[_]
+          endswith(c.image, ":latest")
+          msg := sprintf("container %v must not use :latest tag (%v)", [c.name, c.image])
+        }
+
+        violation[{"msg": msg}] {
+          c := input.review.object.spec.containers[_]
+          not contains(c.image, ":")
+          not starts_with(c.image, "sha256:")
+          msg := sprintf("container %v image should be pinned with a tag or digest (%v)", [c.name, c.image])
+        }
