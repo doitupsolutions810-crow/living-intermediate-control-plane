@@ -1,45 +1,49 @@
-# Trivy configuration
+# Trivy configuration and OPA policy
 
 ## Files
 
 | File | Purpose |
 |------|--------|
-| `trivy.yaml` | Shared scan settings (severity, scanners, skip dirs, ignore file path) |
-| `.trivyignore` | Optional accepted findings (CVE / GHSA IDs) |
+| `trivy.yaml` | Shared scan settings |
+| `.trivyignore` | Optional accepted findings |
+| `policy/trivy-results.rego` | OPA rules applied to Trivy JSON reports |
 
-## Active options (`trivy.yaml`)
+## Trivy options (`trivy.yaml`)
 
-- **severity** — `CRITICAL`, `HIGH` (job fails on these)
-- **exit-code** — `1` when findings remain after ignores
-- **ignore-unfixed** — do not fail on issues with no upstream fix
-- **ignorefile** — `.trivyignore`
-- **scanners** — `vuln`, `secret`, `misconfig`
-- **skip-dirs** — `data`, `.git`, `docs`
-- **timeout** — `5m`
+- Severity: CRITICAL, HIGH
+- `ignore-unfixed: true`
+- `ignorefile: .trivyignore`
+- Scanners: vuln, secret, misconfig
+- Skip dirs: data, .git, docs
 
-CI passes `trivy-config: trivy.yaml` into every Trivy action step.
+CI passes `trivy-config: trivy.yaml` into Trivy steps.
+
+## OPA / Conftest enforcement
+
+After Trivy writes JSON (`trivy-report.json` or `trivy-kaniko-report.json`), Conftest evaluates `policy/`:
+
+1. **Deny** any remaining CRITICAL vulnerability
+2. **Deny** any remaining HIGH vulnerability
+3. **Deny** malformed reports with no `Results` array
+
+Flow:
+
+```text
+Trivy (severity + ignorefile) → JSON report → Conftest/OPA → pass/fail
+```
+
+Local:
+
+```bash
+trivy image --config trivy.yaml --format json -o trivy-report.json living-intermediate-control-plane:0.3.7
+conftest test --policy policy trivy-report.json
+```
 
 ## Ignore file example (`.trivyignore`)
 
 ```
-# CVE-2023-12345  # reason: not reachable in this app path
-# CVE-2024-00000 exp:2026-12-31  # reason: accepted until base image bump
-# GHSA-xxxx-yyyy-zzzz  # GitHub advisory form also works
+# CVE-2023-12345  # reason: not reachable
+# CVE-2024-00000 exp:2026-12-31  # accepted until base image bump
 ```
 
-Rules:
-
-1. Prefer upgrading the base image or dependency over ignoring.
-2. Always add a short reason comment.
-3. Use `exp:YYYY-MM-DD` when the ignore should expire.
-4. Keep the file empty (comments only) unless a reviewed exception is required.
-
-## Local scan examples
-
-```bash
-# Filesystem scan using project config
-trivy fs --config trivy.yaml .
-
-# Image scan after docker build
-trivy image --config trivy.yaml living-intermediate-control-plane:0.3.6
-```
+Prefer fixes over permanent ignores.

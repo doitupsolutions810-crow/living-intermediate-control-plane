@@ -1,13 +1,17 @@
 # Evolution Log
 
-## 2026-08-01 — Trivy config + Kaniko alternative (0.3.6)
+## 2026-08-01 — Kaniko cache, Syft SBOM, OPA policy (0.3.7)
 
-- Added `trivy.yaml` (severity, scanners, skip-dirs, ignorefile, timeout)
-- Added `.trivyignore` example (comment-only by default)
-- Wired `trivy-config: trivy.yaml` into all Trivy CI steps
-- Added `kaniko-build` job as Docker-daemon-free alternative to Buildx
-- Documented when to use Buildx vs Kaniko (`docs/ci.md`, `docs/docker.md`, `docs/trivy.md`)
+- Kaniko: `--cache`, `--cache-dir`, `--cache-ttl`, `--compressed-caching`, optional `--cache-repo`
+- Kaniko layer cache persisted with `actions/cache`
+- Syft SBOM (SPDX + CycloneDX) for Kaniko images, uploaded as artifacts
+- OPA/Conftest policy on Trivy JSON (`policy/trivy-results.rego`) for Buildx and Kaniko paths
+- Docs: `docs/kaniko.md`, updated `docs/trivy.md` and `docs/ci.md`
+
+## 0.3.6
+
+- trivy.yaml, .trivyignore example, Kaniko job introduced
 
 ## 0.3.5
 
-- Distroless runtime, Trivy FS/image scans, Buildx GHA cache
+- Distroless runtime, Trivy FS/image, Buildx GHA cache
