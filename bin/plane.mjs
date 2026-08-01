@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * Concrete CLI for Living Intermediate Control Plane
- */
-
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +12,7 @@ const commands = {
   checklist: { script: 'status/checklist.mjs', desc: 'Pre-flight before procure' },
   daily: { script: 'status/daily-loop.mjs', desc: 'Automated daily operator loop' },
   'upgrade-check': { script: 'status/upgrade-check.mjs', desc: 'Verify files after git pull / upgrade' },
+  'verify-changes': { script: 'status/verify-changes.mjs', desc: 'Verify docs/layout after changes' },
   next: { script: 'status/next.mjs', desc: 'Recommended next commands' },
   procure: {
     script: 'integrate.mjs',
@@ -52,7 +49,7 @@ const commands = {
   test: { script: 'test/self-test.mjs', desc: 'Self-test' },
   'cosign-sign': { script: 'status/cosign-sign.mjs', desc: 'Cosign sign + Rekor upload (IMAGE_REF)' },
   'cosign-verify': { script: 'status/cosign-verify.mjs', desc: 'Cosign verify via Rekor (IMAGE_REF)' },
-  rekor: { script: 'status/rekor-cli.mjs', desc: 'rekor-cli passthrough (version|search|get|…)' }
+  rekor: { script: 'status/rekor-cli.mjs', desc: 'rekor-cli passthrough' }
 };
 
 const cmd = process.argv[2] || 'help';
@@ -64,27 +61,19 @@ if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
   for (const name of Object.keys(commands).sort()) {
     console.log(`  ${name.padEnd(18)} ${commands[name].desc}`);
   }
-  console.log('\nExamples:');
-  console.log('  plane upgrade-check');
-  console.log('  plane daily');
-  console.log('  plane checklist && plane procure');
   process.exit(0);
 }
 
 const def = commands[cmd];
 if (!def) {
   console.error(`Unknown command: ${cmd}`);
-  console.error('Run: plane help');
   process.exit(1);
 }
-
 if (!def.script) process.exit(0);
 
-const args = [join(root, def.script), ...(def.args || []), ...extra];
-const result = spawnSync(process.execPath, args, {
-  cwd: root,
-  env: { ...process.env, ...(def.env || {}) },
-  stdio: 'inherit'
-});
-
+const result = spawnSync(
+  process.execPath,
+  [join(root, def.script), ...(def.args || []), ...extra],
+  { cwd: root, env: { ...process.env, ...(def.env || {}) }, stdio: 'inherit' }
+);
 process.exit(result.status === 0 ? 0 : result.status || 1);
