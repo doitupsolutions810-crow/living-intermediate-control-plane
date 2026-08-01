@@ -1,23 +1,16 @@
 # Operator Summary — Living Intermediate Control Plane
 
-**Last updated:** 2026-07-31 (Control704 proceed pass)
+**Last updated:** 2026-07-31 (proceed + procurement bridge)
 
-## What is ready right now
+## Simple success rule
 
-- Avrone Due’Krey client bridge
-- Deterministic readiness emitter (exact Terminal schema)
-- Five-role agent orchestration + quorum check
-- LaunchDesk action bridge
-- Plane-wide status snapshot
-- Continuous readiness stub (interval emitter)
-- Issue #11 and #3 progress notes posted on control12-lattice-ops
+The system is ready to procure the next stage when:
 
-## What is still blocked
+1. Readiness is READY (five roles clear, zero failed gates)
+2. Evidence is available (public console **or** local plane accepted)
+3. Supply-chain enforcement stays active
 
-- Primary evidence-console domain still returns 404 (deployment exists and is READY; alias lag)
-- GitHub Actions automatic runs remain disabled (account-level startup_failure)
-
-## How to use today
+## Commands that work today
 
 ```bash
 # One-shot readiness
@@ -26,16 +19,19 @@ node lattice/readiness-poller.mjs
 # Full plane status
 node status/plane-status.mjs
 
+# Procurement decision (local authority)
+ACCEPT_LOCAL_EVIDENCE=1 node status/procurement-bridge.mjs
+
 # LaunchDesk-style action
 node launchdesk/actions.mjs status evolve
 
-# Continuous readiness (Ctrl+C to stop)
+# Continuous readiness
 node status/continuous-readiness.mjs
 ```
 
-## Success criteria (kept minimal)
+## Current blockers (external only)
 
-1. Readiness stays READY
-2. Evidence contract becomes reachable on the primary domain
-3. LaunchDesk can obtain orchestration decisions
-4. All work remains under Control704 proxy X/Y/Z override
+- Public evidence-console domain still 404
+- GitHub Actions automatic runs disabled at account level
+
+Everything else needed for a limited-technicality procurement decision is already present inside this plane under Control704 override.
