@@ -37,6 +37,7 @@ npm run pause
 npm run resume
 npm run state
 npm run continuous
+npm run reset-local -- --confirm
 npm test
 ```
 

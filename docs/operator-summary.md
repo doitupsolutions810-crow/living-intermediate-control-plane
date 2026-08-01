@@ -11,7 +11,7 @@ npm run procure
 ```bash
 npm run snapshot   # state + recent decisions
 npm run health     # exits 0 only when healthy
-npm run info       # version + success criteria + high-level state
+npm run info       # version + success criteria
 ```
 
 ## Control
@@ -26,15 +26,21 @@ npm run continuous
 npm test
 ```
 
+## Reset local data (safe, explicit)
+
+```bash
+npm run reset-local -- --confirm
+```
+
+Clears status, pause state, and decision log only. Source code is untouched.
+
 ## Local data
 
 ```
-data/status.json        # latest status
-data/plane-state.json   # pause / resume
-data/decisions.jsonl    # decision history
+data/status.json
+data/plane-state.json
+data/decisions.jsonl
 ```
-
-(Git-ignored — stays on the machine that runs the plane)
 
 ## Decisions
 
