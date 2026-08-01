@@ -9,11 +9,11 @@ data/
 .git/
 .github/
 
-# Docs not needed inside the image
+# Docs not needed in image
 docs/
 README.md
 
-# Dependencies (none required, but exclude if present)
+# Dependencies
 node_modules/
 
 # Editor / OS

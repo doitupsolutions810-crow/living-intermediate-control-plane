@@ -1,18 +1,17 @@
 # Evolution Log
 
-## 2026-07-31 — Docker layer optimization (0.3.4)
+## 2026-08-01 — Distroless + security scanning (0.3.5)
 
-- Multi-stage build (prepare → runtime)
-- Metadata layer separated from source
-- Source copied by area for better cache hits
-- Removed unnecessary npm install
-- Non-root `node` user in runtime image
-- Tighter `.dockerignore` (docs/git excluded from image)
+- Runtime image switched to `gcr.io/distroless/nodejs20-debian12:nonroot`
+- Trivy FS scan in plane-checks job
+- Trivy image scan + SARIF upload in docker-build job
+- Buildx GHA cache with `mode=max` documented and applied
+- Prepare stage moved to `node:20-bookworm-slim` for glibc compatibility with distroless
+
+## 0.3.4
+
+- Multi-stage Alpine optimization, non-root user, tighter dockerignore
 
 ## 0.3.3
 
 - Initial Dockerfile + CI Docker build job
-
-## 0.3.2
-
-- GitHub Actions workflow + `npm run ci`
