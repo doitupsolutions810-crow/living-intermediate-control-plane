@@ -1,15 +1,15 @@
 # Evolution Log
 
-## 2026-07-31 — Evolve even further (0.3.0)
+## 2026-07-31 — Evolve even further (0.3.1)
 
-- `npm run init` — safe local initialization
-- `npm run last` — most recent decision only
-- `npm run dry-run` — procurement check without recording
-- `npm run report:write` — save report to data/report.md
-- `npm run smoke` — health + self-test in one pass
-- integrate supports DRY_RUN=1 and config-driven local evidence default
+- `npm run doctor` — deeper integrity diagnostics (modules, config, data dir, READY signals)
+- `npm run export` — export / filter decision log (`--decision`, `--limit`)
+- Help and operator docs updated
 
-## Previous
+## 0.3.0
 
-- 0.2.0: config, help, report, watch, metrics
-- Earlier: pause/resume, decision log, status file, continuous readiness, snapshot, health, info, reset-local, integrated entry point
+- init, dry-run, last, report:write, smoke
+
+## 0.2.x
+
+- config, help, report, watch, metrics, continuous/status/pause surfaces

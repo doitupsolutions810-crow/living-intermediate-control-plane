@@ -12,15 +12,17 @@ Setup
   npm run init         Create local data dir and ensure config exists
 
 Daily
-  npm run procure      Full check + accept local evidence (procurement path)
-  npm run dry-run      Same check without recording a decision
+  npm run procure      Full check + accept local evidence
+  npm run dry-run      Same check without recording
   npm run check        Full integrated check only
   npm run snapshot     Current state + recent decisions
   npm run health       Exit 0 only when healthy
+  npm run doctor       Deeper integrity diagnostics
   npm run info         Version + success criteria
   npm run report       Human-readable report
-  npm run report:write Write report to data/report.md
-  npm run last         Most recent decision only
+  npm run report:write Save report to data/report.md
+  npm run last         Most recent decision
+  npm run export       Export / filter decision log
   npm run help         This list
 
 Control
@@ -31,13 +33,13 @@ Control
   npm run actions      List named LaunchDesk actions
 
 Background
-  npm run continuous   Keep status file fresh on an interval
+  npm run continuous   Keep status file fresh
   npm run watch        Periodically run integrated check
 
 Maintenance
   npm run smoke        Health + self-test
-  npm run reset-local -- --confirm   Clear local runtime data only
-  npm test             Self-test only
+  npm run reset-local -- --confirm
+  npm test
 
 Success criteria (only three)
   1. Readiness is READY

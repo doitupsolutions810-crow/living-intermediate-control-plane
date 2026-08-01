@@ -1,32 +1,34 @@
 # Operator Summary
 
-**First time / setup**
+**Setup**
 
 ```bash
 npm run init
 ```
 
-**Daily command**
+**Daily**
 
 ```bash
 npm run procure
-```
-
-**Quick views**
-
-```bash
 npm run snapshot
 npm run health
-npm run info
+npm run doctor
 npm run report
 npm run last
-npm run help
 ```
 
-**Safe preview**
+**Preview without recording**
 
 ```bash
 npm run dry-run
+```
+
+**Decision history**
+
+```bash
+npm run log
+npm run export
+npm run export -- --decision READY_FOR_PROCUREMENT
 ```
 
 **Control**
@@ -35,23 +37,16 @@ npm run dry-run
 npm run pause
 npm run resume
 npm run state
-npm run log
-npm run actions
 ```
 
-**Background**
+**Background / maintenance**
 
 ```bash
 npm run continuous
 npm run watch
-```
-
-**Maintenance**
-
-```bash
 npm run smoke
-npm run reset-local -- --confirm
 npm test
+npm run reset-local -- --confirm
 ```
 
 ## Success criteria (only three)
