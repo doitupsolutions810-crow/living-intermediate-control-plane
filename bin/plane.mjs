@@ -14,6 +14,7 @@ const commands = {
   help: { desc: 'Show this help' },
   init: { script: 'status/init.mjs', desc: 'Create local data dir and config' },
   checklist: { script: 'status/checklist.mjs', desc: 'Pre-flight before procure' },
+  daily: { script: 'status/daily-loop.mjs', desc: 'Automated daily operator loop' },
   next: { script: 'status/next.mjs', desc: 'Recommended next commands' },
   procure: {
     script: 'integrate.mjs',
@@ -63,11 +64,9 @@ if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
     console.log(`  ${name.padEnd(18)} ${commands[name].desc}`);
   }
   console.log('\nExamples:');
+  console.log('  plane daily');
   console.log('  plane checklist && plane procure');
   console.log('  IMAGE_REF=my:tag plane cosign-sign');
-  console.log('  plane rekor version');
-  console.log('  plane rekor search --sha <hex>');
-  console.log('  plane rekor get --uuid <uuid>');
   process.exit(0);
 }
 

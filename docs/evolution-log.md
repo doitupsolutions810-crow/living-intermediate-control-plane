@@ -1,20 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Evolve 0.5.0 (signed supply-chain milestone)
+## 2026-08-01 — Daily operator loop (0.5.1)
 
-- security-summary reports Cosign/Rekor tools + scripts
-- next advisor suggests build → cosign-sign → verify → rekor
-- Docs mark signed path (Cosign + Rekor) as first-class operator flow
-- Version **0.5.0**
+- `npm run daily` / `plane daily` — automated checklist → procure → doctor → security-scan → metrics
+- Writes `data/daily-loop-last.json`
+- Cron and systemd timer examples in `docs/daily-loop.md`
 
-## 0.4.9
+## 0.5.0
 
-- rekor-cli integration + Homebrew install
-
-## 0.4.8
-
-- Rekor tlog on Cosign sign
-
-## 0.4.7
-
-- plane CLI + Cosign
+- Signed supply-chain milestone (Cosign + Rekor in operator surface)
