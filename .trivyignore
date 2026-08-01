@@ -1,0 +1,15 @@
+# Example Trivy ignore file
+# ----------------------------------------
+# One finding ID per line. Optional expiration: CVE-YYYY-NNNNN exp:2026-12-31
+# Prefer fixing or upgrading over permanent ignores.
+#
+# Only add entries after review. Each line should include a short reason comment.
+#
+# Examples (commented out — enable only if needed):
+#
+# CVE-2023-12345  # example: transitive parser, no fixed release yet, not reachable in our path
+# CVE-2024-00000 exp:2026-12-31  # example: accepted risk until next base-image bump
+#
+# GHSA-xxxx-yyyy-zzzz  # example: GitHub Security Advisory form also supported
+#
+# Keep this file small. Empty (or comment-only) means nothing is ignored.

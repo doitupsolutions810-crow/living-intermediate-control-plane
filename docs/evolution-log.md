@@ -1,17 +1,13 @@
 # Evolution Log
 
-## 2026-08-01 — Distroless + security scanning (0.3.5)
+## 2026-08-01 — Trivy config + Kaniko alternative (0.3.6)
 
-- Runtime image switched to `gcr.io/distroless/nodejs20-debian12:nonroot`
-- Trivy FS scan in plane-checks job
-- Trivy image scan + SARIF upload in docker-build job
-- Buildx GHA cache with `mode=max` documented and applied
-- Prepare stage moved to `node:20-bookworm-slim` for glibc compatibility with distroless
+- Added `trivy.yaml` (severity, scanners, skip-dirs, ignorefile, timeout)
+- Added `.trivyignore` example (comment-only by default)
+- Wired `trivy-config: trivy.yaml` into all Trivy CI steps
+- Added `kaniko-build` job as Docker-daemon-free alternative to Buildx
+- Documented when to use Buildx vs Kaniko (`docs/ci.md`, `docs/docker.md`, `docs/trivy.md`)
 
-## 0.3.4
+## 0.3.5
 
-- Multi-stage Alpine optimization, non-root user, tighter dockerignore
-
-## 0.3.3
-
-- Initial Dockerfile + CI Docker build job
+- Distroless runtime, Trivy FS/image scans, Buildx GHA cache

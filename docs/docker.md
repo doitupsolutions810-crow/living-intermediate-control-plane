@@ -1,62 +1,77 @@
 # Docker
 
-## Build
+## Build options
+
+### A. Docker Buildx (default CI path)
 
 ```bash
-docker build -t living-intermediate-control-plane:0.3.5 .
-```
-
-Or:
-
-```bash
+docker build -t living-intermediate-control-plane:0.3.6 .
+# or
 npm run docker:build
 ```
+
+CI uses Buildx with GitHub Actions layer cache (`type=gha,mode=max`).
+
+### B. Kaniko (alternative — no Docker daemon required)
+
+Useful in Kubernetes CI or locked-down runners where Docker-in-Docker is unavailable.
+
+CI job: `kaniko-build` in `.github/workflows/plane-ci.yml`
+
+Local-style example (executor container writing a tar):
+
+```bash
+mkdir -p /tmp/kaniko-out
+docker run --rm \
+  -v "$PWD:/workspace" \
+  -v "/tmp/kaniko-out:/out" \
+  gcr.io/kaniko-project/executor:v1.23.2-debug \
+  --dockerfile=/workspace/Dockerfile \
+  --context=dir:///workspace \
+  --no-push \
+  --tarPath=/out/plane.tar \
+  --destination=living-intermediate-control-plane:kaniko \
+  --verbosity=info
+
+docker load -i /tmp/kaniko-out/plane.tar
+```
+
+Both paths produce an image from the same `Dockerfile` and are scanned with Trivy.
 
 ## Image design
 
 | Stage | Base | Role |
 |-------|------|------|
-| `prepare` | `node:20-bookworm-slim` | Copy source, init data, fix ownership |
-| `runtime` | `gcr.io/distroless/nodejs20-debian12:nonroot` | Minimal final image (no shell, no package manager) |
+| `prepare` | `node:20-bookworm-slim` | Copy source, init data, ownership |
+| `runtime` | `gcr.io/distroless/nodejs20-debian12:nonroot` | Minimal final image |
 
 ### Layer caching strategy
 
-1. **Metadata first** — `package.json` + `config.json` in their own layer (rarely change).
-2. **Source by area** — `lib/`, `lattice/`, `agents/`, `status/`, etc. copied separately so a change in one area does not bust unrelated layers.
-3. **Init in prepare only** — runtime stage is a pure copy; it stays cacheable and thin.
-4. **CI cache** — Buildx `cache-from/to: type=gha,mode=max` stores intermediate layers across GitHub Actions runs.
-5. **No npm install** — zero production dependencies, so no lockfile/install layer churn.
+1. Metadata first (`package.json`, `config.json`)
+2. Source by area for partial cache hits
+3. Init only in prepare stage
+4. CI Buildx cache: `cache-from/to: type=gha,mode=max`
+5. No npm install layer
 
 ### Distroless runtime
 
-- No shell, no `apt`, no package manager
-- Runs as uid `65532` (`nonroot`)
-- Entrypoint is `node`; `CMD` is the script path only
+- No shell, no package manager
+- uid `65532` (`nonroot`)
+- Entrypoint is `node`; pass the script path as the command
 
-## Security scanning (CI)
+## Security scanning
 
-| Scan | Tool | When |
-|------|------|------|
-| Filesystem / repo | Trivy `fs` | After Node checks |
-| Built image | Trivy `image` | After Docker build |
-| SARIF upload | Trivy → Code Scanning | Best-effort after image scan |
+See `docs/trivy.md` for config and ignore-file rules.
 
-Severity gate: **CRITICAL** and **HIGH** fail the job. Unfixed issues can be ignored via `ignore-unfixed`.
+| Scan | When |
+|------|------|
+| Trivy FS | After Node checks |
+| Trivy image | After Buildx build |
+| Trivy image | After Kaniko build (best-effort) |
 
 ## Run
 
 ```bash
-docker run --rm living-intermediate-control-plane:0.3.5
-
-docker run --rm living-intermediate-control-plane:0.3.5 status/health.mjs
-docker run --rm living-intermediate-control-plane:0.3.5 test/self-test.mjs
-```
-
-Note: distroless has no shell, so do not use `sh -c` or bash entrypoints.
-
-## Persist local data (optional)
-
-```bash
-docker run --rm -v "$(pwd)/data:/app/data" living-intermediate-control-plane:0.3.5 \
-  integrate.mjs procure
+docker run --rm living-intermediate-control-plane:0.3.6
+docker run --rm living-intermediate-control-plane:0.3.6 status/health.mjs
 ```

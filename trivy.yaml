@@ -1,0 +1,42 @@
+# Trivy configuration for Living Intermediate Control Plane
+# https://aquasecurity.github.io/trivy/latest/docs/configuration/
+
+# Fail the scan when findings at these severities are present
+severity:
+  - CRITICAL
+  - HIGH
+
+# Exit codes: 0 = clean (or only ignored), 1 = findings above threshold
+exit-code: 1
+
+# Do not fail on vulnerabilities that have no fixed version yet
+ignore-unfixed: true
+
+# Use project ignore file for known/accepted findings
+ignorefile: .trivyignore
+
+# Scan timeout
+timeout: 5m
+
+# Vulnerability settings
+vulnerability:
+  type:
+    - os
+    - library
+
+# Report format when not overridden by CLI/action input
+format: table
+
+# Quiet progress bars in CI logs (action may still override)
+quiet: false
+
+# Scan options shared across fs and image modes
+scan:
+  skip-dirs:
+    - data
+    - .git
+    - docs
+  scanners:
+    - vuln
+    - secret
+    - misconfig
