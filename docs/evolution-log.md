@@ -1,7 +1,7 @@
 # Evolution Log
 
-## 2026-08-01 — CI verification automation (0.5.5)
+## 2026-08-01 — Snyk container integration (0.5.6)
 
-- GitHub Actions plane-checks runs upgrade-check + verify-changes
-- Local `npm run ci` mirrors the same verification steps
-- Checklist added to CI job
+- security-scan: explicit Snyk container test + JSON + OPA on container report
+- docs/snyk-container.md
+- CI docker-build continues Snyk container via SNYK_TOKEN

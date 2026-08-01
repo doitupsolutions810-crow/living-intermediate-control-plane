@@ -1,6 +1,6 @@
 {
   "name": "living-intermediate-control-plane",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "private": true,
   "type": "module",
   "bin": {
@@ -49,8 +49,8 @@
     "help": "node bin/plane.mjs help",
     "smoke": "node status/smoke.mjs",
     "ci": "node status/ci-check.mjs",
-    "docker:build": "docker build -t living-intermediate-control-plane:0.5.5 .",
-    "docker:doctor": "docker run --rm living-intermediate-control-plane:0.5.5",
+    "docker:build": "docker build -t living-intermediate-control-plane:0.5.6 .",
+    "docker:doctor": "docker run --rm living-intermediate-control-plane:0.5.6",
     "reset-local": "node status/reset-local.mjs",
     "test": "node test/self-test.mjs"
   },
