@@ -1,8 +1,8 @@
 # Living Intermediate Control Plane
 
-Unified lattice · Avrone Due’Krey · LaunchDesk · Trust & attestation
+Version **0.4.0**
 
-Authenticated via Control704 access proxy X, Y, Z data-set code override.
+Local control plane for readiness, five-role checks, operator actions, and supply-chain-aware CI.
 
 ## Quick start
 
@@ -10,76 +10,51 @@ Authenticated via Control704 access proxy X, Y, Z data-set code override.
 npm run init
 npm run procure
 npm run doctor
+npm run security-summary
 npm run help
 ```
 
 ## Success criteria (only three)
 
-1. Readiness is READY
-2. Evidence is available (public console or local plane accepted)
-3. Supply-chain enforcement stays active
+1. Readiness is READY  
+2. Evidence is available (public console or local plane accepted)  
+3. Supply-chain enforcement stays active  
 
 ## Common commands
 
 ```bash
 npm run procure
 npm run dry-run
-npm run snapshot
-npm run health
 npm run doctor
+npm run security-summary
+npm run ci
+npm run docker:build
+npm run docker:doctor
 npm run report
-npm run last
-npm run export
-npm run smoke
-npm run watch
-npm run continuous
 npm run pause
 npm run resume
 npm test
 ```
 
-## Example: doctor (healthy)
+## Supply chain (summary)
 
-```bash
-npm run doctor
-```
+- Distroless non-root image  
+- Trivy FS + image scans  
+- OPA/Conftest policy on scan results  
+- Syft SBOM (Kaniko path)  
+- SLSA-style provenance documents  
+- Buildx (default) and Kaniko (daemon-free) builds  
 
-```json
-{
-  "ok": true,
-  "passed": 7,
-  "failed": 0,
-  "checks": [
-    { "name": "package.json readable", "ok": true, "detail": "version 0.3.1" },
-    { "name": "config loadable", "ok": true, "detail": "securityValue=High" },
-    { "name": "data directory writable", "ok": true, "detail": ".../data" },
-    { "name": "readiness READY", "ok": true, "detail": "deterministic-local-evidence" },
-    { "name": "orchestration READY", "ok": true, "detail": "5 roles" },
-    { "name": "LaunchDesk actions", "ok": true, "detail": "5 named actions" },
-    { "name": "plane state readable", "ok": true, "detail": "active" }
-  ],
-  "note": "Doctor checks passed under Control704 override."
-}
-```
-
-See `docs/examples.md` for a fuller sample and plain-language notes.
-
-## Config
-
-Defaults live in `config.json`.
+See `docs/security.md`.
 
 ## Documents
 
 - `docs/operator-summary.md`
+- `docs/security.md`
+- `docs/ci.md`
+- `docs/docker.md`
 - `docs/examples.md`
-- `docs/next-actions.md`
-- `docs/system-success-criteria.md`
-- `docs/evolution-log.md`
 
-## External notes
+## Note
 
-- Public evidence-console domain still returns 404
-- GitHub Actions automatic runs remain disabled at account level
-- Local data/ files are git-ignored
-
-The plane itself is integrated, testable, and ready for limited-technicality procurement decisions.
+CI is a helper. Readiness and doctor remain the authority for limited-technicality procurement decisions.

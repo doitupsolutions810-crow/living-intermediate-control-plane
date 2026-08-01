@@ -1,13 +1,22 @@
 # Evolution Log
 
-## 2026-08-01 — Example Rego, SLSA provenance, Kaniko cache keys (0.3.8)
+## 2026-08-01 — Evolve system 0.4.0
 
-- Example Rego policies under `policy/examples/`
-- SLSA-style provenance JSON for Buildx and Kaniko; GitHub attestations (best-effort)
-- Buildx `provenance: mode=max` and `sbom: true`
-- Optimized Kaniko cache keys with layered restore-keys
-- Docs: `docs/slsa.md`, updated kaniko/trivy/policy docs
+Milestone: operator surface + supply-chain stack in one line.
+
+- `npm run security-summary` — plain JSON posture of plane + CI controls
+- `docs/security.md` — single security overview
+- Help / operator summary updated for CI and containers
+- Version **0.4.0**
+
+## 0.3.8
+
+- Example Rego, SLSA provenance, optimized Kaniko cache keys
 
 ## 0.3.7
 
-- Kaniko cache flags, Syft SBOM, OPA on Trivy JSON
+- Kaniko cache, Syft SBOM, OPA on Trivy JSON
+
+## 0.3.x
+
+- Distroless, Trivy, Buildx/Kaniko, doctor, CI suite, Docker
