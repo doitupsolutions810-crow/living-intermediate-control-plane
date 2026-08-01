@@ -2,13 +2,13 @@
 /**
  * Living Intermediate Control Plane — integrated entry point
  *
- * Runs readiness → orchestration → procurement decision in one pass.
- * Optional LaunchDesk action can be supplied as the first argument.
+ * Runs readiness → orchestration → LaunchDesk → procurement decision
+ * and records the result in the decision log.
  *
  * Usage:
  *   node integrate.mjs
  *   node integrate.mjs status
- *   ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs evolve
+ *   ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure
  *
  * Control704 high-priority override surface
  */
@@ -16,6 +16,7 @@
 import { emitReadinessEvidence } from './lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from './agents/orchestration.mjs';
 import { handleLaunchDeskAction } from './launchdesk/actions.mjs';
+import { recordDecision } from './status/decision-log.mjs';
 
 const action = process.argv[2] || 'status';
 const goal = process.argv[3] || 'integrated-check';
@@ -58,7 +59,8 @@ const result = {
   },
   launchdesk: {
     accepted: launchdesk.accepted,
-    decision: launchdesk.decision
+    decision: launchdesk.decision,
+    knownAction: launchdesk.knownAction
   },
   localEvidenceAccepted: localEvidenceAuthority,
   note:
@@ -69,5 +71,19 @@ const result = {
         : 'Core readiness or orchestration not yet READY.',
   securityValue: 'High'
 };
+
+// Record every integrated decision
+try {
+  recordDecision({
+    decision: result.decision,
+    action: result.action,
+    goal: result.goal,
+    readinessOverall: result.readiness.overall,
+    orchestrationOverall: result.orchestration.overall,
+    localEvidenceAccepted: result.localEvidenceAccepted
+  });
+} catch (err) {
+  result.logError = String(err.message || err);
+}
 
 console.log(JSON.stringify(result, null, 2));

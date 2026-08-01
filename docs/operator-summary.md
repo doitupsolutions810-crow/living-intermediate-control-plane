@@ -6,29 +6,27 @@
 npm run procure
 ```
 
-This runs the full integrated check and accepts the local plane as temporary evidence authority.
-
-## What the result means
-
-| Decision | Meaning | Action |
-|----------|---------|--------|
-| `READY_FOR_PROCUREMENT` | Core systems clear, local evidence accepted | Next stage may proceed |
-| `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` | Core systems clear, public console still needed | Set ACCEPT_LOCAL_EVIDENCE=1 or wait for domain |
-| `HOLD` | Readiness or orchestration not clear | Investigate before proceeding |
-
-## Other commands
+## Useful commands
 
 ```bash
-npm run check      # integrated check without forcing local evidence
+npm run check      # integrated check
 npm run status     # plane snapshot
 npm run readiness  # one-shot readiness
+npm run log        # recent decisions
+npm run actions    # list named LaunchDesk actions
 npm test           # self-test
 ```
+
+## Decisions
+
+| Result | Meaning |
+|--------|--------|
+| `READY_FOR_PROCUREMENT` | Core clear + local evidence accepted → next stage may proceed |
+| `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` | Core clear; public console still needed |
+| `HOLD` | Readiness or orchestration not clear |
 
 ## Success criteria (only three)
 
 1. Readiness is READY
 2. Evidence is available (public or local accepted)
 3. Supply-chain enforcement remains active
-
-See `docs/next-actions.md` for the practical path forward.

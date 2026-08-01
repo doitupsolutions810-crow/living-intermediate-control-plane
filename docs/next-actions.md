@@ -1,41 +1,36 @@
 # Next Actions (practical, low-technicality)
 
-Ordered by value and ease.
+## Immediate
 
-## Immediate (can be done now)
-
-1. **Run the integrated check daily**
+1. Run the daily check:
    ```bash
    npm run procure
    ```
-   Accept the local plane as evidence authority while the public domain is fixed.
-
-2. **Keep the self-test green**
+2. Keep the self-test green:
    ```bash
    npm test
    ```
-   Confirms readiness, five-role orchestration, and LaunchDesk still agree.
+3. Review recent decisions when needed:
+   ```bash
+   npm run log
+   ```
+4. Watch for the public evidence-console domain to return 200 with version 5.3.1.
 
-3. **Watch the public evidence-console domain**
-   When `https://control12-evidence-console.vercel.app/api/status` returns 200 with version 5.3.1, the temporary local-authority flag can be retired.
+## Short-term
 
-## Short-term improvements
+5. Turn continuous-readiness into a small always-on process.
+6. Expand the named LaunchDesk actions only when a real operator need appears.
+7. Keep the decision log as the single history of what was allowed.
 
-4. Turn the continuous-readiness stub into a small always-on process (or edge function) that keeps a fresh READY signal.
-5. Add two or three named LaunchDesk actions that map to real operator intents (status, evolve, pause).
-6. Record each procurement decision to a simple append-only log so there is a history of what was allowed and why.
+## Later
 
-## Later (only after the above are stable)
+8. Restore automatic GitHub Actions once the account-level issue is cleared.
+9. Move from local evidence acceptance to the public evidence-console as sole authority.
+10. Light federation only after the above are stable.
 
-7. Restore automatic GitHub Actions once the account-level startup issue is cleared.
-8. Move from local evidence acceptance to full public evidence-console as the sole authority.
-9. Add light federation so more than one node can share the same readiness rules.
+## Non-goals for now
 
-## Explicit non-goals for now
-
-- Building new worker images
-- Full production acceptance evidence (G1–G6)
-- Expanding beyond the current five roles
-- Turning this into a large public platform
-
-Stay inside the three success criteria and the Control704 override.
+- New worker images
+- Full production acceptance (G1–G6)
+- Expanding the five roles
+- Becoming a large public platform
