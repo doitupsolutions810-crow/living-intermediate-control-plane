@@ -1,11 +1,11 @@
 # Evolution Log
 
-## 2026-08-01 — Evolve (0.4.6)
+## 2026-08-01 — CLI + Cosign (0.4.7)
 
-- `npm run checklist` — pre-flight before procure
-- Report includes decision metrics section
-- Self-test covers policy files, checklist, metrics modules
+- Concrete CLI: `bin/plane.mjs` / `plane <command>` / `npm run plane -- <command>`
+- Sigstore Cosign sign + verify scripts (`cosign:sign`, `cosign:verify`)
+- Docs: `docs/cli.md`, `docs/cosign.md`
 
-## 0.4.5
+## 0.4.6
 
-- metrics, richer doctor/security-summary, next advisor updates
+- checklist, report metrics, stronger self-test

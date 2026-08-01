@@ -1,10 +1,14 @@
 {
   "name": "living-intermediate-control-plane",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "private": true,
   "type": "module",
+  "bin": {
+    "plane": "./bin/plane.mjs"
+  },
   "description": "Unified lattice · Avrone Due’Krey · LaunchDesk · Control704 high-priority surface",
   "scripts": {
+    "plane": "node bin/plane.mjs",
     "init": "node status/init.mjs",
     "check": "node integrate.mjs",
     "checklist": "node status/checklist.mjs",
@@ -30,13 +34,15 @@
     "info": "node status/info.mjs",
     "security-summary": "node status/security-summary.mjs",
     "security-scan": "node status/security-scan.mjs",
+    "cosign:sign": "node status/cosign-sign.mjs",
+    "cosign:verify": "node status/cosign-verify.mjs",
     "report": "node status/report.mjs",
     "report:write": "node status/report.mjs --write",
-    "help": "node status/help.mjs",
+    "help": "node bin/plane.mjs help",
     "smoke": "node status/smoke.mjs",
     "ci": "node status/ci-check.mjs",
-    "docker:build": "docker build -t living-intermediate-control-plane:0.4.6 .",
-    "docker:doctor": "docker run --rm living-intermediate-control-plane:0.4.6",
+    "docker:build": "docker build -t living-intermediate-control-plane:0.4.7 .",
+    "docker:doctor": "docker run --rm living-intermediate-control-plane:0.4.7",
     "reset-local": "node status/reset-local.mjs",
     "test": "node test/self-test.mjs"
   },
