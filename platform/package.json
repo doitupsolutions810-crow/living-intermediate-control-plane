@@ -1,0 +1,12 @@
+{
+  "name": "@living-intermediate/platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "start:chat-open": "CONTROL12_CHAT_OPEN=1 node src/server.mjs",
+    "check": "node --check src/server.mjs"
+  }
+}

@@ -1,21 +1,20 @@
 # Living Intermediate Control Plane
 
-Version **0.10.0** — control-plane milestone
+Unified lattice · Avrone chat/cockpit · trust network · federation digests · sovereign attestation.
 
-```bash
-plane progress
-plane operator-host
-plane unattended
-plane supply-chain
-plane admit-change
+```text
+platform/          Node control plane (lattice, policy, TLS, federation, attestation)
+avrone-chat/       Next.js Avrone UI + API proxies
+scripts/           tunnel / mTLS / renew operators
+cloudflared/       tunnel config example
 ```
 
-Timer copy-paste: `docs/timer-copy-paste.md`  
-Next ops: `docs/next-ops.md`  
-Sigstore: `docs/sigstore-ecosystem.md`
+## Quick start
 
-## Success criteria
+```bash
+cd platform && npm install && npm start
+# optional: CONTROL12_CHAT_OPEN=1 npm start
+cd avrone-chat && npm install && npm run dev
+```
 
-1. Readiness is READY  
-2. Evidence is available  
-3. Supply-chain enforcement stays active  
+Set `CONTROL12_PLATFORM_URL` and optional `CONTROL12_PLATFORM_TOKEN` for the chat app.
