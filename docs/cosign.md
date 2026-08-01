@@ -1,5 +1,23 @@
 # Sigstore Cosign + Rekor
 
+## Learn keyless signing (GitHub OIDC)
+
+Full guide: **`docs/oidc-cosign-keyless.md`**
+
+Short version:
+
+1. CI has `permissions: id-token: write`  
+2. Cosign signs the **registry digest** without a stored private key  
+3. Fulcio binds a short-lived cert to the GitHub workflow identity  
+4. Rekor records the signature  
+5. `cosign verify` checks cert + log  
+
+Production path in this repo: **GHCR push on main + hard Cosign verify** (`docs/ci-registry-cosign.md`).
+
+## Install Cosign
+
+https://docs.sigstore.dev/cosign/system_config/installation/
+
 ## Install rekor-cli
 
 ### Homebrew
@@ -17,28 +35,6 @@ chmod +x rekor-cli && sudo mv rekor-cli /usr/local/bin/rekor-cli
 rekor-cli version
 ```
 
-### Linux arm64
-
-```bash
-curl -fsSL -o rekor-cli https://github.com/sigstore/rekor/releases/latest/download/rekor-cli-linux-arm64
-chmod +x rekor-cli && sudo mv rekor-cli /usr/local/bin/rekor-cli
-```
-
-### macOS manual
-
-```bash
-# Apple Silicon
-curl -fsSL -o rekor-cli https://github.com/sigstore/rekor/releases/latest/download/rekor-cli-darwin-arm64
-# Intel: rekor-cli-darwin-amd64
-chmod +x rekor-cli && sudo mv rekor-cli /usr/local/bin/rekor-cli
-```
-
-### Go
-
-```bash
-go install github.com/sigstore/rekor/cmd/rekor-cli@latest
-```
-
 ### Plane
 
 ```bash
@@ -46,13 +42,19 @@ plane rekor version
 npm run rekor -- search --sha <hex>
 ```
 
-Operator host (timer + cron + rekor): `docs/operator-host-setup.md`
-
-## Cosign sign / verify
+## Local Cosign helpers
 
 ```bash
-IMAGE_REF=living-intermediate-control-plane:0.5.3 npm run cosign:sign
-IMAGE_REF=living-intermediate-control-plane:0.5.3 npm run cosign:verify
+IMAGE_REF=living-intermediate-control-plane:0.9.1 npm run cosign:sign
+IMAGE_REF=living-intermediate-control-plane:0.9.1 npm run cosign:verify
 ```
 
-Rekor upload is on by default (`--tlog-upload=true`).
+Prefer CI keyless on a **pushed** digest for production trust.
+
+## Operator host
+
+```bash
+npm run operator-host
+```
+
+See `docs/operator-host-setup.md` and `docs/next-ops.md`.

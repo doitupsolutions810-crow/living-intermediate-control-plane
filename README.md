@@ -1,22 +1,16 @@
 # Living Intermediate Control Plane
 
-Version **0.9.1**
-
-## Next ops
-
-1. Set GitHub secret **`SNYK_TOKEN`**  
-2. On next **main** push, confirm **GHCR** package + **Cosign** sign/verify in Actions  
-3. Enable **`plane-unattended.timer`** on the operator host  
-4. Use **`plane agent-chat`** only for toolkit work under `workspace/`  
-
-Details: **`docs/next-ops.md`**
+Version **0.9.2**
 
 ```bash
+npm run operator-host    # unattended timer + ops hints
 plane progress
 plane unattended
 plane supply-chain
-plane admit-change
 ```
+
+**OIDC + Cosign keyless:** `docs/oidc-cosign-keyless.md`  
+**Next ops:** `docs/next-ops.md`
 
 ## Success criteria
 

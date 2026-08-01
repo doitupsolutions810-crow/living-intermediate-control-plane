@@ -1,12 +1,10 @@
 # Evolution Log
 
-## 2026-08-01 — Next evolutions (0.9.1)
+## 2026-08-01 — OIDC keyless docs + operator-host (0.9.2)
 
-1. CI registry push (GHCR) + **hard Cosign sign/verify** on digest  
-2. **SNYK_TOKEN** hard-fails open-source + container scans (no continue-on-error)  
-3. Optional Drive/Gmail via `plane notify-hints` + docs  
-4. Richer auto tasks: full-admission, metrics-and-summary, supply-chain-integrated  
+- docs/oidc-cosign-keyless.md — GitHub OIDC + Cosign keyless learning path
+- npm run operator-host confirmed (scripts/install-operator-host.sh)
 
-## 0.9.0
+## 0.9.1
 
-- Admit path + host unattended schedule
+- Registry Cosign hard verify, hard Snyk when token set
