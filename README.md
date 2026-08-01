@@ -1,25 +1,24 @@
 # Living Intermediate Control Plane
 
-Version **0.5.1**
+Version **0.5.2**
 
-## Daily operator loop
+## Upgrade
 
 ```bash
-npm run daily
+git pull --ff-only origin main
+plane upgrade-check
+plane doctor
 plane daily
 ```
 
-Runs: init → checklist → procure → doctor → security-scan → metrics → security-summary
+See `docs/upgrade.md` for the full upgrade ladder (daily timer, Cosign, Gatekeeper, …).
 
-Schedule with cron or systemd — see `docs/daily-loop.md`.
-
-## Manual
+## Daily
 
 ```bash
+plane daily
 plane checklist
 plane procure
-plane doctor
-plane security-scan
 ```
 
 ## Success criteria
