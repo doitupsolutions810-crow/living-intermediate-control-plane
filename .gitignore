@@ -1,0 +1,9 @@
+# Local plane data (decisions, status, pause state)
+data/
+
+# Common
+node_modules/
+.DS_Store
+*.log
+.env
+.env.*

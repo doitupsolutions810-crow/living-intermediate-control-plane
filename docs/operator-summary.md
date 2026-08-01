@@ -6,13 +6,14 @@
 npm run procure
 ```
 
-**Quick view of current state:**
+**Quick views:**
 
 ```bash
-npm run snapshot
+npm run snapshot   # state + recent decisions
+npm run health     # exits 0 only when healthy
 ```
 
-## Control commands
+## Control
 
 ```bash
 npm run pause
@@ -30,7 +31,7 @@ npm test
 data/status.json
 ```
 
-Updated by every integrated check and by continuous readiness.
+(Local only — ignored by git)
 
 ## Decisions
 
