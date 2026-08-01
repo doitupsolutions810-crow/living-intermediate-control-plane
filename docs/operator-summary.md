@@ -6,24 +6,34 @@
 npm run procure
 ```
 
-## Control actions
+## Control
 
 ```bash
-npm run pause     # hold further procure decisions
-npm run resume    # clear pause
-npm run state     # show current pause state
-npm run log       # recent decisions
-npm run actions   # list named LaunchDesk actions
-npm test          # self-test
+npm run pause
+npm run resume
+npm run state
+npm run log
+npm run actions
+npm test
 ```
 
-## Decisions you may see
+## Live status file
+
+After any integrated check or while continuous readiness is running, the latest state is written to:
+
+```
+data/status.json
+```
+
+This can be read by other tools without executing Node again.
+
+## Decisions
 
 | Result | Meaning |
 |--------|--------|
 | `READY_FOR_PROCUREMENT` | Core clear + local evidence accepted |
 | `READY_LOCAL_HOLD_PUBLIC_EVIDENCE` | Core clear; public console still needed |
-| `PAUSED` | Operator has paused the plane |
+| `PAUSED` | Operator paused the plane |
 | `HOLD` | Readiness or orchestration not clear |
 
 ## Success criteria (only three)

@@ -3,7 +3,7 @@
  * Living Intermediate Control Plane — integrated entry point
  *
  * Runs readiness → orchestration → LaunchDesk → procurement decision,
- * respects pause state, and records the result.
+ * respects pause state, records the decision, and updates the live status file.
  *
  * Usage:
  *   node integrate.mjs
@@ -18,11 +18,11 @@ import { createOrchestrationPlan, evaluateQuorum } from './agents/orchestration.
 import { handleLaunchDeskAction } from './launchdesk/actions.mjs';
 import { recordDecision } from './status/decision-log.mjs';
 import { readPlaneState, pausePlane, resumePlane } from './status/plane-state.mjs';
+import { writeStatusFile } from './status/write-status-file.mjs';
 
 const action = process.argv[2] || 'status';
 const goal = process.argv[3] || 'integrated-check';
 
-// Handle pause / resume as control actions before the normal path
 if (action === 'pause') {
   const state = pausePlane(goal || 'operator-pause');
   const result = {
@@ -34,6 +34,7 @@ if (action === 'pause') {
     securityValue: 'High'
   };
   try { recordDecision({ decision: 'PAUSED', action: 'pause', goal }); } catch {}
+  try { writeStatusFile({ source: 'integrate', ...result }); } catch {}
   console.log(JSON.stringify(result, null, 2));
   process.exit(0);
 }
@@ -49,6 +50,7 @@ if (action === 'resume') {
     securityValue: 'High'
   };
   try { recordDecision({ decision: 'RESUMED', action: 'resume', goal }); } catch {}
+  try { writeStatusFile({ source: 'integrate', ...result }); } catch {}
   console.log(JSON.stringify(result, null, 2));
   process.exit(0);
 }
@@ -104,7 +106,7 @@ const result = {
   localEvidenceAccepted: localEvidenceAuthority,
   note:
     decision === 'PAUSED'
-      ? `Plane is paused (${planeState.reason || 'no reason'}). Use: node integrate.mjs resume`
+      ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
       : decision === 'READY_FOR_PROCUREMENT'
         ? 'Integrated check passed. Local plane accepted as temporary evidence authority under Control704 override.'
         : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
@@ -125,6 +127,12 @@ try {
   });
 } catch (err) {
   result.logError = String(err.message || err);
+}
+
+try {
+  writeStatusFile({ source: 'integrate', ...result });
+} catch (err) {
+  result.statusFileError = String(err.message || err);
 }
 
 console.log(JSON.stringify(result, null, 2));

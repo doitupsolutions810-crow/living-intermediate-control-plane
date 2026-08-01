@@ -1,12 +1,12 @@
 # Evolution Log
 
-## 2026-07-31 — Evolve again
+## 2026-07-31 — Evolve
 
-- Added persistent pause / resume state (`status/plane-state.mjs`)
-- Integrated entry point now respects pause and exposes pause/resume actions
-- Self-test expanded to cover named actions and plane state
-- package scripts: pause, resume, state
+- Added live status file writer (`data/status.json`)
+- Integrated entry point and continuous-readiness now update the status file
+- Continuous readiness respects plane pause state
+- Status file gives a readable snapshot without re-running Node
 
 ## Previous
 
-- Decision log, named LaunchDesk actions, integrated entry point, procurement bridge, and supporting surfaces already present
+- Pause/resume state, decision log, named LaunchDesk actions, integrated entry point, procurement bridge, and supporting surfaces already present
