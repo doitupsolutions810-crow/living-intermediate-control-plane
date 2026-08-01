@@ -1,24 +1,25 @@
 # Living Intermediate Control Plane
 
-Version **0.5.2**
+Version **0.5.3**
 
-## Upgrade
+## Operator host (timer + cron + Rekor)
 
 ```bash
-git pull --ff-only origin main
-plane upgrade-check
-plane doctor
-plane daily
-```
+# Rekor CLI
+brew install rekor-cli
 
-See `docs/upgrade.md` for the full upgrade ladder (daily timer, Cosign, Gatekeeper, …).
+# Helper (copies systemd units, shows cron)
+npm run operator-host
+
+# Or read the full guide
+# docs/operator-host-setup.md
+```
 
 ## Daily
 
 ```bash
 plane daily
-plane checklist
-plane procure
+plane upgrade-check
 ```
 
 ## Success criteria

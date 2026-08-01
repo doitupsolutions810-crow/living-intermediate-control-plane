@@ -1,22 +1,22 @@
 [Unit]
 Description=Living Intermediate Control Plane daily operator loop
-Documentation=https://github.com/doitupsolutions810-crow/living-intermediate-control-plane/blob/main/docs/daily-loop.md
+Documentation=file:docs/operator-host-setup.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-# Change WorkingDirectory to your clone path
+# Clone path — %h is home for user units
 WorkingDirectory=%h/living-intermediate-control-plane
-# Prefer a full path to node or npm if not on the unit PATH
-ExecStart=/usr/bin/npm run daily
-# Optional: stricter gate
+# Prefer absolute node path on production hosts
+ExecStart=/usr/bin/node status/daily-loop.mjs
+# Examples:
+# ExecStart=%h/.nvm/versions/node/v20.11.0/bin/node status/daily-loop.mjs
+# ExecStart=/usr/bin/npm run daily
 # Environment=DAILY_GATE_DOCTOR=1
-# Optional: continue after a step fails
 # Environment=DAILY_CONTINUE_ON_FAIL=1
-# Optional: sign when IMAGE_REF is set
 # Environment=DAILY_SIGN=1
-# Environment=IMAGE_REF=living-intermediate-control-plane:0.5.1
+# Environment=IMAGE_REF=living-intermediate-control-plane:0.5.3
 Nice=10
 TimeoutStartSec=30min
 

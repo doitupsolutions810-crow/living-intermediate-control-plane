@@ -1,0 +1,12 @@
+# Living Intermediate Control Plane — daily operator loop
+# Install: (crontab -l 2>/dev/null; cat docs/cron/plane-daily.crontab) | crontab -
+# Edit PLANE_HOME / node path before installing.
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# Every day at 09:00 local time
+0 9 * * * cd $HOME/living-intermediate-control-plane && /usr/bin/node status/daily-loop.mjs >> $HOME/plane-daily.log 2>&1
+
+# Optional gated variant (comment the line above if you use this):
+# 0 9 * * * cd $HOME/living-intermediate-control-plane && DAILY_GATE_DOCTOR=1 /usr/bin/node status/daily-loop.mjs >> $HOME/plane-daily.log 2>&1
