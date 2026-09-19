@@ -1,15 +1,41 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string };
 
+type Cockpit = {
+  service?: string;
+  observedAt?: string;
+  platformConfigured?: boolean;
+  platform?: { ok?: boolean; error?: string };
+  anomalies?: { severity?: string } | null;
+  evidenceConsole?: {
+    status?: string;
+    httpStatus?: number | null;
+    authority?: string;
+    note?: string;
+  };
+};
+
+function statusTone(ok: boolean | undefined, configured: boolean | undefined) {
+  if (!configured) return 'var(--warn)';
+  return ok ? 'var(--ok)' : 'var(--bad)';
+}
+
 export default function Page() {
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messages, setMessages] = useState<ChatMsg[]>([
+    {
+      role: 'assistant',
+      content:
+        'Avrone online. Lattice-wired chat is ready. Ask for plane status, readiness, or next actions.'
+    }
+  ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('ready');
-  const [cockpit, setCockpit] = useState<Record<string, unknown> | null>(null);
+  const [cockpit, setCockpit] = useState<Cockpit | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +56,24 @@ export default function Page() {
       clearInterval(t);
     };
   }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, busy]);
+
+  const platformOk = Boolean(cockpit?.platform?.ok);
+  const platformConfigured = Boolean(cockpit?.platformConfigured);
+  const severity = cockpit?.anomalies?.severity || '—';
+  const evidence = cockpit?.evidenceConsole;
+
+  const evidenceLabel = useMemo(() => {
+    if (!evidence?.status) return 'unchecked';
+    if (evidence.status === 'ok') return 'public ok';
+    if (evidence.status === 'not_found') return 'public 404 → local';
+    if (evidence.status === 'unreachable') return 'unreachable → local';
+    if (evidence.status === 'unconfigured') return 'url unset → local';
+    return evidence.status;
+  }, [evidence]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -77,16 +121,29 @@ export default function Page() {
                 });
               }
             } catch {
-              /* ignore */
+              /* ignore partial SSE */
             }
           }
         }
+      }
+      if (!assistant) {
+        setMessages(m => {
+          const copy = [...m];
+          copy[copy.length - 1] = {
+            role: 'assistant',
+            content: 'No stream payload returned. Check platform URL / token.'
+          };
+          return copy;
+        });
       }
       setStatus('done');
     } catch (err) {
       setMessages(m => [
         ...m,
-        { role: 'assistant', content: `Error: ${err instanceof Error ? err.message : String(err)}` }
+        {
+          role: 'assistant',
+          content: `Error: ${err instanceof Error ? err.message : String(err)}`
+        }
       ]);
       setStatus('error');
     } finally {
@@ -94,47 +151,132 @@ export default function Page() {
     }
   }
 
-  const platformOk = Boolean((cockpit as { platform?: { ok?: boolean } } | null)?.platform?.ok);
-  const severity =
-    (cockpit as { anomalies?: { severity?: string } } | null)?.anomalies?.severity || '—';
-
   return (
-    <main style={{ maxWidth: 720, margin: '2rem auto', fontFamily: 'system-ui', padding: 16 }}>
-      <header>
-        <h1>Avrone Due’Krey</h1>
-        <p>Living intermediate · lattice-wired chat</p>
-        <p style={{ fontSize: 12, opacity: 0.7 }}>
-          platform={platformOk ? 'up' : 'down'} · severity={severity}
-        </p>
+    <main
+      style={{
+        maxWidth: 820,
+        margin: '0 auto',
+        padding: '2rem 1rem 3rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        minHeight: '100vh'
+      }}
+    >
+      <header
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          padding: 16,
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          background: 'var(--bg-elevated)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 28, letterSpacing: '-0.02em' }}>Avrone Due’Krey</h1>
+            <p style={{ margin: '6px 0 0', color: 'var(--muted)' }}>
+              Living intermediate · lattice-wired chat
+            </p>
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--muted)',
+              display: 'grid',
+              gap: 4,
+              alignContent: 'start'
+            }}
+          >
+            <span>
+              platform:{' '}
+              <strong style={{ color: statusTone(platformOk, platformConfigured) }}>
+                {!platformConfigured ? 'unconfigured' : platformOk ? 'up' : 'down'}
+              </strong>
+            </span>
+            <span>
+              severity: <strong style={{ color: 'var(--text)' }}>{severity}</strong>
+            </span>
+            <span>
+              evidence: <strong style={{ color: 'var(--text)' }}>{evidenceLabel}</strong>
+            </span>
+          </div>
+        </div>
+        {evidence?.note ? (
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>{evidence.note}</p>
+        ) : null}
       </header>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '1.5rem 0' }}>
+
+      <section
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          padding: 12,
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          background: 'rgba(18, 22, 31, 0.72)',
+          minHeight: 360
+        }}
+      >
         {messages.map((m, i) => (
           <div
             key={i}
             style={{
-              padding: 12,
-              borderRadius: 8,
-              background: m.role === 'user' ? '#1a1a2e' : '#16213e',
-              color: '#eee'
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: m.role === 'user' ? 'var(--bg-user)' : 'var(--bg-assistant)',
+              border: '1px solid var(--border)',
+              whiteSpace: 'pre-wrap',
+              lineHeight: 1.45,
+              alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+              maxWidth: '92%'
             }}
           >
-            {m.content}
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>
+              {m.role === 'user' ? 'you' : 'avrone'}
+            </div>
+            {m.content || (busy && i === messages.length - 1 ? '…' : '')}
           </div>
         ))}
-      </div>
+        <div ref={bottomRef} />
+      </section>
+
       <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Message Avrone…"
           disabled={busy}
-          style={{ flex: 1, padding: 10 }}
+          aria-label="Message"
+          style={{
+            flex: 1,
+            padding: '12px 14px',
+            borderRadius: 10,
+            border: '1px solid var(--border)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text)'
+          }}
         />
-        <button type="submit" disabled={busy || !input.trim()}>
+        <button
+          type="submit"
+          disabled={busy || !input.trim()}
+          style={{
+            padding: '12px 18px',
+            borderRadius: 10,
+            border: '1px solid transparent',
+            background: 'var(--accent-strong)',
+            color: '#061018',
+            fontWeight: 600
+          }}
+        >
           Send
         </button>
       </form>
-      <p style={{ fontSize: 12, opacity: 0.6 }}>{status}</p>
+      <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>{status}</p>
     </main>
   );
 }

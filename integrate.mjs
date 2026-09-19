@@ -3,6 +3,7 @@
  * Integrated entry point
  * readiness → orchestration → LaunchDesk → procurement decision
  * Optional doctor gate when gateDoctorOnProcure or GATE_DOCTOR=1
+ * Evidence-console: graceful when public domain 404s / unreachable
  */
 
 import { spawnSync } from 'node:child_process';
@@ -15,6 +16,7 @@ import { recordDecision } from './status/decision-log.mjs';
 import { readPlaneState, pausePlane, resumePlane } from './status/plane-state.mjs';
 import { writeStatusFile } from './status/write-status-file.mjs';
 import { loadConfig } from './lib/config.mjs';
+import { probeEvidenceConsole } from './lib/evidence-console.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -102,11 +104,14 @@ const planeState = readPlaneState();
 const readiness = emitReadinessEvidence({ source: 'integrate-entry' });
 const plan = evaluateQuorum(createOrchestrationPlan(goal));
 const launchdesk = handleLaunchDeskAction(action, goal);
+const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
 const localEvidenceAuthority =
   process.env.ACCEPT_LOCAL_EVIDENCE === '1' ||
   process.env.ACCEPT_LOCAL_EVIDENCE === 'true' ||
-  config.acceptLocalEvidenceByDefault === true;
+  config.acceptLocalEvidenceByDefault === true ||
+  // Graceful path: public console missing/404 → local temporary authority is acceptable
+  (evidenceConsole.authority === 'local' && evidenceConsole.status !== 'ok');
 
 const force = process.env.FORCE_PROCUREMENT === '1';
 
@@ -153,6 +158,13 @@ const result = {
     decision: launchdesk.decision,
     knownAction: launchdesk.knownAction
   },
+  evidenceConsole: {
+    status: evidenceConsole.status,
+    httpStatus: evidenceConsole.httpStatus,
+    authority: evidenceConsole.authority,
+    url: evidenceConsole.url,
+    note: evidenceConsole.note
+  },
   localEvidenceAccepted: localEvidenceAuthority,
   note:
     dryRun
@@ -160,7 +172,9 @@ const result = {
       : decision === 'PAUSED'
         ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
         : decision === 'READY_FOR_PROCUREMENT'
-          ? 'Integrated check passed. Local evidence accepted.'
+          ? evidenceConsole.status === 'ok'
+            ? 'Integrated check passed. Public evidence-console healthy.'
+            : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
           : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
             ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
             : 'Core readiness or orchestration not yet READY.',
@@ -176,6 +190,7 @@ if (!dryRun) {
       readinessOverall: result.readiness.overall,
       orchestrationOverall: result.orchestration.overall,
       localEvidenceAccepted: result.localEvidenceAccepted,
+      evidenceConsoleStatus: result.evidenceConsole.status,
       paused: result.paused,
       doctorPassed: result.doctorPassed
     });

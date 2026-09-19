@@ -7,3 +7,9 @@ node_modules/
 *.log
 .env
 .env.*
+!.env.example
+
+# Next.js / Avrone
+avrone-chat/.next/
+avrone-chat/out/
+avrone-chat/next-env.d.ts
