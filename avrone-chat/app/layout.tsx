@@ -1,12 +1,17 @@
-export const metadata = {
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import './globals.css';
+
+export const metadata: Metadata = {
   title: 'Avrone Due\u2019Krey',
-  description: 'Living intermediate lattice chat'
+  description: 'Living intermediate lattice chat · Control12 cockpit',
+  robots: { index: false, follow: false }
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, background: '#0f0f1a', color: '#eee' }}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
