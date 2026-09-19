@@ -8,10 +8,16 @@ upgrade-check → verify-changes → doctor → test → health → checklist �
 
 1. Buildx build + load  
 2. Doctor in image  
-3. Cosign (best-effort)  
+3. Cosign (best-effort on PRs; hard when registry push)  
 4. Trivy image + OPA  
 5. **Snyk container scan** (requires `SNYK_TOKEN`)  
 6. SARIF upload  
+
+## Optional Actions Snyk
+
+Set repo secret `SNYK_TOKEN` to enable hard Snyk gates in Actions. If unset, those steps skip with a clear log (Trivy + OPA still enforce). Do not invent or commit the token.
+
+Workflow note: GitHub forbids `secrets.*` inside step `if:` expressions. This workflow maps `SNYK_TOKEN` to job `env` and gates with `env.SNYK_TOKEN`.
 
 ## Local
 
