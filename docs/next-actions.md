@@ -2,21 +2,21 @@
 
 ## Immediate
 
-1. `npm run procure` daily
-2. `npm test` to keep self-test green
-3. `npm run report` when you want a readable summary
-4. Watch for public evidence-console domain to return 200
+1. `npm test` — keep self-test green (Avrone ship surface + evidence-console grace)
+2. `npm run procure` daily (accepts local evidence while public console is 404)
+3. `npm run report` for a readable summary
+4. Deploy `avrone-chat/` to Vercel (Root Directory `avrone-chat`, env from `.env.example`)
 
 ## Short-term
 
-5. Leave `npm run continuous` or `npm run watch` running if you want always-fresh status
-6. Adjust `config.json` only when defaults need to change
-7. Keep using pause/resume for controlled holds
+5. `npm run continuous` or `npm run watch` for always-fresh status
+6. Set `EVIDENCE_CONSOLE_URL` when the public domain is healthy (until then local authority is graceful)
+7. Use `npm run pause` / `npm run resume` for controlled holds
 
-## Later
+## Later (external blockers)
 
-8. Restore automatic GitHub Actions once account-level issue is cleared
-9. Prefer public evidence-console once its domain is healthy
+8. Restore automatic GitHub Actions once account-level Actions are re-enabled
+9. Prefer public evidence-console once its domain returns 200 (today it 404s)
 10. Light federation only after the above are stable
 
 ## Non-goals for now
