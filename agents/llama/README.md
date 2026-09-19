@@ -34,3 +34,10 @@ plane agent-chat
 ```bash
 plane agent-run -- "summarize workspace tasks"
 ```
+
+## Tool robustness
+
+- `read_workspace_file` on a missing path throws a clear `workspace path not found` error (surfaced as `TOOL_RESULT`).
+- `read_workspace_file` on a directory returns a JSON listing (same shape as `list_workspace`) instead of calling `readFileSync` (which threw `EISDIR` and crashed `agent:run`).
+- `agentTurn` wraps each tool call: a thrown error becomes `TOOL_RESULT` `{"error":"..."}` so one bad call does not abort the turn.
+- `write_workspace_file` accepts `content` or `value` for the file body.
