@@ -13,7 +13,8 @@
   --warn: #f5a524;
   --bad: #f76b6b;
   --radius: 12px;
-  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
 * {

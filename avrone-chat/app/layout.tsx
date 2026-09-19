@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Avrone Due\u2019Krey',
+  title: "Avrone Due'Krey",
   description: 'Living intermediate lattice chat · Control12 cockpit',
   robots: { index: false, follow: false }
 };

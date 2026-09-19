@@ -140,7 +140,10 @@ export default function Page() {
     } catch (err) {
       setMessages(m => [
         ...m,
-        { role: 'assistant', content: `Error: ${err instanceof Error ? err.message : String(err)}` }
+        {
+          role: 'assistant',
+          content: `Error: ${err instanceof Error ? err.message : String(err)}`
+        }
       ]);
       setStatus('error');
     } finally {
