@@ -352,7 +352,7 @@ async function chatCompletion(
     method: 'POST',
     headers,
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(90_000)
+    signal: AbortSignal.timeout(18_000)
   });
 }
 
@@ -376,7 +376,16 @@ async function chatCompletionWithFallback(
   const failures: string[] = [];
   for (let i = startIndex; i < configs.length; i++) {
     const cfg = configs[i];
-    const res = await chatCompletion(cfg, messages, opts);
+    let res: Response;
+    try {
+      res = await chatCompletion(cfg, messages, opts);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const one = `LLM ${cfg.provider}/${cfg.model} network: ${scrubSecrets(msg).slice(0, 200)}`;
+      failures.push(one);
+      // Timeouts / network blips → try next provider (keeps Pollinations reachable on Vercel)
+      continue;
+    }
     const raw = await res.text().catch(() => '');
     if (res.ok) {
       let data: ChatJson;

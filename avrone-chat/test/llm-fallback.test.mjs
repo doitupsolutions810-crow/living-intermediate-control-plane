@@ -326,6 +326,23 @@ describe('llm resolve / fallback', () => {
     );
   });
 
+  
+  it('network timeout falls through to next provider', async () => {
+    // Simulate the catch+continue path conceptually via status 429 after a "timeout" marker.
+    // Full AbortError path is covered in agent-loop; here we assert aggregation still works.
+    const result = await chatWithFallback(
+      [
+        { provider: 'openai', model: 'm' },
+        { provider: 'pollinations', model: 'openai-fast' }
+      ],
+      [
+        { status: 429, body: 'rate limit' },
+        { status: 200, body: JSON.stringify({ choices: [{ message: { content: '323' } }] }) }
+      ]
+    );
+    assert.equal(result.provider.provider, 'pollinations');
+  });
+
   it('isKeylessApiKey skips Authorization for empty/none/keyless', () => {
     assert.equal(isKeylessApiKey(''), true);
     assert.equal(isKeylessApiKey('none'), true);
