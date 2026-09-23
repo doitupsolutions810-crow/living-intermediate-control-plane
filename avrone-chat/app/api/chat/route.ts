@@ -8,7 +8,7 @@ import { tryDeterministicTools } from '../../../lib/agent-tools';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function sseReply(text: string, extraHeaders?: Record<string, string>) {
   const encoder = new TextEncoder();
