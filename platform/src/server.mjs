@@ -10,6 +10,7 @@ import { AccessLogger } from './security/access-logger.mjs';
 import { analyzeAccessLog } from './security/anomaly-detector.mjs';
 import { runRenewRespond } from './security/renew-loop.mjs';
 import { ChatWire } from './bridge/chat-wire.mjs';
+import { AvroneStackAdapter } from './bridge/avrone-stack-adapter.mjs';
 import { runCockpitAction } from './cockpit/action.mjs';
 import { createFederationApi } from './api/federation/index.mjs';
 import { createAttestationApi } from './api/attestation/index.mjs';
@@ -33,6 +34,31 @@ const codingQuorum = new CodingQuorum({
 const chatWire = new ChatWire({ resonant });
 const accessLog = new AccessLogger(config.accessLog);
 const registry = new ComponentRegistry(path.join(config.root, 'components.json'));
+
+let avroneStackAdapter = null;
+function getAvroneStackAdapter() {
+  if (!avroneStackAdapter) {
+    avroneStackAdapter = new AvroneStackAdapter({
+      resonant,
+      getSecurityStatus: async () => {
+        const anomalies = await analyzeAccessLog(config.accessLog);
+        const renew = await runRenewRespond({ accessLog: config.accessLog });
+        return {
+          mtls: config.mtls,
+          chatOpen: config.chatOpen,
+          requireQuorum: config.requireQuorum,
+          anomalyCount: anomalies?.count ?? 0,
+          severity: anomalies?.severity ?? 'ok',
+          anomalies,
+          renew,
+          reloadRequired: Boolean(renew?.reloadRequired)
+        };
+      },
+      getFederationSnapshot: async () => federation.snapshot()
+    });
+  }
+  return avroneStackAdapter;
+}
 
 await registry.register({
   id: 'audio.living-intermediate',
@@ -137,6 +163,38 @@ const handler = async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/v1/chat/tools') {
       return sendJson(res, 200, { tools: ChatWire.toolDescriptors() });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/v1/bridge/avrone-stack/probe') {
+      const probe = await getAvroneStackAdapter().probe();
+      return sendJson(res, probe.ok ? 200 : 503, probe);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/v1/bridge/lattice/observe') {
+      const belief = url.searchParams.get('belief');
+      const sessionId = url.searchParams.get('session_id');
+      const nodeId = url.searchParams.get('node_id') || 'lattice';
+      const result = await getAvroneStackAdapter().observe({
+        belief: belief != null ? Number(belief) : null,
+        sessionId,
+        nodeId
+      });
+      return sendJson(res, 200, result);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/v1/bridge/avrone-stack/route') {
+      requireAuthUnlessChatOpen(req, config.apiToken, config.chatOpen);
+      const body = await readJson(req, config.maxBodyBytes);
+      const result = await getAvroneStackAdapter().route({
+        message: body.message || body.content || '',
+        sessionId: body.session_id || body.sessionId || null,
+        model: body.model || null,
+        temperature: body.temperature ?? 0.7,
+        maxTokens: body.max_tokens ?? body.maxTokens ?? null,
+        belief: body.belief != null ? Number(body.belief) : null,
+        stream: false
+      });
+      if (result.error) {
+        return sendJson(res, result.error.status && result.error.status >= 400 ? result.error.status : 502, result);
+      }
+      return sendJson(res, 200, result);
     }
 
     if (req.method === 'POST' && url.pathname === '/api/v1/chat/session') {
