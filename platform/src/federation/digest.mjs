@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 
 /**
  * Federation digest v1 — belief + spectrum tension only (no secrets).
- * Optional observationDigest / multiBeliefDigest for linkage.
+ * Optional observationDigest / multiBeliefDigest / consensus telemetry.
  */
 export function buildFederationDigest({
   belief = 0.5,
@@ -13,7 +13,9 @@ export function buildFederationDigest({
   observationDigest = null,
   multiBeliefDigest = null,
   meanBelief = null,
-  nodeCount = null
+  nodeCount = null,
+  consensusMean = null,
+  consensusAt = null
 } = {}) {
   const payload = {
     v: 1,
@@ -26,7 +28,9 @@ export function buildFederationDigest({
     observationDigest: observationDigest ? String(observationDigest).slice(0, 64) : null,
     multiBeliefDigest: multiBeliefDigest ? String(multiBeliefDigest).slice(0, 64) : null,
     meanBelief: meanBelief != null ? Number(Number(meanBelief).toFixed(4)) : null,
-    nodeCount: nodeCount != null ? Number(nodeCount) : null
+    nodeCount: nodeCount != null ? Number(nodeCount) : null,
+    consensusMean: consensusMean != null ? Number(Number(consensusMean).toFixed(4)) : null,
+    consensusAt: consensusAt ? String(consensusAt) : null
   };
   const body = JSON.stringify({
     v: payload.v,
@@ -39,7 +43,9 @@ export function buildFederationDigest({
     observationDigest: payload.observationDigest,
     multiBeliefDigest: payload.multiBeliefDigest,
     meanBelief: payload.meanBelief,
-    nodeCount: payload.nodeCount
+    nodeCount: payload.nodeCount,
+    consensusMean: payload.consensusMean,
+    consensusAt: payload.consensusAt
   });
   return {
     ...payload,
