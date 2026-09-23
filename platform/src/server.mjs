@@ -15,6 +15,7 @@ import { runCockpitAction } from './cockpit/action.mjs';
 import { createFederationApi } from './api/federation/index.mjs';
 import { createAttestationApi } from './api/attestation/index.mjs';
 import { ComponentRegistry } from './attestation/component-registry.mjs';
+import { buildSessionLink, createSessionLinkStore } from './attestation/session-link.mjs';
 
 await fs.mkdir(config.root, { recursive: true });
 await fs.mkdir(config.workspace, { recursive: true });
@@ -250,12 +251,29 @@ const handler = async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/v1/cockpit/action') {
       const body = await readJson(req, config.maxBodyBytes);
+      const sessionLinks = createSessionLinkStore(config.attestationDir);
       const result = await runCockpitAction(body.action, body, {
         tlsHandle: tlsHandle.current,
         resonant,
         codingQuorum,
         federation: {
-          publishLocal: () => federation.publish('ok')
+          publishLocal: () => federation.publish('ok'),
+          publishObservation: (opts) => federation.publishObservation(opts)
+        },
+        avroneStack: getAvroneStackAdapter(),
+        attestationLink: async (opts) => {
+          let sbomSha = opts.sbomSha256;
+          if (!sbomSha) {
+            const sbom = await attestation.sbom();
+            sbomSha = sbom.sha256;
+          }
+          const link = buildSessionLink({
+            ...opts,
+            sbomSha256: sbomSha,
+            latticeRoot: process.env.CONTROL12_LATTICE_ROOT || 'avrone-duekrey'
+          });
+          await sessionLinks.append(link);
+          return link;
         },
         renewStatus: () => runRenewRespond({ accessLog: config.accessLog }),
         anomalies: () => analyzeAccessLog(config.accessLog)
