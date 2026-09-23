@@ -5,6 +5,8 @@
 
 import { tension, integrateBeliefStep, spectralTilt } from '../audio/jacobian.mjs';
 import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 export class MultiBeliefGraph {
   constructor({ nodes = [], edges = [] } = {}) {
@@ -101,10 +103,6 @@ export class MultiBeliefGraph {
     };
   }
 
-  /**
-   * Soft edge weight update from accept/reject (provisional).
-   * Accept strengthens edges incident to nodeId; reject weakens slightly.
-   */
   applyOutcome(nodeId, outcome = 'accept', magnitude = 0.02) {
     const id = String(nodeId);
     const sign = String(outcome).toLowerCase() === 'reject' || outcome === 'down' ? -1 : 1;
@@ -115,6 +113,58 @@ export class MultiBeliefGraph {
       }
     }
     return this.edges.filter((e) => e.from === id || e.to === id);
+  }
+
+  async saveTo(filePath) {
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+    const payload = this.snapshot();
+    payload.persistedAt = new Date().toISOString();
+    await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
+    return payload;
+  }
+
+  async loadFrom(filePath) {
+    try {
+      const raw = await fs.readFile(filePath, 'utf8');
+      const data = JSON.parse(raw);
+      this.nodes.clear();
+      this.edges = [];
+      for (const n of data.nodes || []) {
+        this.upsertNode(n);
+      }
+      for (const e of data.edges || []) {
+        this.addEdge(e.from, e.to, e.weight);
+      }
+      return this.snapshot();
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return null;
+      throw err;
+    }
+  }
+
+  mergeFederatedPeer(peerId, digest = {}) {
+    const id = String(peerId || digest.label || 'peer');
+    const belief =
+      digest.meanBelief != null
+        ? Number(digest.meanBelief)
+        : digest.belief != null
+          ? Number(digest.belief)
+          : 0.55;
+    const node = this.upsertNode({ id, belief, label: id });
+    if (
+      this.nodes.has('local') &&
+      !this.edges.some(
+        (e) => (e.from === 'local' && e.to === id) || (e.from === id && e.to === 'local')
+      )
+    ) {
+      this.addEdge('local', id, 0.15);
+    }
+    return {
+      node,
+      multiBeliefDigest: digest.multiBeliefDigest || null,
+      snapshot: this.snapshot()
+    };
   }
 
   digest() {
