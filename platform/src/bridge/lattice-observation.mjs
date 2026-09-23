@@ -54,8 +54,15 @@ export function buildLatticeObservation({
   }
 
   if (federationSnapshot && typeof federationSnapshot === 'object') {
+    const rawPeers = federationSnapshot.peers ?? federationSnapshot.peerCount ?? null;
+    const peerCount =
+      typeof rawPeers === 'number'
+        ? rawPeers
+        : rawPeers && typeof rawPeers === 'object'
+          ? Object.keys(rawPeers).length
+          : null;
     structured.federation = {
-      peers: federationSnapshot.peers ?? federationSnapshot.peerCount ?? null,
+      peers: peerCount,
       lastDigest: federationSnapshot.lastDigest ?? federationSnapshot.digest ?? null,
       publishedAt: federationSnapshot.publishedAt ?? null
     };
