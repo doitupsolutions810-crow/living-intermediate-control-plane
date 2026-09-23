@@ -101,6 +101,22 @@ export class MultiBeliefGraph {
     };
   }
 
+  /**
+   * Soft edge weight update from accept/reject (provisional).
+   * Accept strengthens edges incident to nodeId; reject weakens slightly.
+   */
+  applyOutcome(nodeId, outcome = 'accept', magnitude = 0.02) {
+    const id = String(nodeId);
+    const sign = String(outcome).toLowerCase() === 'reject' || outcome === 'down' ? -1 : 1;
+    const mag = Math.max(0, Math.min(0.2, Number(magnitude) || 0.02));
+    for (const e of this.edges) {
+      if (e.from === id || e.to === id) {
+        e.weight = Math.max(0.01, Math.min(1, e.weight + sign * mag));
+      }
+    }
+    return this.edges.filter((e) => e.from === id || e.to === id);
+  }
+
   digest() {
     const body = JSON.stringify(this.snapshot());
     return crypto.createHash('sha256').update(body).digest('hex');
