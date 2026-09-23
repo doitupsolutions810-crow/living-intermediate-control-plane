@@ -2,6 +2,7 @@ import { runSandboxedShell } from './sandbox-shell';
 import { runSandboxedJs } from './sandbox-js';
 import { webFetch, webSearch } from './research';
 import { scrubSecrets } from './scrub';
+import { rememberLesson } from './operator-memory';
 
 export type ToolActivity = {
   name: string;
@@ -71,6 +72,21 @@ export const TOOL_DEFINITIONS = [
         required: ['command']
       }
     }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'remember_lesson',
+      description:
+        'Store a concise durable operator lesson / preference / fact Jean stated (prompt-memory training, not ML weight training). Keep under ~400 chars. Do not store secrets.',
+      parameters: {
+        type: 'object',
+        properties: {
+          lesson: { type: 'string', description: 'Concise durable lesson or preference' }
+        },
+        required: ['lesson']
+      }
+    }
   }
 ];
 
@@ -129,6 +145,19 @@ export async function executeTool(
         else if (r.denied) summary = 'shell denied';
         else summary = r.ok ? 'ran sandbox shell' : 'shell error';
         content = JSON.stringify(r);
+        break;
+      }
+      case 'remember_lesson': {
+        const lesson = String(args.lesson || '');
+        const r = rememberLesson(lesson);
+        ok = r.ok;
+        summary = r.ok ? 'stored operator lesson' : 'empty lesson';
+        content = JSON.stringify({
+          ok: r.ok,
+          stored: r.stored,
+          count: r.lessons.length,
+          note: 'Prompt-memory training (not weight fine-tuning).'
+        });
         break;
       }
       default:

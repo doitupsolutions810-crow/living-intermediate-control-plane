@@ -5,6 +5,10 @@ import {
   toolsSummaryHeader
 } from '../../../lib/agent-loop';
 import { tryDeterministicTools } from '../../../lib/agent-tools';
+import {
+  isLangGraphEnabled,
+  runLangGraphAgent
+} from '../../../lib/langgraph-agent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,8 +48,33 @@ export async function POST(req: Request) {
 
   const llm = resolveLlmConfig();
 
-  // Agent mode: LLM + tools
+  // Agent mode: LLM + tools (LangGraph preferred when enabled)
   if (llm) {
+    const useLangGraph = isLangGraphEnabled();
+    if (useLangGraph) {
+      try {
+        const { stream, activities, provider, model } = await runLangGraphAgent(messages, {
+          systemAugment: lattice.systemAugment
+        });
+        return new Response(stream, {
+          headers: {
+            'content-type': 'text/event-stream; charset=utf-8',
+            'cache-control': 'no-store',
+            'x-lattice-offline': lattice.offline ? '1' : '0',
+            'x-avrone-agent': 'langgraph',
+            'x-avrone-engine': 'langgraph',
+            'x-avrone-provider': provider,
+            'x-avrone-model': model,
+            'x-avrone-tools': toolsSummaryHeader(activities)
+          }
+        });
+      } catch (err) {
+        // LangGraph failed — fall through to classic runAgentLoop
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('[avrone] LangGraph path failed, falling back to agent-loop:', msg.slice(0, 300));
+      }
+    }
+
     try {
       const { stream, activities, provider, model } = await runAgentLoop(messages, {
         systemAugment: lattice.systemAugment
@@ -56,6 +85,7 @@ export async function POST(req: Request) {
           'cache-control': 'no-store',
           'x-lattice-offline': lattice.offline ? '1' : '0',
           'x-avrone-agent': '1',
+          'x-avrone-engine': 'classic',
           'x-avrone-provider': provider,
           'x-avrone-model': model,
           'x-avrone-tools': toolsSummaryHeader(activities)
@@ -68,6 +98,7 @@ export async function POST(req: Request) {
         {
           'x-lattice-offline': lattice.offline ? '1' : '0',
           'x-avrone-agent': '0',
+          'x-avrone-engine': 'error',
           'x-avrone-tools': '[]'
         }
       );
@@ -82,6 +113,7 @@ export async function POST(req: Request) {
     return sseReply(`${det.reply || ''}${tip}`, {
       'x-lattice-offline': lattice.offline ? '1' : '0',
       'x-avrone-agent': '0',
+      'x-avrone-engine': 'deterministic',
       'x-avrone-tools': toolsSummaryHeader(det.activities)
     });
   }
@@ -100,6 +132,7 @@ export async function POST(req: Request) {
   return sseReply(reply, {
     'x-lattice-offline': lattice.offline ? '1' : '0',
     'x-avrone-agent': '0',
+    'x-avrone-engine': 'lattice',
     'x-avrone-tools': '[]'
   });
 }

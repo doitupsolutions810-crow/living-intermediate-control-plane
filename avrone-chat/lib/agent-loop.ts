@@ -1,5 +1,6 @@
 import { TOOL_DEFINITIONS, executeTool, type ToolActivity } from './agent-tools';
 import { scrubSecrets } from './scrub';
+import { formatOperatorNotes, loadLessons } from './operator-memory';
 
 export type ChatMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -310,10 +311,14 @@ export function resolveLlmConfig(): LlmConfig | null {
 }
 
 const SYSTEM_PROMPT = `You are Avrone, a careful operator assistant for the Living Intermediate Control Plane.
-You have tools: web_search, web_fetch, sandbox_js, sandbox_shell.
+You have tools: web_search, web_fetch, sandbox_js, sandbox_shell, remember_lesson.
 Use tools when they improve factual accuracy or computation. Prefer sandbox_js over shell.
 Never invent secrets. Never request or echo API keys. Keep answers concise and actionable.
-When tools fail (missing keys, denied), explain clearly what Jean should configure.`;
+When tools fail (missing keys, denied), explain clearly what Jean should configure.
+
+Operator training (prompt-memory, NOT weight fine-tuning):
+When Jean states a durable preference, fact, or operating rule worth remembering across sessions, call remember_lesson with a concise note.
+Do not store secrets, API keys, or one-off ephemeral task details.`;
 
 export type AgentLoopResult = {
   stream: ReadableStream<Uint8Array>;
@@ -428,7 +433,9 @@ export async function runAgentLoop(
   const activities: ToolActivity[] = [];
   const maxRounds = opts?.maxRounds ?? MAX_TOOL_ROUNDS;
 
-  const systemContent = [SYSTEM_PROMPT, opts?.systemAugment].filter(Boolean).join('\n\n');
+  const systemContent = [SYSTEM_PROMPT, formatOperatorNotes(loadLessons()), opts?.systemAugment]
+    .filter(Boolean)
+    .join('\n\n');
   const messages: ChatMessage[] = [
     { role: 'system', content: systemContent },
     ...userMessages
