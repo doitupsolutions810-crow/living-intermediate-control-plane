@@ -1,6 +1,7 @@
 /**
- * Shared attestation key: Node SBOM sha256 \u2194 AVRONE training/route session_id.
- * Evidence only \u2014 does not open execution gates.
+ * Shared attestation key: Node SBOM sha256 ↔ AVRONE training/route session_id.
+ * Optional multiBeliefDigest + HMAC seal when CONTROL12_ATTEST_HMAC_KEY is set.
+ * Evidence only — does not open execution gates.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
@@ -11,7 +12,10 @@ export function buildSessionLink({
   turnId = null,
   latticeObservation = null,
   sbomSha256 = null,
-  latticeRoot = 'avrone-duekrey'
+  latticeRoot = 'avrone-duekrey',
+  multiBeliefDigest = null,
+  meanBelief = null,
+  nodeCount = null
 } = {}) {
   if (!sessionId) {
     throw Object.assign(new Error('sessionId required'), { statusCode: 400 });
@@ -25,10 +29,24 @@ export function buildSessionLink({
     sbomSha256: sbomSha256 ? String(sbomSha256) : null,
     observationSha256: latticeObservation
       ? crypto.createHash('sha256').update(String(latticeObservation)).digest('hex')
-      : null
+      : null,
+    multiBeliefDigest: multiBeliefDigest ? String(multiBeliefDigest).slice(0, 64) : null,
+    meanBelief: meanBelief != null ? Number(Number(meanBelief).toFixed(4)) : null,
+    nodeCount: nodeCount != null ? Number(nodeCount) : null
   };
   const body = JSON.stringify(record);
   record.linkDigest = crypto.createHash('sha256').update(body).digest('hex');
+  const hmacKey = process.env.CONTROL12_ATTEST_HMAC_KEY || '';
+  if (hmacKey) {
+    record.signature = crypto
+      .createHmac('sha256', hmacKey)
+      .update(record.linkDigest)
+      .digest('hex');
+    record.signed = true;
+  } else {
+    record.signature = null;
+    record.signed = false;
+  }
   return record;
 }
 
@@ -44,7 +62,7 @@ export function createSessionLinkStore(attestationDir) {
       try {
         const text = await fs.readFile(file, 'utf8');
         const lines = text.trim().split('\n').filter(Boolean);
-        return lines.slice(-limit).map(l => JSON.parse(l));
+        return lines.slice(-limit).map((l) => JSON.parse(l));
       } catch {
         return [];
       }
