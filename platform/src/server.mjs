@@ -115,6 +115,23 @@ const handler = async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/v1/security/renew') {
       return sendJson(res, 200, await runRenewRespond({ accessLog: config.accessLog }));
     }
+    if (req.method === 'GET' && url.pathname === '/api/v1/security/status') {
+      const anomalies = await analyzeAccessLog(config.accessLog);
+      const renew = await runRenewRespond({ accessLog: config.accessLog });
+      const state = resonant.getState();
+      return sendJson(res, 200, {
+        observedAt: new Date().toISOString(),
+        version: config.version,
+        chatOpen: config.chatOpen,
+        requireQuorum: config.requireQuorum,
+        mtls: config.mtls,
+        dualCa: Boolean(tlsHandle.current?.dualCa),
+        anomalies,
+        renew,
+        lattice: { belief: state.belief, tension: state.tension, partials: state.partials?.length },
+        severity: anomalies.severity || 'ok'
+      });
+    }
     if (req.method === 'GET' && url.pathname === '/api/v1/components') {
       return sendJson(res, 200, await registry.list());
     }
