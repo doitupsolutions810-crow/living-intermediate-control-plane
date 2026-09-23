@@ -118,3 +118,17 @@ UI reads `x-avrone-tools` (JSON summary) and SSE comment events `: avrone-tool �
 
 - [Claim ChatGPT Plus free trial](sand-workflow:claim-chatgpt-plus-free-trial) — optional, skipped for Avrone finish
 - [Review GitHub PR before merge](sand-workflow:review-github-pr-before-merge) — Actions → Files changed → confirm before merge
+
+## Operator memory + LangSmith (optional)
+
+| Variable | Required | Purpose |
+|----------|----------|----------|
+| `AVRONE_OPERATOR_MEMORY` | Optional | JSON array of operator lesson strings (plain). Survives Vercel cold starts. |
+| `AVRONE_OPERATOR_MEMORY_PATH` | Optional | Writable JSON file path (default `/tmp/...`) |
+| `AVRONE_LANGGRAPH_ENABLED` | Optional | Default on; set `0`/`false`/`off` for classic loop |
+| `LANGCHAIN_TRACING_V2` | Optional | `true` to emit LangSmith traces (needs API key) |
+| `LANGCHAIN_API_KEY` / `LANGSMITH_API_KEY` | If tracing | LangSmith API key — **never commit** |
+| `LANGCHAIN_PROJECT` | Optional | LangSmith project name (default `avrone-chat`) |
+
+Export lessons: use `exportLessonsForEnv()` from `avrone-chat/lib/operator-memory.ts` and paste into Vercel as plain env. Do not put API keys in the memory blob.
+

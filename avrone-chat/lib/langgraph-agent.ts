@@ -34,6 +34,10 @@ import {
   isLangGraphEnabled,
   loadLessons
 } from './operator-memory';
+import { ensureLangSmithEnv } from './langsmith-init';
+
+// Optional LangSmith: no-op unless tracing flag + API key (official env vars).
+ensureLangSmithEnv();
 
 export { isLangGraphEnabled };
 

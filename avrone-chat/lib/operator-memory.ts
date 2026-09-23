@@ -6,17 +6,39 @@
  * serverless (cold starts lose /tmp); prefer AVRONE_OPERATOR_MEMORY (JSON
  * array env blob) for durable production notes, or AVRONE_OPERATOR_MEMORY_PATH
  * for a writable file path.
+ *
+ * Export for Vercel:
+ *   import { exportLessonsForEnv } from './operator-memory';
+ *   // Paste the returned JSON string into Vercel env AVRONE_OPERATOR_MEMORY
+ *   console.log(exportLessonsForEnv());
+ *
+ * Or locally after warm lessons accumulate:
+ *   node -e "..."  (see README / .env.example)
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { scrubSecrets } from './scrub';
 
 export const MAX_LESSONS = 20;
 export const MAX_LESSON_CHARS = 400;
 
 const DEFAULT_TMP_PATH = '/tmp/avrone-operator-memory.json';
 
-/** In-process cache (survives warm invocations). */
+/**
+ * High-value, non-secret operator tips distilled from docs/avrone-operator-kb.md.
+ * Applied only when env blob + file + cache are all empty. Prefixed with [seed].
+ * Keep ≤5.
+ */
+export const SEED_LESSONS: readonly string[] = [
+  'Prefer OpenRouter free models when paid OpenAI/xAI credits are empty (AVRONE_LLM_PREFER=openrouter).',
+  'Keep AVRONE_SHELL_ENABLED unset or 0 on Vercel; use sandbox_js for compute.',
+  'Durable lessons survive Vercel cold starts via AVRONE_OPERATOR_MEMORY (JSON array env blob).',
+  'Avrone chat Root Directory on Vercel is avrone-chat; leave CONTROL12_* as configured.',
+  'Never store API keys or tokens as operator lessons — scrub and use Vercel secrets instead.'
+];
+
+/** In-process cache (survives warm invocations). null = not loaded yet. */
 let memoryCache: string[] | null = null;
 
 function envTrim(name: string): string {
@@ -28,7 +50,8 @@ function memoryPath(): string {
 }
 
 function normalizeLesson(raw: string): string {
-  return String(raw || '')
+  const scrubbed = scrubSecrets(String(raw || ''));
+  return scrubbed
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, MAX_LESSON_CHARS);
@@ -66,13 +89,22 @@ function loadFromFile(): string[] {
   }
 }
 
-/** Load lessons: in-process cache → env blob → file → empty. */
+function seedLessons(): string[] {
+  return parseLessonArray(SEED_LESSONS.map((s) => `[seed] ${s}`));
+}
+
+/**
+ * Load lessons: in-process cache → env blob + file merge → seed defaults if empty.
+ */
 export function loadLessons(): string[] {
-  if (memoryCache) return [...memoryCache];
+  if (memoryCache !== null) return [...memoryCache];
   const fromEnv = loadFromEnvBlob();
   const fromFile = loadFromFile();
-  // Prefer longer of the two sources (env is durable on Vercel; file may be fresher on a warm host).
-  const merged = parseLessonArray([...fromEnv, ...fromFile]);
+  // Prefer merge of durable env + fresher file (env wins order for cold starts).
+  let merged = parseLessonArray([...fromEnv, ...fromFile]);
+  if (!merged.length) {
+    merged = seedLessons();
+  }
   memoryCache = merged;
   return [...merged];
 }
@@ -90,14 +122,14 @@ function persistLessons(lessons: string[]): void {
 
 /**
  * Append a concise operator lesson (newest last). Returns the stored list.
- * Dedupes exact matches (moves existing to end).
+ * Dedupes exact matches (moves existing to end). Scrubs secrets via scrubSecrets.
  */
 export function rememberLesson(lesson: string): { ok: boolean; lessons: string[]; stored: string } {
   const stored = normalizeLesson(lesson);
   if (!stored) {
     return { ok: false, lessons: loadLessons(), stored: '' };
   }
-  const current = loadLessons().filter(l => l !== stored);
+  const current = loadLessons().filter((l) => l !== stored);
   current.push(stored);
   const next = current.slice(-MAX_LESSONS);
   persistLessons(next);
@@ -116,9 +148,33 @@ export function formatOperatorNotes(lessons?: string[]): string {
   );
 }
 
-/** Test helper: reset in-process cache (does not wipe env). */
-export function resetOperatorMemoryForTests(seed: string[] = []): void {
-  memoryCache = parseLessonArray(seed);
+/**
+ * Compact JSON array string suitable to paste into Vercel env
+ * `AVRONE_OPERATOR_MEMORY` (plain type, not a secret).
+ */
+export function exportLessonsForEnv(lessons?: string[]): string {
+  const list = (lessons ?? loadLessons()).map((l) => normalizeLesson(l)).filter(Boolean);
+  return JSON.stringify(list.slice(-MAX_LESSONS));
+}
+
+/**
+ * Human-readable one-liner docs for operators exporting lessons.
+ */
+export function exportLessonsForEnvHelp(): string {
+  return (
+    'Set Vercel project env AVRONE_OPERATOR_MEMORY (type: plain) to the JSON array from ' +
+    'exportLessonsForEnv(). Example: ["Prefer OpenRouter when paid credits are empty"]. ' +
+    'Do not put API keys in this blob. Redeploy after saving.'
+  );
+}
+
+/**
+ * Test helper: reset in-process cache.
+ * - Pass an array to set cache (empty [] = no lessons, no auto-seed until null).
+ * - Pass null to clear cache so the next loadLessons() re-reads env/file/seeds.
+ */
+export function resetOperatorMemoryForTests(seed: string[] | null = []): void {
+  memoryCache = seed === null ? null : parseLessonArray(seed);
 }
 
 /** Whether LangGraph agent path is enabled (default ON when unset/empty). */

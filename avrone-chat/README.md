@@ -59,10 +59,23 @@ Existing tools (`web_search`, `web_fetch`, `sandbox_js`, `sandbox_shell`) are wr
 `remember_lesson` stores short durable preferences/facts (max ~20 recent strings). Lessons are injected into the system prompt as **Trained operator notes**. Persistence:
 
 - In-process cache (warm instances)
-- Optional env blob `AVRONE_OPERATOR_MEMORY` (JSON array) — preferred on Vercel
+- Optional env blob `AVRONE_OPERATOR_MEMORY` (JSON array) — preferred on Vercel cold starts
 - Optional file `AVRONE_OPERATOR_MEMORY_PATH` (default `/tmp/...`, best-effort; cold starts may reset)
+- If both are empty, ≤5 `[seed]` tips from the operator KB are loaded (non-secret)
+- Cap ~20 lessons; secrets scrubbed via `scrubSecrets`
+- `exportLessonsForEnv()` returns a JSON string to paste into Vercel `AVRONE_OPERATOR_MEMORY` (plain type)
 
-This is **prompt-memory training for the operator**, not ML fine-tuning of model weights. LangSmith tracing is optional later.
+This is **prompt-memory training for the operator**, not ML fine-tuning of model weights.
+
+### Optional LangSmith tracing
+
+Set official LangChain env vars (no-op without a key; build/run never requires them):
+
+- `LANGCHAIN_TRACING_V2=true` (or `LANGSMITH_TRACING=true`)
+- `LANGCHAIN_API_KEY` (or `LANGSMITH_API_KEY`)
+- Optional: `LANGCHAIN_PROJECT=avrone-chat`
+
+`lib/langsmith-init.ts` normalizes aliases at LangGraph module load. Leave tracing unset/`false` unless Jean wants traces in LangSmith.
 
 ## Free / open-source LLM fallbacks
 
