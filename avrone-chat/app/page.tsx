@@ -28,7 +28,7 @@ export default function Page() {
     {
       role: 'assistant',
       content:
-        'Avrone online. Lattice-wired chat is ready. Ask for plane status, readiness, or next actions.'
+        'Avrone online. Lattice + agent tools ready when API keys are set. Try research, fetch, or compute — or ask for plane status.'
     }
   ]);
   const [input, setInput] = useState('');
@@ -83,7 +83,7 @@ export default function Page() {
     setMessages(next);
     setInput('');
     setBusy(true);
-    setStatus('wiring lattice…');
+    setStatus('avrone thinking…');
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -94,18 +94,56 @@ export default function Page() {
         })
       });
       const offline = res.headers.get('x-lattice-offline') === '1';
-      setStatus(offline ? 'lattice offline' : 'lattice connected');
+      const agentOn = res.headers.get('x-avrone-agent') === '1';
+      const toolsHeader = res.headers.get('x-avrone-tools') || '[]';
+      let toolSummaries: string[] = [];
+      try {
+        const parsed = JSON.parse(toolsHeader) as Array<{ summary?: string; name?: string }>;
+        toolSummaries = parsed.map(t => t.summary || t.name || 'tool').filter(Boolean);
+      } catch {
+        /* ignore */
+      }
+      if (agentOn) {
+        setStatus(
+          toolSummaries.length
+            ? `agent · ${toolSummaries.slice(0, 4).join(' · ')}`
+            : 'agent thinking…'
+        );
+      } else {
+        setStatus(
+          toolSummaries.length
+            ? `tools · ${toolSummaries.slice(0, 4).join(' · ')}`
+            : offline
+              ? 'lattice offline'
+              : 'lattice connected'
+        );
+      }
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let assistant = '';
+      let sseBuf = '';
       setMessages(m => [...m, { role: 'assistant', content: '' }]);
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split('\n')) {
+          sseBuf += decoder.decode(value, { stream: true });
+          const lines = sseBuf.split('\n');
+          sseBuf = lines.pop() || '';
+          for (const line of lines) {
             const trimmed = line.trim();
+            // SSE comments: ": avrone-tool {...}"
+            if (trimmed.startsWith(': avrone-tool ')) {
+              try {
+                const act = JSON.parse(trimmed.slice(': avrone-tool '.length));
+                const label = act.summary || act.name || 'tool';
+                toolSummaries.push(label);
+                setStatus(`agent · ${toolSummaries.slice(-4).join(' · ')}`);
+              } catch {
+                /* ignore */
+              }
+              continue;
+            }
             if (!trimmed.startsWith('data:')) continue;
             const data = trimmed.slice(5).trim();
             if (data === '[DONE]') continue;
