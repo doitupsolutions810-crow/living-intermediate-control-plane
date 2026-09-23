@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return sseReply(
-        `(Avrone agent error) ${msg}\n\nFalling back tip: check XAI_API_KEY / OPENAI_API_KEY and model name.`,
+        `(Avrone agent error) ${msg}\n\nFalling back tip: check LLM keys / Pollinations (AVRONE_POLLINATIONS_ENABLED) and model names.`,
         {
           'x-lattice-offline': lattice.offline ? '1' : '0',
           'x-avrone-agent': '0',
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
   const det = await tryDeterministicTools(String(text));
   if (det?.handled) {
     const tip =
-      '\n\n—\nAgent mode needs XAI_API_KEY (preferred) or OPENAI_API_KEY / GROK_API_KEY on Vercel.';
+      '\n\n—\nAgent mode needs an LLM provider (paid key, free-tier key, or Pollinations).';
     return sseReply(`${det.reply || ''}${tip}`, {
       'x-lattice-offline': lattice.offline ? '1' : '0',
       'x-avrone-agent': '0',
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     (lattice.offline
       ? 'Field offline — responding without live spectrum.'
       : 'Field present — tone shaped by current belief/tension.') +
-    '\n\n—\nTo enable Grok-class agent tools, set XAI_API_KEY (or OPENAI_API_KEY) in Vercel. ' +
+    '\n\n—\nTo enable agent tools, set a paid/free LLM key or leave Pollinations enabled. ' +
     'Optional: TAVILY_API_KEY for web_search. Explicit cmds work without LLM: ' +
     '`search <q>`, `fetch <url>`, `js: <code>`, `shell: <cmd>`.';
 

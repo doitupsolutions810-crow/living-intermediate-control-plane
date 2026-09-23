@@ -15,18 +15,55 @@ type ToolCall = {
   function: { name: string; arguments: string };
 };
 
-export type LlmProvider = 'xai' | 'openai' | 'grok';
+export type LlmProvider =
+  | 'openai'
+  | 'xai'
+  | 'grok'
+  | 'openrouter'
+  | 'groq'
+  | 'mistral'
+  | 'gemini'
+  | 'nvidia'
+  | 'cerebras'
+  | 'huggingface'
+  | 'compatible'
+  | 'pollinations';
 
 export type LlmConfig = {
   apiKey: string;
   baseUrl: string;
   model: string;
   provider: LlmProvider;
+  /** Extra request headers (e.g. OpenRouter HTTP-Referer / X-Title). */
+  headers?: Record<string, string>;
 };
 
 const MAX_TOOL_ROUNDS = 8;
 
-const DEFAULT_PROVIDER_ORDER: LlmProvider[] = ['xai', 'openai', 'grok'];
+/** Default preference: paid first (when credited), then free/OSS fallbacks. */
+const DEFAULT_PROVIDER_ORDER: LlmProvider[] = [
+  'openai',
+  'xai',
+  'grok',
+  'openrouter',
+  'groq',
+  'mistral',
+  'gemini',
+  'nvidia',
+  'cerebras',
+  'huggingface',
+  'compatible',
+  'pollinations'
+];
+
+const ALL_PROVIDERS = new Set<string>(DEFAULT_PROVIDER_ORDER);
+
+const DEFAULT_OPENROUTER_FREE_MODELS = [
+  'openrouter/free',
+  'qwen/qwen3.8-27b:free',
+  'nex-agi/nex-n2.5-pro:free',
+  'inclusionai/ling-3.0-flash-vl:free'
+];
 
 const RETRYABLE_STATUS = new Set([401, 402, 403, 429]);
 
@@ -39,52 +76,230 @@ export function isRetryableLlmFailure(status: number, body: string): boolean {
   return RETRYABLE_BODY_RE.test(String(body || ''));
 }
 
-function configFor(provider: LlmProvider): LlmConfig | null {
-  if (provider === 'xai') {
-    const apiKey = (process.env.XAI_API_KEY || '').trim();
-    if (!apiKey) return null;
-    return {
-      apiKey,
-      baseUrl: (process.env.XAI_BASE_URL || 'https://api.x.ai/v1').replace(/\/$/, ''),
-      model: process.env.XAI_MODEL || 'grok-2-latest',
-      provider: 'xai'
-    };
-  }
-  if (provider === 'openai') {
-    const apiKey = (process.env.OPENAI_API_KEY || '').trim();
-    if (!apiKey) return null;
-    return {
-      apiKey,
-      baseUrl: (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, ''),
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      provider: 'openai'
-    };
-  }
-  const apiKey = (process.env.GROK_API_KEY || '').trim();
-  if (!apiKey) return null;
-  return {
-    apiKey,
-    baseUrl: (process.env.GROK_BASE_URL || 'https://api.x.ai/v1').replace(/\/$/, ''),
-    model: process.env.GROK_MODEL || 'grok-2-latest',
-    provider: 'grok'
-  };
+function envTrim(name: string): string {
+  return (process.env[name] || '').trim();
 }
 
-/** Ordered provider preference: AVRONE_LLM_PREFER first, else XAI → OPENAI → GROK. */
+function isKeylessApiKey(apiKey: string): boolean {
+  const k = (apiKey || '').trim().toLowerCase();
+  return !k || k === 'none' || k === 'keyless';
+}
+
+function openRouterFreeModels(): string[] {
+  const raw = envTrim('OPENROUTER_FREE_MODELS');
+  const list = (raw || DEFAULT_OPENROUTER_FREE_MODELS.join(','))
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  // de-dupe preserving order
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of list) {
+    if (seen.has(m)) continue;
+    seen.add(m);
+    out.push(m);
+  }
+  return out.length ? out : [...DEFAULT_OPENROUTER_FREE_MODELS];
+}
+
+/** Build zero-or-more configs for a provider (openrouter/groq may expand). */
+export function configsFor(provider: LlmProvider): LlmConfig[] {
+  if (provider === 'openai') {
+    const apiKey = envTrim('OPENAI_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, ''),
+        model: envTrim('OPENAI_MODEL') || 'gpt-4o-mini',
+        provider: 'openai'
+      }
+    ];
+  }
+
+  if (provider === 'xai') {
+    const apiKey = envTrim('XAI_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('XAI_BASE_URL') || 'https://api.x.ai/v1').replace(/\/$/, ''),
+        model: envTrim('XAI_MODEL') || 'grok-2-latest',
+        provider: 'xai'
+      }
+    ];
+  }
+
+  if (provider === 'grok') {
+    const apiKey = envTrim('GROK_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('GROK_BASE_URL') || 'https://api.x.ai/v1').replace(/\/$/, ''),
+        model: envTrim('GROK_MODEL') || 'grok-2-latest',
+        provider: 'grok'
+      }
+    ];
+  }
+
+  if (provider === 'openrouter') {
+    const apiKey = envTrim('OPENROUTER_API_KEY');
+    if (!apiKey) return [];
+    const baseUrl = (envTrim('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1').replace(
+      /\/$/,
+      ''
+    );
+    const headers = {
+      'HTTP-Referer': 'https://avrone-due-krey-chat.vercel.app',
+      'X-Title': 'Avrone'
+    };
+    return openRouterFreeModels().map(model => ({
+      apiKey,
+      baseUrl,
+      model,
+      provider: 'openrouter' as const,
+      headers
+    }));
+  }
+
+  if (provider === 'groq') {
+    const apiKey = envTrim('GROQ_API_KEY');
+    if (!apiKey) return [];
+    const baseUrl = (envTrim('GROQ_BASE_URL') || 'https://api.groq.com/openai/v1').replace(
+      /\/$/,
+      ''
+    );
+    const primary = envTrim('GROQ_MODEL') || 'openai/gpt-oss-120b';
+    const secondary = 'openai/gpt-oss-20b';
+    const out: LlmConfig[] = [
+      { apiKey, baseUrl, model: primary, provider: 'groq' }
+    ];
+    if (secondary !== primary) {
+      out.push({ apiKey, baseUrl, model: secondary, provider: 'groq' });
+    }
+    return out;
+  }
+
+  if (provider === 'mistral') {
+    const apiKey = envTrim('MISTRAL_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('MISTRAL_BASE_URL') || 'https://api.mistral.ai/v1').replace(/\/$/, ''),
+        model: envTrim('MISTRAL_MODEL') || 'mistral-small-latest',
+        provider: 'mistral'
+      }
+    ];
+  }
+
+  if (provider === 'gemini') {
+    const apiKey = envTrim('GEMINI_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (
+          envTrim('GEMINI_BASE_URL') ||
+          'https://generativelanguage.googleapis.com/v1beta/openai'
+        ).replace(/\/$/, ''),
+        model: envTrim('GEMINI_MODEL') || 'gemini-2.0-flash',
+        provider: 'gemini'
+      }
+    ];
+  }
+
+  if (provider === 'nvidia') {
+    const apiKey = envTrim('NVIDIA_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('NVIDIA_BASE_URL') || 'https://integrate.api.nvidia.com/v1').replace(
+          /\/$/,
+          ''
+        ),
+        model: envTrim('NVIDIA_MODEL') || 'meta/llama-3.3-70b-instruct',
+        provider: 'nvidia'
+      }
+    ];
+  }
+
+  if (provider === 'cerebras') {
+    const apiKey = envTrim('CEREBRAS_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('CEREBRAS_BASE_URL') || 'https://api.cerebras.ai/v1').replace(/\/$/, ''),
+        model: envTrim('CEREBRAS_MODEL') || 'llama3.1-8b',
+        provider: 'cerebras'
+      }
+    ];
+  }
+
+  if (provider === 'huggingface') {
+    const apiKey = envTrim('HF_TOKEN') || envTrim('HUGGINGFACE_API_KEY');
+    if (!apiKey) return [];
+    return [
+      {
+        apiKey,
+        baseUrl: (envTrim('HF_BASE_URL') || 'https://router.huggingface.co/v1').replace(/\/$/, ''),
+        model: envTrim('HF_MODEL') || 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+        provider: 'huggingface'
+      }
+    ];
+  }
+
+  if (provider === 'compatible') {
+    const baseUrl = envTrim('AVRONE_COMPATIBLE_BASE_URL').replace(/\/$/, '');
+    if (!baseUrl) return [];
+    const apiKey = envTrim('AVRONE_COMPATIBLE_API_KEY') || 'keyless';
+    return [
+      {
+        apiKey,
+        baseUrl,
+        model: envTrim('AVRONE_COMPATIBLE_MODEL') || 'default',
+        provider: 'compatible'
+      }
+    ];
+  }
+
+  if (provider === 'pollinations') {
+    // Keyless OSS fallback — disabled only when explicitly set to 0/false/off.
+    const flag = envTrim('AVRONE_POLLINATIONS_ENABLED').toLowerCase();
+    if (flag === '0' || flag === 'false' || flag === 'off' || flag === 'no') return [];
+    return [
+      {
+        apiKey: 'keyless',
+        baseUrl: (
+          envTrim('AVRONE_POLLINATIONS_BASE_URL') || 'https://text.pollinations.ai/openai'
+        ).replace(/\/$/, ''),
+        model: envTrim('AVRONE_POLLINATIONS_MODEL') || 'openai-fast',
+        provider: 'pollinations'
+      }
+    ];
+  }
+
+  return [];
+}
+
+/** Ordered provider preference: AVRONE_LLM_PREFER first when it matches a known provider. */
 export function providerOrder(): LlmProvider[] {
-  const prefer = (process.env.AVRONE_LLM_PREFER || '').trim().toLowerCase();
-  if (prefer === 'openai' || prefer === 'xai' || prefer === 'grok') {
-    return [prefer, ...DEFAULT_PROVIDER_ORDER.filter(p => p !== prefer)];
+  const prefer = envTrim('AVRONE_LLM_PREFER').toLowerCase();
+  if (prefer && ALL_PROVIDERS.has(prefer)) {
+    const p = prefer as LlmProvider;
+    return [p, ...DEFAULT_PROVIDER_ORDER.filter(x => x !== p)];
   }
   return [...DEFAULT_PROVIDER_ORDER];
 }
 
-/** All configured LLM providers in preference order. */
+/** All configured LLM endpoints in preference order (may expand openrouter/groq). */
 export function listLlmConfigs(): LlmConfig[] {
   const out: LlmConfig[] = [];
   for (const p of providerOrder()) {
-    const cfg = configFor(p);
-    if (cfg) out.push(cfg);
+    out.push(...configsFor(p));
   }
   return out;
 }
@@ -125,12 +340,17 @@ async function chatCompletion(
   }
   if (opts?.stream) body.stream = true;
 
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    ...(cfg.headers || {})
+  };
+  if (!isKeylessApiKey(cfg.apiKey)) {
+    headers.authorization = `Bearer ${cfg.apiKey}`;
+  }
+
   return fetch(`${cfg.baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${cfg.apiKey}`
-    },
+    headers,
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(90_000)
   });
@@ -168,7 +388,7 @@ async function chatCompletionWithFallback(
       return { data, cfg, index: i };
     }
     const errText = scrubSecrets(raw);
-    const one = `LLM ${cfg.provider} HTTP ${res.status}: ${errText.slice(0, 400)}`;
+    const one = `LLM ${cfg.provider}/${cfg.model} HTTP ${res.status}: ${errText.slice(0, 400)}`;
     failures.push(one);
     if (!isRetryableLlmFailure(res.status, errText)) {
       throw new Error(failures.join(' | '));
@@ -188,7 +408,9 @@ export async function runAgentLoop(
 ): Promise<AgentLoopResult> {
   const configs = listLlmConfigs();
   if (!configs.length) {
-    throw new Error('No LLM API key (set XAI_API_KEY, OPENAI_API_KEY, or GROK_API_KEY)');
+    throw new Error(
+      'No LLM providers configured (set a paid key, a free-tier key, or leave Pollinations enabled)'
+    );
   }
 
   let cfgIndex = 0;
