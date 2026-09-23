@@ -36,7 +36,7 @@ function listConfigured(env) {
  */
 async function chatWithFallback(configs, calls) {
   let callIdx = 0;
-  let lastErr = 'No LLM providers available';
+  const failures = [];
   for (let i = 0; i < configs.length; i++) {
     const cfg = configs[i];
     const call = calls[callIdx++] || { status: 500, body: 'unexpected' };
@@ -44,12 +44,13 @@ async function chatWithFallback(configs, calls) {
       return { provider: cfg, data: JSON.parse(call.body || '{}') };
     }
     const errText = call.body || '';
-    lastErr = `LLM ${cfg} HTTP ${call.status}: ${errText.slice(0, 400)}`;
+    const one = `LLM ${cfg} HTTP ${call.status}: ${errText.slice(0, 400)}`;
+    failures.push(one);
     if (!isRetryableLlmFailure(call.status, errText)) {
-      throw new Error(lastErr);
+      throw new Error(failures.join(' | '));
     }
   }
-  throw new Error(lastErr);
+  throw new Error(failures.join(' | ') || 'No LLM providers available');
 }
 
 describe('llm resolve / fallback', () => {
@@ -118,14 +119,14 @@ describe('llm resolve / fallback', () => {
     );
   });
 
-  it('exhausts all providers then throws last error', async () => {
+  it('exhausts all providers then aggregates errors', async () => {
     await assert.rejects(
       () =>
         chatWithFallback(['xai', 'openai'], [
           { status: 403, body: 'no credits' },
           { status: 429, body: 'rate limit' }
         ]),
-      /openai HTTP 429/
+      /xai HTTP 403.*openai HTTP 429/s
     );
   });
 });
