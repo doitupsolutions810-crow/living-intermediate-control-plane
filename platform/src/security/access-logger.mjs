@@ -8,11 +8,15 @@ export class AccessLogger {
 
   async write(entry) {
     if (!this.file) return;
-    await fs.mkdir(path.dirname(this.file), { recursive: true });
-    await fs.appendFile(
-      this.file,
-      JSON.stringify({ type: 'access', observedAt: new Date().toISOString(), ...entry }) + '\n'
-    );
+    try {
+      await fs.mkdir(path.dirname(this.file), { recursive: true });
+      await fs.appendFile(
+        this.file,
+        JSON.stringify({ type: 'access', observedAt: new Date().toISOString(), ...entry }) + '\n'
+      );
+    } catch (err) {
+      console.error('[access-log]', err.code || err.message);
+    }
   }
 
   instrument(req, res, meta = {}) {

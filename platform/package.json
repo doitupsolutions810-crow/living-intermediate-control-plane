@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/server.mjs",
     "start:chat-open": "CONTROL12_CHAT_OPEN=1 node src/server.mjs",
-    "check": "node --check src/server.mjs"
+    "check": "node --check src/server.mjs",
+    "smoke": "bash scripts/smoke-test.sh",
+    "test": "node test/jacobian.test.mjs"
   }
 }
