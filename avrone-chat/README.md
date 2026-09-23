@@ -33,3 +33,15 @@ npm run build
 | `GET /api/health` | Liveness for deploy probes |
 
 When `EVIDENCE_CONSOLE_URL` is unset or the public domain returns 404/unreachable, cockpit reports local plane authority instead of failing hard.
+
+## Agent tools
+
+When `XAI_API_KEY` (preferred), `OPENAI_API_KEY`, or `GROK_API_KEY` is set, `POST /api/chat` runs a multi-step tool loop (search / fetch / JS sandbox / allowlisted shell) and streams the final answer as SSE.
+
+Without keys, chat keeps the lattice echo and still accepts explicit tool intents: `search …`, `fetch https://…`, `js: …`, `shell: …`.
+
+```bash
+npm test
+```
+
+See `docs/avrone-operator-kb.md` for Vercel env wiring (`avrone-due-krey-chat`).
