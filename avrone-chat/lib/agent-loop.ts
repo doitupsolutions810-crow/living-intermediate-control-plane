@@ -153,7 +153,7 @@ async function chatCompletionWithFallback(
   messages: ChatMessage[],
   opts?: { stream?: boolean; tools?: boolean }
 ): Promise<{ data: ChatJson; cfg: LlmConfig; index: number }> {
-  let lastErr = 'No LLM providers available';
+  const failures: string[] = [];
   for (let i = startIndex; i < configs.length; i++) {
     const cfg = configs[i];
     const res = await chatCompletion(cfg, messages, opts);
@@ -168,13 +168,14 @@ async function chatCompletionWithFallback(
       return { data, cfg, index: i };
     }
     const errText = scrubSecrets(raw);
-    lastErr = `LLM ${cfg.provider} HTTP ${res.status}: ${errText.slice(0, 400)}`;
+    const one = `LLM ${cfg.provider} HTTP ${res.status}: ${errText.slice(0, 400)}`;
+    failures.push(one);
     if (!isRetryableLlmFailure(res.status, errText)) {
-      throw new Error(lastErr);
+      throw new Error(failures.join(' | '));
     }
     // retryable — fall through to next provider
   }
-  throw new Error(lastErr);
+  throw new Error(failures.join(' | ') || 'No LLM providers available');
 }
 
 /**
