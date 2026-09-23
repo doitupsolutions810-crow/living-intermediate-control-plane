@@ -63,9 +63,9 @@ export async function fetchPlatformSnapshot() {
   delete headers['content-type'];
 
   try {
-    const [health, anomalies, spectrum] = await Promise.all([
+    const [health, security, spectrum] = await Promise.all([
       fetch(`${platformUrl}/health`, { headers, signal: AbortSignal.timeout(8000) }),
-      fetch(`${platformUrl}/api/v1/security/anomalies`, {
+      fetch(`${platformUrl}/api/v1/security/status`, {
         headers,
         signal: AbortSignal.timeout(8000)
       }),
@@ -75,7 +75,28 @@ export async function fetchPlatformSnapshot() {
       })
     ]);
     out.health = health.ok ? await health.json() : { ok: false, status: health.status };
-    out.anomalies = anomalies.ok ? await anomalies.json() : null;
+    out.security = security.ok ? await security.json() : null;
+    if (out.security && typeof out.security === 'object') {
+      const sec = out.security as {
+        severity?: string;
+        anomalies?: unknown;
+        lattice?: { belief?: number; tension?: number; partials?: number };
+        mtls?: boolean;
+        dualCa?: boolean;
+        chatOpen?: boolean;
+        requireQuorum?: boolean;
+      };
+      out.anomalies = sec.anomalies ?? { severity: sec.severity };
+      out.lattice = sec.lattice ?? null;
+      out.mtls = sec.mtls;
+      out.dualCa = sec.dualCa;
+      out.chatOpen = sec.chatOpen;
+      out.requireQuorum = sec.requireQuorum;
+      out.severity = sec.severity;
+    } else {
+      out.anomalies = null;
+      out.lattice = null;
+    }
     out.spectrum = spectrum.ok ? await spectrum.json() : null;
     out.platform = { ok: health.ok };
   } catch (e) {
