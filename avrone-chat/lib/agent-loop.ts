@@ -15,44 +15,83 @@ type ToolCall = {
   function: { name: string; arguments: string };
 };
 
+export type LlmProvider = 'xai' | 'openai' | 'grok';
+
 export type LlmConfig = {
   apiKey: string;
   baseUrl: string;
   model: string;
-  provider: 'xai' | 'openai' | 'grok';
+  provider: LlmProvider;
 };
 
 const MAX_TOOL_ROUNDS = 8;
 
-export function resolveLlmConfig(): LlmConfig | null {
-  const xai = (process.env.XAI_API_KEY || '').trim();
-  if (xai) {
+const DEFAULT_PROVIDER_ORDER: LlmProvider[] = ['xai', 'openai', 'grok'];
+
+const RETRYABLE_STATUS = new Set([401, 402, 403, 429]);
+
+const RETRYABLE_BODY_RE =
+  /credit|billing|spend|quota|permission[-_ ]?denied|insufficient[-_ ]?(?:funds|quota)|rate[-_ ]?limit|payment[-_ ]?required/i;
+
+/** True when the LLM error should trigger trying the next configured provider. */
+export function isRetryableLlmFailure(status: number, body: string): boolean {
+  if (RETRYABLE_STATUS.has(status)) return true;
+  return RETRYABLE_BODY_RE.test(String(body || ''));
+}
+
+function configFor(provider: LlmProvider): LlmConfig | null {
+  if (provider === 'xai') {
+    const apiKey = (process.env.XAI_API_KEY || '').trim();
+    if (!apiKey) return null;
     return {
-      apiKey: xai,
+      apiKey,
       baseUrl: (process.env.XAI_BASE_URL || 'https://api.x.ai/v1').replace(/\/$/, ''),
       model: process.env.XAI_MODEL || 'grok-2-latest',
       provider: 'xai'
     };
   }
-  const openai = (process.env.OPENAI_API_KEY || '').trim();
-  if (openai) {
+  if (provider === 'openai') {
+    const apiKey = (process.env.OPENAI_API_KEY || '').trim();
+    if (!apiKey) return null;
     return {
-      apiKey: openai,
+      apiKey,
       baseUrl: (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, ''),
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       provider: 'openai'
     };
   }
-  const grok = (process.env.GROK_API_KEY || '').trim();
-  if (grok) {
-    return {
-      apiKey: grok,
-      baseUrl: (process.env.GROK_BASE_URL || 'https://api.x.ai/v1').replace(/\/$/, ''),
-      model: process.env.GROK_MODEL || 'grok-2-latest',
-      provider: 'grok'
-    };
+  const apiKey = (process.env.GROK_API_KEY || '').trim();
+  if (!apiKey) return null;
+  return {
+    apiKey,
+    baseUrl: (process.env.GROK_BASE_URL || 'https://api.x.ai/v1').replace(/\/$/, ''),
+    model: process.env.GROK_MODEL || 'grok-2-latest',
+    provider: 'grok'
+  };
+}
+
+/** Ordered provider preference: AVRONE_LLM_PREFER first, else XAI → OPENAI → GROK. */
+export function providerOrder(): LlmProvider[] {
+  const prefer = (process.env.AVRONE_LLM_PREFER || '').trim().toLowerCase();
+  if (prefer === 'openai' || prefer === 'xai' || prefer === 'grok') {
+    return [prefer, ...DEFAULT_PROVIDER_ORDER.filter(p => p !== prefer)];
   }
-  return null;
+  return [...DEFAULT_PROVIDER_ORDER];
+}
+
+/** All configured LLM providers in preference order. */
+export function listLlmConfigs(): LlmConfig[] {
+  const out: LlmConfig[] = [];
+  for (const p of providerOrder()) {
+    const cfg = configFor(p);
+    if (cfg) out.push(cfg);
+  }
+  return out;
+}
+
+/** First configured provider (respects AVRONE_LLM_PREFER). */
+export function resolveLlmConfig(): LlmConfig | null {
+  return listLlmConfigs()[0] ?? null;
 }
 
 const SYSTEM_PROMPT = `You are Avrone, a careful operator assistant for the Living Intermediate Control Plane.
@@ -97,6 +136,47 @@ async function chatCompletion(
   });
 }
 
+type ChatJson = {
+  choices?: Array<{
+    message?: ChatMessage;
+    finish_reason?: string;
+  }>;
+};
+
+/**
+ * Call chat/completions; on retryable auth/billing/quota failures,
+ * automatically try the next configured provider.
+ */
+async function chatCompletionWithFallback(
+  configs: LlmConfig[],
+  startIndex: number,
+  messages: ChatMessage[],
+  opts?: { stream?: boolean; tools?: boolean }
+): Promise<{ data: ChatJson; cfg: LlmConfig; index: number }> {
+  let lastErr = 'No LLM providers available';
+  for (let i = startIndex; i < configs.length; i++) {
+    const cfg = configs[i];
+    const res = await chatCompletion(cfg, messages, opts);
+    const raw = await res.text().catch(() => '');
+    if (res.ok) {
+      let data: ChatJson;
+      try {
+        data = JSON.parse(raw) as ChatJson;
+      } catch {
+        throw new Error(`LLM ${cfg.provider} returned non-JSON body`);
+      }
+      return { data, cfg, index: i };
+    }
+    const errText = scrubSecrets(raw);
+    lastErr = `LLM ${cfg.provider} HTTP ${res.status}: ${errText.slice(0, 400)}`;
+    if (!isRetryableLlmFailure(res.status, errText)) {
+      throw new Error(lastErr);
+    }
+    // retryable — fall through to next provider
+  }
+  throw new Error(lastErr);
+}
+
 /**
  * Multi-step tool loop; streams the final assistant answer as OpenAI-style SSE
  * (choices[0].delta.content). Emits SSE comment lines for tool activity.
@@ -105,10 +185,13 @@ export async function runAgentLoop(
   userMessages: Array<{ role: string; content?: string }>,
   opts?: { systemAugment?: string; onActivity?: OnActivity; maxRounds?: number }
 ): Promise<AgentLoopResult> {
-  const cfg = resolveLlmConfig();
-  if (!cfg) {
+  const configs = listLlmConfigs();
+  if (!configs.length) {
     throw new Error('No LLM API key (set XAI_API_KEY, OPENAI_API_KEY, or GROK_API_KEY)');
   }
+
+  let cfgIndex = 0;
+  let cfg = configs[cfgIndex];
 
   const activities: ToolActivity[] = [];
   const maxRounds = opts?.maxRounds ?? MAX_TOOL_ROUNDS;
@@ -127,18 +210,14 @@ export async function runAgentLoop(
   // Tool rounds (non-streaming) until we get a final content response or hit max.
   let finalContent = '';
   for (let round = 0; round < maxRounds; round++) {
-    const res = await chatCompletion(cfg, messages, { stream: false, tools: true });
-    if (!res.ok) {
-      const errText = scrubSecrets(await res.text().catch(() => ''));
-      throw new Error(`LLM ${cfg.provider} HTTP ${res.status}: ${errText.slice(0, 400)}`);
-    }
-
-    const data = (await res.json()) as {
-      choices?: Array<{
-        message?: ChatMessage;
-        finish_reason?: string;
-      }>;
-    };
+    const { data, cfg: used, index } = await chatCompletionWithFallback(
+      configs,
+      cfgIndex,
+      messages,
+      { stream: false, tools: true }
+    );
+    cfg = used;
+    cfgIndex = index;
 
     const msg = data.choices?.[0]?.message;
     if (!msg) {
@@ -174,12 +253,18 @@ export async function runAgentLoop(
 
   if (!finalContent) {
     // One last turn without tools to force an answer.
-    const res = await chatCompletion(cfg, messages, { stream: false, tools: false });
-    if (res.ok) {
-      const data = (await res.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
+    try {
+      const { data, cfg: used, index } = await chatCompletionWithFallback(
+        configs,
+        cfgIndex,
+        messages,
+        { stream: false, tools: false }
+      );
+      cfg = used;
+      cfgIndex = index;
       finalContent = scrubSecrets(String(data.choices?.[0]?.message?.content || ''));
+    } catch {
+      // keep empty; fall through to synthetic message below
     }
     if (!finalContent) {
       finalContent =
