@@ -21,7 +21,14 @@ export function createFederationApi(store, getLocalState) {
       const state = getLocalState();
       return publisher.publishLocal({ ...state, securitySeverity });
     },
-    async publishObservation({ belief, securitySeverity = 'ok', observationText = null } = {}) {
+    async publishObservation({
+      belief,
+      securitySeverity = 'ok',
+      observationText = null,
+      multiBeliefDigest = null,
+      meanBelief = null,
+      nodeCount = null
+    } = {}) {
       const allowHigh =
         process.env.CONTROL12_CHAT_OPEN === '1' ||
         process.env.CONTROL12_FEDERATION_ALLOW_HIGH === '1';
@@ -36,7 +43,10 @@ export function createFederationApi(store, getLocalState) {
         ...state,
         belief: belief != null ? Number(belief) : state.belief,
         securitySeverity,
-        observationDigest
+        observationDigest,
+        multiBeliefDigest,
+        meanBelief,
+        nodeCount
       });
     },
     ingest: (peerId, digest) => ingestor.ingestPeer(peerId, digest)

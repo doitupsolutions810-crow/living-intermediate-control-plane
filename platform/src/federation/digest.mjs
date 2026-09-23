@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 
 /**
  * Federation digest v1 — belief + spectrum tension only (no secrets).
- * Optional observationDigest links a lattice observation hash.
+ * Optional observationDigest / multiBeliefDigest for linkage.
  */
 export function buildFederationDigest({
   belief = 0.5,
@@ -10,7 +10,10 @@ export function buildFederationDigest({
   partialCount = 0,
   securitySeverity = 'ok',
   label = 'local',
-  observationDigest = null
+  observationDigest = null,
+  multiBeliefDigest = null,
+  meanBelief = null,
+  nodeCount = null
 } = {}) {
   const payload = {
     v: 1,
@@ -20,7 +23,10 @@ export function buildFederationDigest({
     tension: Number(Number(tension).toFixed(4)),
     partialCount: Number(partialCount) || 0,
     securitySeverity: String(securitySeverity || 'ok'),
-    observationDigest: observationDigest ? String(observationDigest).slice(0, 64) : null
+    observationDigest: observationDigest ? String(observationDigest).slice(0, 64) : null,
+    multiBeliefDigest: multiBeliefDigest ? String(multiBeliefDigest).slice(0, 64) : null,
+    meanBelief: meanBelief != null ? Number(Number(meanBelief).toFixed(4)) : null,
+    nodeCount: nodeCount != null ? Number(nodeCount) : null
   };
   const body = JSON.stringify({
     v: payload.v,
@@ -30,7 +36,10 @@ export function buildFederationDigest({
     tension: payload.tension,
     partialCount: payload.partialCount,
     securitySeverity: payload.securitySeverity,
-    observationDigest: payload.observationDigest
+    observationDigest: payload.observationDigest,
+    multiBeliefDigest: payload.multiBeliefDigest,
+    meanBelief: payload.meanBelief,
+    nodeCount: payload.nodeCount
   });
   return {
     ...payload,
@@ -38,7 +47,6 @@ export function buildFederationDigest({
   };
 }
 
-/** Hash a free-form lattice observation string for federation linkage. */
 export function hashObservation(observationText) {
   return crypto.createHash('sha256').update(String(observationText || '')).digest('hex');
 }
