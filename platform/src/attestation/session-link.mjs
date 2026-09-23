@@ -50,6 +50,53 @@ export function buildSessionLink({
   return record;
 }
 
+/**
+ * Verify a foreign session link.
+ * - Recomputes linkDigest over unsigned fields
+ * - If CONTROL12_ATTEST_HMAC_KEY set and link.signature present, checks HMAC
+ * - Does not open execution gates
+ */
+export function verifySessionLink(link = {}) {
+  if (!link || typeof link !== 'object') {
+    return { ok: false, reason: 'invalid_link' };
+  }
+  const unsigned = {
+    schema: link.schema,
+    at: link.at,
+    latticeRoot: link.latticeRoot,
+    sessionId: link.sessionId,
+    turnId: link.turnId ?? null,
+    sbomSha256: link.sbomSha256 ?? null,
+    observationSha256: link.observationSha256 ?? null,
+    multiBeliefDigest: link.multiBeliefDigest ?? null,
+    meanBelief: link.meanBelief ?? null,
+    nodeCount: link.nodeCount ?? null
+  };
+  const body = JSON.stringify(unsigned);
+  const expectedDigest = crypto.createHash('sha256').update(body).digest('hex');
+  const digestOk = Boolean(link.linkDigest) && link.linkDigest === expectedDigest;
+  const hmacKey = process.env.CONTROL12_ATTEST_HMAC_KEY || '';
+  let signatureOk = null;
+  if (hmacKey && link.signature) {
+    const expectedSig = crypto
+      .createHmac('sha256', hmacKey)
+      .update(String(link.linkDigest || expectedDigest))
+      .digest('hex');
+    signatureOk = link.signature === expectedSig;
+  } else if (link.signed && !hmacKey) {
+    signatureOk = false;
+  }
+  const ok = digestOk && (signatureOk === null ? true : signatureOk === true);
+  return {
+    ok,
+    digestOk,
+    signatureOk,
+    expectedDigest,
+    multiBeliefDigest: link.multiBeliefDigest || null,
+    sessionId: link.sessionId || null
+  };
+}
+
 export function createSessionLinkStore(attestationDir) {
   const file = path.join(attestationDir, 'session-links.jsonl');
   return {
