@@ -3,12 +3,15 @@
  * Self-test for Living Intermediate Control Plane
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
+import { createToolkit } from '../agents/llama/toolkit.mjs';
+import { invokeTool } from '../agents/llama/agent.mjs';
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 
@@ -99,6 +102,47 @@ const boom = await probeEvidenceConsole({
 });
 assert(boom.status === 'unreachable', 'evidence-console network error maps to unreachable');
 assert(boom.authority === 'local', 'unreachable console falls back to local authority');
+
+const tmpRoot = mkdtempSync(join(tmpdir(), 'llama-toolkit-'));
+try {
+  mkdirSync(join(tmpRoot, 'workspace', 'proposals'), { recursive: true });
+  writeFileSync(join(tmpRoot, 'workspace', 'hello.txt'), 'hi from toolkit');
+  writeFileSync(join(tmpRoot, 'workspace', 'proposals', 'note.md'), '# note\n');
+  const tk = createToolkit(tmpRoot);
+
+  assert(tk.read_workspace_file('hello.txt') === 'hi from toolkit', 'read_workspace_file returns file contents');
+
+  const listing = JSON.parse(tk.read_workspace_file('proposals'));
+  assert(Array.isArray(listing), 'directory read returns JSON listing');
+  assert(listing.some(e => e.name === 'note.md' && e.type === 'file'), 'directory listing includes nested file');
+
+  const rootListing = JSON.parse(tk.read_workspace_file(''));
+  assert(rootListing.some(e => e.name === 'hello.txt' && e.type === 'file'), 'empty path lists workspace root');
+  assert(rootListing.some(e => e.name === 'proposals' && e.type === 'dir'), 'workspace root listing includes dirs');
+
+  let missingErr = null;
+  try {
+    tk.read_workspace_file('no-such-file.txt');
+  } catch (e) {
+    missingErr = e;
+  }
+  assert(missingErr instanceof Error, 'missing workspace path throws');
+  assert(/not found/i.test(missingErr.message), 'missing path error is clear');
+  assert(!/EISDIR/i.test(missingErr.message), 'missing path error is not EISDIR');
+
+  tk.write_workspace_file('proposals/out.txt', 'written');
+  assert(tk.read_workspace_file('proposals/out.txt') === 'written', 'write_workspace_file still writes content');
+} finally {
+  rmSync(tmpRoot, { recursive: true, force: true });
+}
+
+const missingTool = await invokeTool('read_workspace_file', { path: `missing-${Date.now()}.txt` });
+assert(missingTool && typeof missingTool === 'object', 'invokeTool returns an object on throw');
+assert(typeof missingTool.error === 'string' && /not found/i.test(missingTool.error), 'thrown tool error becomes { error }');
+
+const dirTool = await invokeTool('read_workspace_file', { path: '' });
+assert(typeof dirTool === 'string', 'invokeTool directory read returns listing string');
+assert(Array.isArray(JSON.parse(dirTool)), 'invokeTool directory listing is JSON array');
 
 console.log(`\nResult: ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
