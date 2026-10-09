@@ -21,6 +21,6 @@ Methods (lab):
 | CONTROL12_HEARTBEAT_MS | heartbeatAll loop |
 | CONTROL12_HEARTBEAT_ANCHORS=1 | include local/avrone in scheduled heartbeat |
 
-Remote clones should sync `multi-belief.mjs` from the living workspace when advancing beyond basic graph digests.
+Telemetry: `state/telemetry.json` holds `lastConsensus`, `lastPrune`, `lastHeartbeat`.
 
 Provisional.
