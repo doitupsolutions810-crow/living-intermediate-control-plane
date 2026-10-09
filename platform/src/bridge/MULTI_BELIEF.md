@@ -9,8 +9,18 @@ Methods (lab):
 - `softConsensus` — mean pull; refreshes `lastSeen`
 - `pruneStalePeers` — drop quiet federated peers
 - `heartbeat(peerId)` — presence without consensus
+- `heartbeatAll` — batch pulse federated peers
 - `federatedPeerCount` / `digest`
 
-Remote clones should sync this module from the living workspace when advancing beyond basic graph digests.
+## Scheduled timers (server)
+
+| Env | Effect |
+|-----|--------|
+| CONTROL12_CONSENSUS_MS | softConsensus loop |
+| CONTROL12_PRUNE_MS | pruneStalePeers loop |
+| CONTROL12_HEARTBEAT_MS | heartbeatAll loop |
+| CONTROL12_HEARTBEAT_ANCHORS=1 | include local/avrone in scheduled heartbeat |
+
+Remote clones should sync `multi-belief.mjs` from the living workspace when advancing beyond basic graph digests.
 
 Provisional.
