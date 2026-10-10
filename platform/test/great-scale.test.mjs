@@ -30,6 +30,23 @@ assert.equal(dispatched.decision, 'READY');
 const dispatchedBody = await runCockpitAction('great_scale_validate', valid, {});
 assert.equal(dispatchedBody.decision, 'READY');
 
+// Explicitly wrapped malformed states must reach the validator unchanged.
+const nullWrappedState = await runCockpitAction('great_scale_validate', { state: null }, {});
+assert.equal(nullWrappedState.decision, 'INVALID_INPUT');
+assert.ok(nullWrappedState.failedGates.includes('input'));
+
+const primitiveWrappedState = await runCockpitAction('great_scale_validate', { state: 'not-a-state' }, {});
+assert.equal(primitiveWrappedState.decision, 'INVALID_INPUT');
+assert.ok(primitiveWrappedState.failedGates.includes('input'));
+
+const arrayWrappedState = await runCockpitAction('great_scale_validate', { state: [] }, {});
+assert.equal(arrayWrappedState.decision, 'INVALID_INPUT');
+assert.ok(arrayWrappedState.failedGates.includes('input'));
+
+const incompleteWrappedState = await runCockpitAction('great_scale_validate', { state: { zeroMode: GREAT_SCALE.phi } }, {});
+assert.equal(incompleteWrappedState.decision, 'INCOMPLETE');
+assert.ok(incompleteWrappedState.missingGates.length > 0);
+
 const lowPsi = validateGreatScaleState({ ...valid, psi: GREAT_SCALE.psiFloor - 0.01 });
 assert.equal(lowPsi.decision, 'NOT_READY');
 assert.ok(lowPsi.failedGates.includes('psi-cone-floor'));
