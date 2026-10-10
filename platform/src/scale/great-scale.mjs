@@ -39,6 +39,18 @@ function check(id, status, observed, expected, detail) {
  * }
  */
 export function validateGreatScaleState(input = {}) {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+    return {
+      schema: GREAT_SCALE.schema,
+      source: GREAT_SCALE.source,
+      sourceVersion: GREAT_SCALE.sourceVersion,
+      decision: 'INVALID_INPUT',
+      checks: [check('input', 'fail', input ?? null, 'object state', 'Input must be a non-null object.')],
+      failedGates: ['input'],
+      missingGates: []
+    };
+  }
+
   const tolerance = input.tolerance == null ? 0.05 : Number(input.tolerance);
   const checks = [];
   if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 1) {
