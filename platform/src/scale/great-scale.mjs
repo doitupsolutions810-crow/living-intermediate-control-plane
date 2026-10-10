@@ -1,0 +1,148 @@
+/**
+ * Great-Scale v0.3.0 invariant adapter for CONTROL12.
+ *
+ * This is a deterministic contract checker derived from the Great-Scale README,
+ * not a claim that the model is empirically validated. The "≈ phi" tolerance is
+ * an explicit engineering parameter because the source does not specify one.
+ */
+export const GREAT_SCALE = Object.freeze({
+  schema: 'great-scale.validation/v1',
+  source: 'doitupsolutions810-crow/great-scale',
+  sourceVersion: '0.3.0',
+  phi: (1 + Math.sqrt(5)) / 2,
+  psiFloor: Math.sqrt(5) - 2,
+  residualPartition: Object.freeze([4, 3, 1]),
+  perspectives: Object.freeze(['Watch', 'Observer', 'Forward', 'Adjacent', 'Down']),
+  geometry: Object.freeze({
+    heightRatio: 1, // H = S
+    symmetry: 9, // ninefold
+    inwardFold: 0.8
+  })
+});
+
+function check(id, status, observed, expected, detail) {
+  return { id, status, observed, expected, detail };
+}
+
+/**
+ * Input contract:
+ * {
+ *   zeroMode: number,
+ *   tolerance?: number, // default 0.05 (implementation choice, not source law)
+ *   residualPartition: number[],
+ *   psi: number,
+ *   geometry: {
+ *     heightRatio: number, radialLambda: number, n: number,
+ *     symmetry: number, inwardFold: number, generatedByScale: boolean
+ *   },
+ *   perspectives?: string[]
+ * }
+ */
+export function validateGreatScaleState(input = {}) {
+  const tolerance = input.tolerance == null ? 0.05 : Number(input.tolerance);
+  const checks = [];
+  if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 1) {
+    return {
+      schema: GREAT_SCALE.schema,
+      source: GREAT_SCALE.source,
+      sourceVersion: GREAT_SCALE.sourceVersion,
+      decision: 'INVALID_INPUT',
+      checks: [check('tolerance', 'fail', input.tolerance ?? null, 'finite number in [0,1]', 'Tolerance is an integration parameter; source does not define it.')],
+      failedGates: ['tolerance']
+    };
+  }
+
+  const zeroMode = Number(input.zeroMode);
+  const hasZeroMode = input.zeroMode != null && Number.isFinite(zeroMode);
+  checks.push(check(
+    'mean-zero-mode',
+    !hasZeroMode ? 'not-provided' : Math.abs(zeroMode - GREAT_SCALE.phi) <= tolerance ? 'pass' : 'fail',
+    hasZeroMode ? zeroMode : null,
+    { target: GREAT_SCALE.phi, tolerance },
+    'Great-Scale law: keep the mean (zero-mode ≈ φ).'
+  ));
+
+  const residual = input.residualPartition;
+  const residualValid = Array.isArray(residual) && residual.length === 3 &&
+    residual.every(Number.isInteger) &&
+    residual.every((n, i) => n === GREAT_SCALE.residualPartition[i]);
+  checks.push(check(
+    'residual-partition',
+    residual == null ? 'not-provided' : residualValid ? 'pass' : 'fail',
+    Array.isArray(residual) ? residual : null,
+    [...GREAT_SCALE.residualPartition],
+    'Great-Scale law: residual partition 4+3+1.'
+  ));
+
+  const psi = input.psi == null ? NaN : Number(input.psi);
+  const hasPsi = Number.isFinite(psi);
+  checks.push(check(
+    'psi-cone-floor',
+    !hasPsi ? 'not-provided' : psi >= GREAT_SCALE.psiFloor ? 'pass' : 'fail',
+    hasPsi ? psi : null,
+    { minimum: GREAT_SCALE.psiFloor },
+    'Great-Scale law: Ψ never below cone √5−2.'
+  ));
+
+  const geometry = input.geometry;
+  const hasGeometry = geometry && typeof geometry === 'object';
+  const geometryChecks = [
+    ['height-ratio', geometry?.heightRatio, GREAT_SCALE.geometry.heightRatio, 'H = S; heightRatio means H/S.'],
+    ['ninefold-symmetry', geometry?.symmetry, GREAT_SCALE.geometry.symmetry, 'Geometry v0.3.0 specifies ninefold symmetry.'],
+    ['inward-fold', geometry?.inwardFold, GREAT_SCALE.geometry.inwardFold, 'Geometry v0.3.0 specifies inward fold 0.8.']
+  ];
+  for (const [id, observedRaw, expected, detail] of geometryChecks) {
+    const observed = observedRaw == null ? NaN : Number(observedRaw);
+    const provided = observedRaw != null && Number.isFinite(observed);
+    checks.push(check(id, !provided ? 'not-provided' : Math.abs(observed - expected) <= 1e-9 ? 'pass' : 'fail', provided ? observed : null, expected, detail));
+  }
+
+  const n = geometry?.n == null ? NaN : Number(geometry.n);
+  const lambda = geometry?.radialLambda == null ? NaN : Number(geometry.radialLambda);
+  const radialProvided = Number.isInteger(n) && n >= 0 && Number.isFinite(lambda);
+  const radialExpected = Number.isInteger(n) && n >= 0 ? Math.pow(GREAT_SCALE.phi, -n) : null;
+  checks.push(check(
+    'radial-scale',
+    !radialProvided ? 'not-provided' : Math.abs(lambda - radialExpected) <= 1e-9 ? 'pass' : 'fail',
+    radialProvided ? { n, lambda } : null,
+    radialExpected == null ? 'radialLambda = phi^(-n), n is a non-negative integer' : { n, radialLambda: radialExpected },
+    'Geometry v0.3.0 specifies radial λ = φ^(−n).'
+  ));
+
+  checks.push(check(
+    'geometry-provenance',
+    !hasGeometry || typeof geometry.generatedByScale !== 'boolean' ? 'not-provided' : geometry.generatedByScale ? 'pass' : 'fail',
+    typeof geometry?.generatedByScale === 'boolean' ? geometry.generatedByScale : null,
+    true,
+    'Great-Scale law: only add geometry generated by the scale.'
+  ));
+
+  if (input.perspectives != null) {
+    const perspectives = Array.isArray(input.perspectives) ? input.perspectives : [];
+    const missing = GREAT_SCALE.perspectives.filter(name => !perspectives.includes(name));
+    checks.push(check(
+      'perspective-coverage',
+      missing.length === 0 ? 'pass' : 'fail',
+      perspectives,
+      [...GREAT_SCALE.perspectives],
+      missing.length ? `Missing listed perspectives: ${missing.join(', ')}.` : 'All five labels listed by the source are represented; source wording says "three embeddings" while listing five labels.'
+    ));
+  } else {
+    checks.push(check('perspective-coverage', 'not-provided', null, [...GREAT_SCALE.perspectives], 'Optional coverage check; the source lists Watch / Observer / Forward / Adjacent / Down.'));
+  }
+
+  const failedGates = checks.filter(item => item.status === 'fail').map(item => item.id);
+  const missingGates = checks.filter(item => item.status === 'not-provided').map(item => item.id);
+  const decision = failedGates.length ? 'NOT_READY' : missingGates.length ? 'INCOMPLETE' : 'READY';
+  return {
+    schema: GREAT_SCALE.schema,
+    source: GREAT_SCALE.source,
+    sourceVersion: GREAT_SCALE.sourceVersion,
+    decision,
+    tolerance,
+    checks,
+    failedGates,
+    missingGates,
+    note: 'Deterministic conformance check only; not empirical validation, a security boundary, or proof of mathematical correctness.'
+  };
+}
