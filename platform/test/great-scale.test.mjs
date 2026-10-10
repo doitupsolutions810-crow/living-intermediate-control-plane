@@ -36,6 +36,12 @@ const wrongGeometry = validateGreatScaleState({
 });
 assert.ok(wrongGeometry.failedGates.includes('geometry-provenance'));
 
+const optionalPerspectives = { ...valid };
+delete optionalPerspectives.perspectives;
+const withoutOptionalPerspectives = validateGreatScaleState(optionalPerspectives);
+assert.equal(withoutOptionalPerspectives.decision, 'READY');
+assert.ok(withoutOptionalPerspectives.checks.find(c => c.id === 'perspective-coverage').status === 'not-provided');
+
 const missing = validateGreatScaleState({ zeroMode: GREAT_SCALE.phi });
 assert.equal(missing.decision, 'INCOMPLETE');
 assert.ok(missing.missingGates.length > 0);
