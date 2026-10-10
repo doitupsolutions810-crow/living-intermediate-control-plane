@@ -38,11 +38,15 @@ Decisions:
 - `NOT_READY`: one or more checks failed.
 - `INVALID_INPUT`: invalid tolerance.
 
-The result carries per-check status, failed/missing gates, source repository/version, and a disclaimer.
+The result carries per-check status, failed/missing gates, source repository/version, and a disclaimer. Null, primitive, and array inputs return `INVALID_INPUT` rather than throwing.
+
+### CONTROL12 cockpit action
+
+The adapter is exposed as `POST /api/v1/cockpit/action` with `{ "action": "great_scale_validate", "state": { ... } }`. The action also accepts the state fields alongside `action` in the same request body. The route passes through the server's shared POST authentication guard; do not expose it through an unauthenticated proxy. It only evaluates input and does not trigger agent execution or alter budget state.
 
 ## Safe rollout
 
 1. Run this validator as a non-authoritative review gate / evidence annotation.
 2. Keep execution, authentication, authorization, budget accounting, and attestation decisions under their existing CONTROL12 controls.
 3. Do not use a `READY` result as a security attestation or production deployment approval.
-4. Add a dedicated HTTP cockpit action only after reviewing the platform server's action dispatch and auth boundary.
+4. Keep the cockpit action behind CONTROL12's shared POST authentication guard; verify proxy/auth configuration in deployment before exposing it.
