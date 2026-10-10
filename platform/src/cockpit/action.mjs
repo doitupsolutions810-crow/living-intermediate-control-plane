@@ -1,7 +1,10 @@
 import { integrateBeliefStep, tension } from '../audio/jacobian.mjs';
+import { validateGreatScaleState } from '../scale/great-scale.mjs';
 
 export async function runCockpitAction(action, body, ctx) {
   switch (action) {
+    case 'great_scale_validate':
+      return validateGreatScaleState(body?.state && typeof body.state === 'object' ? body.state : body);
     case 'tls_reload': {
       if (!ctx.tlsHandle?.setSecureContextFromDisk) {
         throw Object.assign(new Error('TLS not enabled'), { statusCode: 400 });
