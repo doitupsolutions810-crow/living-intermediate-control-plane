@@ -56,4 +56,12 @@ assert.ok(missing.missingGates.length > 0);
 const badTolerance = validateGreatScaleState({ tolerance: -1 });
 assert.equal(badTolerance.decision, 'INVALID_INPUT');
 
+const nullInput = validateGreatScaleState(null);
+assert.equal(nullInput.decision, 'INVALID_INPUT');
+assert.ok(nullInput.failedGates.includes('input'));
+
+const primitiveInput = validateGreatScaleState('not-a-state');
+assert.equal(primitiveInput.decision, 'INVALID_INPUT');
+assert.ok(primitiveInput.failedGates.includes('input'));
+
 console.log('PASS: Great-Scale CONTROL12 invariant and cockpit-dispatch tests');
