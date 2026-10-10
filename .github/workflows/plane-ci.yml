@@ -51,6 +51,9 @@ jobs:
       - name: Self-test
         run: node test/self-test.mjs
 
+      - name: Platform tests (CONTROL12 + Great-Scale)
+        run: cd platform && npm test
+
       - name: Health
         run: node status/health.mjs
 

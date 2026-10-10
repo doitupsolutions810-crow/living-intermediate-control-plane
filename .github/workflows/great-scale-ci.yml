@@ -1,0 +1,36 @@
+name: Great-Scale CONTROL12 CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'platform/**'
+      - '.github/workflows/great-scale-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'platform/**'
+      - '.github/workflows/great-scale-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  great-scale-control12:
+    name: Great-Scale adapter and CONTROL12 platform tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax check
+        working-directory: platform
+        run: npm run check
+      - name: CONTROL12 and Great-Scale tests
+        working-directory: platform
+        run: npm test

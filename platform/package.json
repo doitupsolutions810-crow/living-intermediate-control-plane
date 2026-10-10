@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/server.mjs",
     "start:chat-open": "CONTROL12_CHAT_OPEN=1 node src/server.mjs",
-    "check": "node --check src/server.mjs",
+    "check": "node --check src/server.mjs && node --check src/cockpit/action.mjs && node --check src/scale/great-scale.mjs",
     "smoke": "bash scripts/smoke-test.sh",
-    "test": "node test/jacobian.test.mjs"
+    "test": "node test/jacobian.test.mjs && node test/great-scale.test.mjs"
   }
 }
