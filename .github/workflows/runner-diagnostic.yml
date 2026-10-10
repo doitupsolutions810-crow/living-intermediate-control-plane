@@ -12,14 +12,22 @@ permissions:
 
 jobs:
   runner-startup:
-    name: Minimal hosted-runner probe
-    runs-on: ubuntu-latest
+    name: Minimal hosted-runner probe (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04
+          - windows-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 2
     steps:
       - name: Confirm runner started
+        shell: bash
         run: |
           echo "RUNNER_STARTUP_OK"
-          echo "event=${GITHUB_EVENT_NAME}"
-          echo "sha=${GITHUB_SHA}"
-          echo "runner=${RUNNER_NAME}"
-          echo "os=${RUNNER_OS}"
+          echo "event=$GITHUB_EVENT_NAME"
+          echo "sha=$GITHUB_SHA"
+          echo "runner=$RUNNER_NAME"
+          echo "os=$RUNNER_OS"
