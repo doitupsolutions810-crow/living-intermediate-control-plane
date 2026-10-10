@@ -132,7 +132,8 @@ export function validateGreatScaleState(input = {}) {
   }
 
   const failedGates = checks.filter(item => item.status === 'fail').map(item => item.id);
-  const missingGates = checks.filter(item => item.status === 'not-provided').map(item => item.id);
+  // Perspective coverage is explicitly optional metadata; absence must not block readiness.
+  const missingGates = checks.filter(item => item.status === 'not-provided' && item.id !== 'perspective-coverage').map(item => item.id);
   const decision = failedGates.length ? 'NOT_READY' : missingGates.length ? 'INCOMPLETE' : 'READY';
   return {
     schema: GREAT_SCALE.schema,
