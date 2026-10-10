@@ -36,13 +36,13 @@ Decisions:
 - `READY`: every check was provided and passed.
 - `INCOMPLETE`: no check failed, but at least one required input was not provided.
 - `NOT_READY`: one or more checks failed.
-- `INVALID_INPUT`: invalid tolerance.
+- `INVALID_INPUT`: a non-object top-level state (including `null` or an array), or a tolerance outside the accepted finite range [0, 1].
 
 The result carries per-check status, failed/missing gates, source repository/version, and a disclaimer. Null, primitive, and array inputs return `INVALID_INPUT` rather than throwing.
 
 ### CONTROL12 cockpit action
 
-The adapter is exposed as `POST /api/v1/cockpit/action` with `{ "action": "great_scale_validate", "state": { ... } }`. The action also accepts the state fields alongside `action` in the same request body. The route passes through the server's shared POST authentication guard; do not expose it through an unauthenticated proxy. It only evaluates input and does not trigger agent execution or alter budget state.
+The adapter is exposed as `POST /api/v1/cockpit/action` with `{ "action": "great_scale_validate", "state": { ... } }`. The action also accepts the state fields alongside `action` in the same request body. If a `state` property is explicitly supplied, its value is validated as-is, so `state: null`, primitive values, and arrays return `INVALID_INPUT` rather than being mistaken for an absent wrapper. The route passes through the server's shared POST authentication guard; do not expose it through an unauthenticated proxy. It only evaluates input and does not trigger agent execution or alter budget state.
 
 ## Safe rollout
 
