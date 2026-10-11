@@ -13,8 +13,9 @@ bash scripts/federation-two-node-smoke.sh
 echo "==> federation-link-sig-negative-smoke"
 bash scripts/federation-link-sig-negative-smoke.sh
 
-echo "==> unit: multi-belief + session-link"
+echo "==> unit: multi-belief + session-link + great-scale"
 node test/multi-belief.test.mjs
 node test/session-link.test.mjs
+node test/great-scale.test.mjs
 
 echo "PASS: smoke-all"
