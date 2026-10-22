@@ -22,10 +22,23 @@ export const REQUIRED_CHECKS = Object.freeze([
 
 function timestamp(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
-  // Require an explicit UTC marker so Node and Python interpret evidence identically.
-  if (!/(?:Z|\+00:00)$/i.test(value.trim())) return null;
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  const normalized = value.trim();
+  // Accept only ISO timestamps in UTC; match Python's timezone rule and avoid Date.parse's loose formats.
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(?:Z|\+00:00)$/i.exec(normalized);
+  if (!match) return null;
+  const parsed = Date.parse(normalized);
+  if (!Number.isFinite(parsed)) return null;
+  // JavaScript Date.parse normalizes some invalid dates (for example Feb 31); reject those instead.
+  const date = new Date(parsed);
+  const expected = match.slice(1, 7).map(Number);
+  if (expected[0] < 1 ||
+      date.getUTCFullYear() !== expected[0] ||
+      date.getUTCMonth() + 1 !== expected[1] ||
+      date.getUTCDate() !== expected[2] ||
+      date.getUTCHours() !== expected[3] ||
+      date.getUTCMinutes() !== expected[4] ||
+      date.getUTCSeconds() !== expected[5]) return null;
+  return parsed;
 }
 
 export function evaluateActivation({ mode = 'preview', evidence = null, now = new Date(), expectedReleaseSha = null } = {}) {
