@@ -2,7 +2,7 @@ name: AVRONE Safe Activation Gate
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/avrone-activation-gate-v0.36.1]
     paths:
       - 'status/activation-gate.mjs'
       - 'status/activation-guide.mjs'
@@ -18,10 +18,14 @@ on:
       - 'platform/python-bridge/run_avrone_stack.sh'
       - 'platform/python-bridge/tests/**'
       - 'docs/activation-gate.md'
+      - 'docs/guided-activation.md'
+      - 'docs/system-success-criteria.md'
+      - 'platform/src/activation/**'
+      - 'platform/test/activation-readiness.test.mjs'
       - '.github/workflows/activation-gate.yml'
       - 'package.json'
   push:
-    branches: [main]
+    branches: [main, feat/avrone-activation-gate-v0.36.1]
     paths:
       - 'status/activation-gate.mjs'
       - 'status/activation-guide.mjs'
@@ -36,6 +40,10 @@ on:
       - 'platform/python-bridge/run_avrone_stack.sh'
       - 'platform/python-bridge/tests/**'
       - 'docs/activation-gate.md'
+      - 'docs/guided-activation.md'
+      - 'docs/system-success-criteria.md'
+      - 'platform/src/activation/**'
+      - 'platform/test/activation-readiness.test.mjs'
       - '.github/workflows/activation-gate.yml'
       - 'package.json'
   workflow_dispatch:
@@ -59,12 +67,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Activation policy tests
-        run: node test/activation-gate.test.mjs
-      - name: Guided activation guide tests
-        run: node test/activation-guide.test.mjs
-      - name: Cross-language activation policy parity
-        run: node test/activation-policy-parity.test.mjs
+      - name: Platform activation adapter syntax
+        run: node --check platform/src/activation/readiness.mjs
+      - name: Complete Node policy suite (runtime and platform adapter)
+        run: npm test
       - name: Guided activation CLI smoke test
         run: npm run activation:guide
       - name: Python execution gate tests

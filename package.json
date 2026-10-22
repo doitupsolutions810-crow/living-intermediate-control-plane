@@ -43,7 +43,7 @@
     "rekor": "node status/rekor-cli.mjs",
     "ci": "node status/ci-check.mjs",
     "docker:build": "docker build -t living-intermediate-control-plane:0.10.0 .",
-    "test": "node test/self-test.mjs && node test/activation-gate.test.mjs && node test/activation-guide.test.mjs && node test/activation-policy-parity.test.mjs",
+    "test": "node test/self-test.mjs && node test/activation-gate.test.mjs && node test/activation-guide.test.mjs && node test/activation-policy-parity.test.mjs && node --test platform/test/activation-readiness.test.mjs",
     "activation:check": "node status/activation-gate.mjs --mode preview",
     "activation:live-check": "node status/activation-gate.mjs --mode live",
     "activation:test": "node test/activation-gate.test.mjs",
