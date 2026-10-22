@@ -31,9 +31,10 @@ test('two-cycles preserved by involution', () => {
   }
 });
 
-test('stress invariant residual is zero at fixed point', () => {
-  const s = stressInvariant(4.5);
-  assert.ok(s.residual < 1e-9);
+test('stress invariant residual is zero at both circle fixed points', () => {
+  assert.ok(stressInvariant(0).residual < 1e-9);
+  assert.ok(stressInvariant(4.5).residual < 1e-9);
+  assert.ok(stressInvariant(2).residual > 0.5);
 });
 
 test('hypothesis report at 4.5 supports', () => {
