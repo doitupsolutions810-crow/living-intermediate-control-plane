@@ -71,7 +71,9 @@ assert(existsSync(join(root, 'avrone-chat/app/api/cockpit/route.ts')), 'avrone-c
 // evidence-console graceful behavior (stubbed fetch — no network)
 const unset = await probeEvidenceConsole({ url: '', acceptLocal: true });
 assert(unset.status === 'unconfigured', 'evidence-console unconfigured when URL empty');
-assert(unset.authority === 'local', 'unconfigured console uses local authority');
+assert(unset.source === 'local', 'unconfigured console uses local operational fallback');
+assert(unset.evidenceDisposition === 'local_fallback_unverified', 'local fallback cannot verify claims');
+assert(unset.evidenceVerified === false, 'evidence probe never claims scientific verification');
 
 const notFound = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
@@ -79,7 +81,8 @@ const notFound = await probeEvidenceConsole({
   fetchImpl: async () => new Response('missing', { status: 404 })
 });
 assert(notFound.status === 'not_found', 'evidence-console 404 maps to not_found');
-assert(notFound.authority === 'local', '404 console falls back to local authority');
+assert(notFound.source === 'local', '404 console falls back to local operational status');
+assert(notFound.evidenceVerified === false, '404 fallback does not verify evidence');
 assert(notFound.httpStatus === 404, '404 httpStatus preserved');
 
 const ok = await probeEvidenceConsole({
@@ -88,7 +91,9 @@ const ok = await probeEvidenceConsole({
   fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
 });
 assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(ok.source === 'public', 'healthy endpoint is recorded as public source');
+assert(ok.evidenceDisposition === 'reachable_unverified', 'endpoint reachability is not evidence validation');
+assert(ok.evidenceVerified === false, 'reachable endpoint does not verify scientific claims');
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
@@ -98,7 +103,12 @@ const boom = await probeEvidenceConsole({
   }
 });
 assert(boom.status === 'unreachable', 'evidence-console network error maps to unreachable');
-assert(boom.authority === 'local', 'unreachable console falls back to local authority');
+assert(boom.source === 'local', 'unreachable console falls back to local operational status');
+assert(boom.evidenceVerified === false, 'unreachable fallback does not verify evidence');
+
+const noFallback = await probeEvidenceConsole({ url: '', acceptLocal: false });
+assert(noFallback.source === 'none', 'disabled fallback does not invent an evidence source');
+assert(noFallback.evidenceDisposition === 'unavailable', 'no source remains unavailable');
 
 console.log(`\nResult: ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

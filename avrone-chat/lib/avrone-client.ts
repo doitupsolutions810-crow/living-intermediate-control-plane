@@ -49,6 +49,38 @@ export async function fetchLatticeTurn(
   }
 }
 
+export async function postCockpitAction(action: string, payload: Record<string, unknown>) {
+  const platformUrl = platformBase();
+  if (!platformUrl) return { status: 503, error: 'platform_unconfigured' };
+
+  try {
+    const response = await fetch(`${platformUrl}/api/v1/cockpit/action`, {
+      method: 'POST',
+      headers: platformHeaders(),
+      body: JSON.stringify({ ...payload, action }),
+      signal: AbortSignal.timeout(8000)
+    });
+    const bodyText = await response.text();
+    let responseBody: unknown;
+    try {
+      responseBody = bodyText ? JSON.parse(bodyText) : {};
+    } catch {
+      return { status: 502, error: 'platform_invalid_response' };
+    }
+
+    if (responseBody && typeof responseBody === 'object' && !Array.isArray(responseBody)) {
+      return response.ok
+        ? responseBody as Record<string, unknown>
+        : { ...responseBody as Record<string, unknown>, status: response.status };
+    }
+    return response.ok
+      ? { action, result: responseBody }
+      : { status: response.status, error: 'platform_action_rejected' };
+  } catch {
+    return { status: 503, error: 'platform_unreachable' };
+  }
+}
+
 export async function fetchPlatformSnapshot() {
   const platformUrl = platformBase();
   const out: Record<string, unknown> = {
@@ -81,6 +113,7 @@ export async function fetchPlatformSnapshot() {
         severity?: string;
         anomalies?: unknown;
         lattice?: { belief?: number; tension?: number; partials?: number };
+        scale?: unknown;
         mtls?: boolean;
         dualCa?: boolean;
         chatOpen?: boolean;
@@ -88,6 +121,7 @@ export async function fetchPlatformSnapshot() {
       };
       out.anomalies = sec.anomalies ?? { severity: sec.severity };
       out.lattice = sec.lattice ?? null;
+      out.scale = sec.scale ?? null;
       out.mtls = sec.mtls;
       out.dualCa = sec.dualCa;
       out.chatOpen = sec.chatOpen;
@@ -96,6 +130,7 @@ export async function fetchPlatformSnapshot() {
     } else {
       out.anomalies = null;
       out.lattice = null;
+      out.scale = null;
     }
     out.spectrum = spectrum.ok ? await spectrum.json() : null;
     out.platform = { ok: health.ok };

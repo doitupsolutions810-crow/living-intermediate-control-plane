@@ -7,7 +7,7 @@
  * Laws (from great-scale repo):
  *   - keep the mean (zero-mode ≈ φ)
  *   - residual partition 4+3+1
- *   - Ψ never below cone √5−2
+ *   - Ψ never below cone φ⁻²
  *   - only add scale-generated geometry
  */
 
@@ -15,7 +15,7 @@ import { tension, integrateBeliefStep } from '../audio/jacobian.mjs';
 
 export const PHI = (1 + Math.sqrt(5)) / 2;
 export const PHI_INV = PHI - 1;
-export const CONE = PHI_INV - PHI_INV * PHI_INV;
+export const CONE = PHI_INV * PHI_INV;
 export const RATE = 0.85;
 export const RESIDUAL_DIMS = Object.freeze([4, 3, 1]);
 
@@ -116,6 +116,23 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, view = 'Obse
   };
 }
 
+export function readinessFromBelief(belief, { t = Date.now() / 1000 } = {}) {
+  const numericBelief = Number(belief);
+  const state = snapshotFromBelief(belief, { t });
+  const checks = {
+    beliefBounded: Number.isFinite(numericBelief) && numericBelief >= 0 && numericBelief <= 1,
+    heatMatchesTension: Math.abs(state.belief.S - state.belief.tension) < 1e-12,
+    coneFloor: state.phaseTime.psi >= state.phaseTime.cone - 1e-12,
+  };
+  return {
+    schema: 'great-scale.readiness/v1',
+    ready: Object.values(checks).every(Boolean),
+    evidenceStatus: 'software invariants only; not empirical or physical evidence',
+    checks,
+    state,
+  };
+}
+
 function clamp01(x) {
   const n = Number(x);
   if (!Number.isFinite(n)) return 0.5;
@@ -132,6 +149,7 @@ export default {
   scaleToBeliefStep,
   phaseXYZ,
   snapshotFromBelief,
+  readinessFromBelief,
   VIEW_PRESETS,
   LAWS
 };

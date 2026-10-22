@@ -31,6 +31,13 @@ fi
 
 curl -fsS "$BASE/health" | grep -q '"ok":true'
 curl -fsS "$BASE/api/v1/security/status" | grep -q '"severity"'
+curl -fsS "$BASE/api/v1/security/status" | grep -q '"scale":{"schema":"great-scale.readiness/v1"'
+curl -fsS "$BASE/api/v1/scale/state" | grep -q '"schema":"great-scale.readiness/v1"'
+curl -fsS -X POST "$BASE/api/v1/scale/step" -H 'content-type: application/json' \
+  -d '{"scale":0.05,"t":0}' | grep -q '"schema":"great-scale.step/v1"'
+INVALID_SCALE_STATUS=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/scale/step" \
+  -H 'content-type: application/json' -d '{"scale":1.01}')
+[[ "$INVALID_SCALE_STATUS" == "400" ]]
 curl -fsS "$BASE/api/v1/audio/spectrum" | grep -q 'partials'
 curl -fsS -X POST "$BASE/api/v1/audio/tick" -H 'content-type: application/json' -d '{"belief":0.55}' | grep -q belief
 SID=$(curl -fsS -X POST "$BASE/api/v1/chat/session" -H 'content-type: application/json' -d '{"belief":0.55}' | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
