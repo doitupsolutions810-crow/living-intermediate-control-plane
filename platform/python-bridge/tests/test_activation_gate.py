@@ -11,7 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from unittest.mock import patch
 
-from avrone_stack.activation_gate import SCHEMA, REQUIRED_CHECKS, evaluate_activation, evaluate_evidence_file
+from avrone_stack.activation_gate import SCHEMA, REQUIRED_CHECKS, MAX_EVIDENCE_BYTES, evaluate_activation, evaluate_evidence_file
 from avrone_stack.settings import Settings
 from avrone_stack import settings as settings_module
 
@@ -207,6 +207,18 @@ class ActivationGateTests(unittest.TestCase):
             self.assertTrue(summary["liveExecutionAllowed"])
             self.assertNotIn("test-evidence", serialized)
 
+
+    def test_live_evidence_file_rejects_oversized_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "activation-evidence.json")
+            with open(path, "wb") as handle:
+                handle.write(b'{"payload":"' + b"x" * MAX_EVIDENCE_BYTES + b'"}')
+            if os.name == "posix":
+                os.chmod(path, 0o600)
+            result = evaluate_evidence_file(path, mode="live", expected_release_sha="a" * 40)
+        self.assertFalse(result["liveExecutionAllowed"])
+        self.assertTrue(any("256 kib" in blocker.lower() for blocker in result["blockers"]))
+        self.assertNotIn(path, json.dumps(result))
 
     @unittest.skipUnless(os.name == "posix", "POSIX-only evidence file permission check")
     def test_live_evidence_file_rejects_group_or_world_permissions(self):

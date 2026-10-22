@@ -12,6 +12,7 @@ from typing import Any
 
 SCHEMA = "avrone.activation-evidence/v1"
 MAX_AGE = timedelta(hours=24)
+MAX_EVIDENCE_BYTES = 256 * 1024
 REQUIRED_CHECKS = (
     "ciPassed",
     "postgresIntegrationPassed",
@@ -143,10 +144,12 @@ def evaluate_evidence_file(path: str | None, mode: str = "live", expected_releas
         return _blocked_evidence_file(reason, mode, expected_release_sha)
 
     try:
-        with os.fdopen(fd, "r", encoding="utf-8") as handle:
+        with os.fdopen(fd, "rb") as handle:
             metadata = os.fstat(handle.fileno())
             if not stat.S_ISREG(metadata.st_mode):
                 return _blocked_evidence_file("Activation evidence must be a regular file.", mode, expected_release_sha)
+            if metadata.st_size > MAX_EVIDENCE_BYTES:
+                return _blocked_evidence_file("Activation evidence exceeds the 256 KiB size limit.", mode, expected_release_sha)
             if os.name == "posix":
                 if metadata.st_uid != os.geteuid():
                     return _blocked_evidence_file(
@@ -159,7 +162,12 @@ def evaluate_evidence_file(path: str | None, mode: str = "live", expected_releas
                         mode,
                         expected_release_sha,
                     )
-            evidence = json.load(handle)
-    except (OSError, ValueError, TypeError):
+            # Bound the read itself as well as checking fstat, so concurrent
+            # growth cannot cause an unbounded evidence-file read.
+            raw = handle.read(MAX_EVIDENCE_BYTES + 1)
+            if len(raw) > MAX_EVIDENCE_BYTES:
+                return _blocked_evidence_file("Activation evidence exceeds the 256 KiB size limit.", mode, expected_release_sha)
+            evidence = json.loads(raw.decode("utf-8"))
+    except (OSError, ValueError, TypeError, UnicodeError):
         evidence = None
     return evaluate_activation(mode=mode, evidence=evidence, expected_release_sha=expected_release_sha)
