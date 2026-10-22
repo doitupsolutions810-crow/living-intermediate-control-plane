@@ -75,4 +75,13 @@ utcOffsetTimestamp.expiresAt = new Date(now.getTime() + 3600000).toISOString().r
 utcOffsetTimestamp.checks.ciPassed.observedAt = new Date(now.getTime() - 60000).toISOString().replace('Z', '+00:00');
 assert.equal(evaluateActivation({ mode: 'live', evidence: utcOffsetTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'LIVE_APPROVED');
 
+
+const invalidCalendarTimestamp = validEvidence();
+invalidCalendarTimestamp.issuedAt = '2026-02-31T11:59:00.000Z';
+assert.equal(evaluateActivation({ mode: 'live', evidence: invalidCalendarTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
+const looseTimestamp = validEvidence();
+looseTimestamp.issuedAt = 'October 22, 2026Z';
+assert.equal(evaluateActivation({ mode: 'live', evidence: looseTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
 console.log('Activation gate policy checks: PASS');
