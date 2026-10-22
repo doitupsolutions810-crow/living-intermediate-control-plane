@@ -38,6 +38,6 @@ test('stress invariant residual is zero at fixed point', () => {
 
 test('hypothesis report at 4.5 supports', () => {
   const h = hypothesisReport(4.5);
-  assert.equal(h.support, 'supports);
+  assert.equal(h.support, 'supports');
   assert.ok(h.S <= 0.25);
 });
