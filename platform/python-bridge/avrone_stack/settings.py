@@ -13,6 +13,7 @@ class Settings:
         )
         self.activation_mode = os.getenv("AVRONE_ACTIVATION_MODE", "preview").lower().strip()
         self.activation_evidence_file = os.getenv("AVRONE_ACTIVATION_EVIDENCE_FILE", "").strip()
+        self.release_sha = os.getenv("AVRONE_RELEASE_SHA", "").strip()
         self.default_model = os.getenv("DEFAULT_MODEL", "avrone-local-stub")
         self.lattice_url = os.getenv("CONTROL12_PLATFORM_URL", "http://127.0.0.1:4400").rstrip("/")
         self.lattice_token = os.getenv("CONTROL12_PLATFORM_TOKEN", "")
@@ -22,7 +23,7 @@ class Settings:
         self.port = int(os.getenv("AVRONE_STACK_PORT", "8000"))
 
     def activation_status(self) -> dict:
-        result = evaluate_evidence_file(self.activation_evidence_file, self.activation_mode)
+        result = evaluate_evidence_file(self.activation_evidence_file, self.activation_mode, self.release_sha)
         # Do not publish evidence references or individual internal records from /health.
         return {
             "decision": result.get("decision", "BLOCKED"),
