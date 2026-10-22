@@ -41,4 +41,4 @@ Root Directory: `avrone-chat`. Copy env from `avrone-chat/.env.example`. See `av
 
 ## Safe activation
 
-Run `npm run activation:check` to see the default safe-preview decision. The live execution gate requires fresh evidence for all eight success criteria; procurement readiness is not production approval. See `docs/activation-gate.md`.
+Run `npm run activation:guide` for a plain-language next-step checklist, or `npm run activation:check` for the underlying safe-preview decision. The guide is read-only: it never enables workers or writes production data. Live execution requires fresh evidence for all eight success criteria; procurement readiness is not production approval. See `docs/activation-gate.md`.
