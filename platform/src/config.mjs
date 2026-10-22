@@ -13,6 +13,8 @@ export const config = Object.freeze({
   auditFile: path.join(root, 'audit.jsonl'),
   accessLog: path.join(root, 'access.jsonl'),
   apiToken: process.env.CONTROL12_PLATFORM_TOKEN || '',
+  cycleKernelScaleUrl: process.env.CYCLEKERNEL_SCALE_URL || '',
+  cycleKernelScaleToken: process.env.CYCLEKERNEL_SCALE_TOKEN || '',
   maxBodyBytes: Number(process.env.CONTROL12_MAX_BODY_BYTES || 1_000_000),
   chatOpen: process.env.CONTROL12_CHAT_OPEN === '1',
   requireQuorum: process.env.CONTROL12_CODE_REQUIRE_QUORUM === '1',

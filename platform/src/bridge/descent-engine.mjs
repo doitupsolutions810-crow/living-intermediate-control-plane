@@ -1,14 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { softMap, heat, hypothesisReport, FIXED } from './great-scale-research.mjs';
+import { softContract, heat, hypothesisReport, FIXED } from './great-scale-research.mjs';
 
 export class DescentEngine {
   constructor(opts = {}){
     this.x = opts.start ?? 1.0;
     this.k = opts.k ?? 0.5;
     this.tickMs = opts.tickMs ?? 150;
-    this.stateDir = opts.stateDir ?? path.join(process.cwd(), 'state);
-    this.stateFile = path.join(this.stateDir, 'descent-engine.json);
+    this.stateDir = opts.stateDir ?? path.join(process.cwd(), 'state');
+    this.stateFile = path.join(this.stateDir, 'descent-engine.json');
     this._timer = null;
     this.history = [];
     this.stepCount = 0;
@@ -29,7 +29,7 @@ export class DescentEngine {
       fs.writeFileSync(this.stateFile, JSON.stringify({ x:this.x, k:this.k, stepCount:this.stepCount, history:this.history.slice(-200), savedAt:new Date().toISOString() },null,2));
     }catch{}}
   tick(){
-    this.x = softMap(this.x, this.k);
+    this.x = softContract(this.x, this.k);
     this.stepCount++;
     const h = { t:this.stepCount, x:this.x, S:heat(this.x/9), hyp:hypothesisReport(this.x).support };
     this.history.push(h);

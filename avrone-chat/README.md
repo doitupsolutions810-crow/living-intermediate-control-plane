@@ -32,7 +32,7 @@ npm run build
 | `POST /api/chat` | Lattice-wired chat (SSE-shaped stream) |
 | `GET /api/health` | Liveness for deploy probes |
 
-When `EVIDENCE_CONSOLE_URL` is unset or the public domain returns 404/unreachable, cockpit reports local plane authority instead of failing hard.
+When `EVIDENCE_CONSOLE_URL` is unset or the public domain returns 404/unreachable, cockpit reports local status as an operational fallback. Reachability and fallback status are explicitly unverified and do not establish evidence provenance or validate claims.
 
 ## Agent tools
 

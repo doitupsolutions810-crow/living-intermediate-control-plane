@@ -18,7 +18,7 @@ heat(h) = h(1-h)  ≡  tension(B) = B(1-B)
 | h (phase height) | belief B |
 | S = heat(h) | tension T |
 | zero-mode φ | spectral / mean coupling |
-| cone √5−2 floor | Ψ ≥ CONE |
+| cone φ⁻² ≈ 0.381966 floor | Ψ ≥ CONE |
 | residual 4+3+1 | partition of residual modes |
 
 ## Platform APIs

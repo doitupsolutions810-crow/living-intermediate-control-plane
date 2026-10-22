@@ -7,7 +7,7 @@ platform/          Node control plane (lattice, policy, TLS, federation, attesta
 avrone-chat/       Next.js Avrone UI + API proxies (Vercel-ready)
 scripts/           tunnel / mTLS / renew operators
 cloudflared/       tunnel config example
-lib/evidence-console.mjs   graceful public evidence probe (404 → local authority)
+lib/evidence-console.mjs   evidence-console reachability probe with explicit unverified fallback
 ```
 
 ## Quick start
@@ -19,7 +19,11 @@ cd avrone-chat && npm install && npm run dev
 ```
 
 Set `CONTROL12_PLATFORM_URL` and optional `CONTROL12_PLATFORM_TOKEN` for the chat app.  
-Optional: `EVIDENCE_CONSOLE_URL` — when unset or 404, cockpit/integrate use local plane authority.
+Optional: `EVIDENCE_CONSOLE_URL` — when unset or unavailable, local plane status remains an operational fallback only. Endpoint reachability and local status never validate claim contents, provenance, or scientific conclusions.
+
+To proxy CycleKernal's Great Scale snapshot, configure `CYCLEKERNEL_SCALE_URL` to its `/api/v1/scale/state` endpoint and `CYCLEKERNEL_SCALE_TOKEN` to the matching service token. Also set `CONTROL12_PLATFORM_TOKEN`: the LICP scale route requires it when upstream proxying is enabled. The bridge validates the `great-scale.descent/v0.4.2` response, bounds response size, rejects redirects and non-loopback cleartext URLs, and returns an error rather than substituting local readiness data when the upstream fails. This is bearer-token service authentication; it does not claim SPIFFE attestation or mTLS identity.
+
+When both CycleKernal settings are unset, the existing local readiness response remains available under its distinct `great-scale.readiness/v1` schema; it is not evidence that the CycleKernal connection is active. Configure both settings to enable the authenticated upstream snapshot.
 
 ## Operator loop
 

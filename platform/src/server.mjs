@@ -11,7 +11,9 @@ import { analyzeAccessLog } from './security/anomaly-detector.mjs';
 import { runRenewRespond } from './security/renew-loop.mjs';
 import { ChatWire } from './bridge/chat-wire.mjs';
 import { AvroneStackAdapter } from './bridge/avrone-stack-adapter.mjs';
+import { createCycleKernelScaleClient } from './bridge/cyclekernel-scale-client.mjs';
 import { runCockpitAction } from './cockpit/action.mjs';
+import { readinessFromBelief, scaleToBeliefStep, stateAt } from './bridge/great-scale.mjs';
 import { createFederationApi } from './api/federation/index.mjs';
 import { createAttestationApi } from './api/attestation/index.mjs';
 import { ComponentRegistry } from './attestation/component-registry.mjs';
@@ -35,6 +37,10 @@ const codingQuorum = new CodingQuorum({
 const chatWire = new ChatWire({ resonant });
 const accessLog = new AccessLogger(config.accessLog);
 const registry = new ComponentRegistry(path.join(config.root, 'components.json'));
+const cycleKernelScaleClient = createCycleKernelScaleClient({
+  endpoint: config.cycleKernelScaleUrl,
+  token: config.cycleKernelScaleToken
+});
 
 let avroneStackAdapter = null;
 function getAvroneStackAdapter() {
@@ -108,6 +114,21 @@ const handler = async (req, res) => {
       });
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/v1/scale/state') {
+      const remoteConfigured = Boolean(config.cycleKernelScaleUrl || config.cycleKernelScaleToken);
+      if (remoteConfigured) {
+        if (!config.cycleKernelScaleUrl || !config.cycleKernelScaleToken) {
+          return sendJson(res, 503, { error: 'CycleKernal scale bridge requires URL and token', code: 'SCALE_BRIDGE_NOT_CONFIGURED' });
+        }
+        if (!config.apiToken) {
+          return sendJson(res, 503, { error: 'CONTROL12_PLATFORM_TOKEN is required for upstream scale snapshots', code: 'SCALE_ROUTE_AUTH_NOT_CONFIGURED' });
+        }
+        requireAuth(req, config.apiToken);
+        return sendJson(res, 200, await cycleKernelScaleClient());
+      }
+      return sendJson(res, 200, readinessFromBelief(resonant.getState().belief));
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/v1/audio/state') {
       return sendJson(res, 200, resonant.getState());
     }
@@ -156,6 +177,7 @@ const handler = async (req, res) => {
         anomalies,
         renew,
         lattice: { belief: state.belief, tension: state.tension, partials: state.partials?.length },
+        scale: readinessFromBelief(state.belief),
         severity: anomalies.severity || 'ok'
       });
     }
@@ -214,6 +236,35 @@ const handler = async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/v1/audio/tick') {
       const body = await readJson(req, config.maxBodyBytes);
       return sendJson(res, 200, resonant.tick(body.belief, body.otherBelief));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/v1/scale/step') {
+      const body = await readJson(req, config.maxBodyBytes);
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return sendJson(res, 400, { error: 'body must be a JSON object' });
+      }
+      const stepScale = body.scale == null ? 0.05 : Number(body.scale);
+      const at = body.t == null ? Date.now() / 1000 : Number(body.t);
+      if (!Number.isFinite(stepScale) || stepScale < 0 || stepScale > 1) {
+        return sendJson(res, 400, { error: 'scale must be between 0 and 1' });
+      }
+      if (!Number.isFinite(at)) {
+        return sendJson(res, 400, { error: 't must be finite' });
+      }
+
+      const currentBelief = resonant.getState().belief;
+      const target = stateAt(at);
+      const nextBelief = scaleToBeliefStep(currentBelief, target, { scale: stepScale });
+      const frame = resonant.tick(nextBelief);
+      return sendJson(res, 200, {
+        schema: 'great-scale.step/v1',
+        at: frame.at,
+        previousBelief: currentBelief,
+        targetBelief: target.h,
+        belief: frame.belief,
+        stepScale,
+        frame,
+        scale: readinessFromBelief(frame.belief, { t: at }),
+      });
     }
     if (req.method === 'POST' && url.pathname === '/api/v1/audio/silence') {
       return sendJson(res, 200, resonant.silence());

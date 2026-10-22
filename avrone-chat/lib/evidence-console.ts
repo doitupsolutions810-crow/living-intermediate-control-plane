@@ -1,13 +1,39 @@
 export type EvidenceConsoleResult = {
   status: 'ok' | 'not_found' | 'unreachable' | 'unconfigured' | 'invalid';
   httpStatus: number | null;
-  authority: 'public' | 'local';
+  source: 'public' | 'local' | 'none';
+  evidenceDisposition: 'reachable_unverified' | 'local_fallback_unverified' | 'unavailable';
+  evidenceVerified: false;
   url: string | null;
   note: string;
   checkedAt: string;
 };
 
 const DEFAULT_TIMEOUT_MS = 5000;
+
+function result(
+  status: EvidenceConsoleResult['status'],
+  httpStatus: number | null,
+  source: EvidenceConsoleResult['source'],
+  url: string | null,
+  note: string,
+  checkedAt: string
+): EvidenceConsoleResult {
+  return {
+    status,
+    httpStatus,
+    source,
+    evidenceDisposition: source === 'public'
+      ? 'reachable_unverified'
+      : source === 'local'
+        ? 'local_fallback_unverified'
+        : 'unavailable',
+    evidenceVerified: false,
+    url,
+    note,
+    checkedAt
+  };
+}
 
 export function evidenceConsoleUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
   const raw = (env.EVIDENCE_CONSOLE_URL || env.PUBLIC_EVIDENCE_CONSOLE_URL || '').trim();
@@ -31,25 +57,23 @@ export async function probeEvidenceConsole(options: {
   const checkedAt = new Date().toISOString();
 
   if (!url) {
-    return {
-      status: 'unconfigured',
-      httpStatus: null,
-      authority: acceptLocal ? 'local' : 'public',
-      url: null,
-      note: 'EVIDENCE_CONSOLE_URL unset — using local plane status as temporary evidence authority.',
+    return result(
+      'unconfigured', null, acceptLocal ? 'local' : 'none', null,
+      acceptLocal
+        ? 'EVIDENCE_CONSOLE_URL unset — local status is operational fallback only; no claim evidence is verified.'
+        : 'EVIDENCE_CONSOLE_URL unset — no evidence source is available.',
       checkedAt
-    };
+    );
   }
 
   if (typeof fetchImpl !== 'function') {
-    return {
-      status: 'unreachable',
-      httpStatus: null,
-      authority: acceptLocal ? 'local' : 'public',
-      url,
-      note: 'fetch unavailable — treating evidence-console as unreachable; local authority accepted.',
+    return result(
+      'unreachable', null, acceptLocal ? 'local' : 'none', url,
+      acceptLocal
+        ? 'fetch unavailable — local status is operational fallback only; no claim evidence is verified.'
+        : 'fetch unavailable — no evidence source is available.',
       checkedAt
-    };
+    );
   }
 
   try {
@@ -61,43 +85,37 @@ export async function probeEvidenceConsole(options: {
     });
 
     if (res.status === 404) {
-      return {
-        status: 'not_found',
-        httpStatus: 404,
-        authority: acceptLocal ? 'local' : 'public',
-        url,
-        note: 'Public evidence-console returned 404 — graceful fallback to local plane authority.',
+      return result(
+        'not_found', 404, acceptLocal ? 'local' : 'none', url,
+        acceptLocal
+          ? 'Public evidence-console returned 404 — local status is operational fallback only; no claim evidence is verified.'
+          : 'Public evidence-console returned 404 — no evidence source is available.',
         checkedAt
-      };
+      );
     }
 
     if (!res.ok) {
-      return {
-        status: 'invalid',
-        httpStatus: res.status,
-        authority: acceptLocal ? 'local' : 'public',
-        url,
-        note: `Public evidence-console returned HTTP ${res.status} — local authority accepted until the domain is healthy.`,
+      return result(
+        'invalid', res.status, acceptLocal ? 'local' : 'none', url,
+        acceptLocal
+          ? `Public evidence-console returned HTTP ${res.status} — local status is operational fallback only; no claim evidence is verified.`
+          : `Public evidence-console returned HTTP ${res.status} — no evidence source is available.`,
         checkedAt
-      };
+      );
     }
 
-    return {
-      status: 'ok',
-      httpStatus: res.status,
-      authority: 'public',
-      url,
-      note: 'Public evidence-console reachable.',
+    return result(
+      'ok', res.status, 'public', url,
+      'Public endpoint reachable; evidence contents, provenance, and scientific claims have not been validated.',
       checkedAt
-    };
+    );
   } catch (err) {
-    return {
-      status: 'unreachable',
-      httpStatus: null,
-      authority: acceptLocal ? 'local' : 'public',
-      url,
-      note: `Evidence-console unreachable (${err instanceof Error ? err.message : String(err)}) — local authority accepted.`,
+    return result(
+      'unreachable', null, acceptLocal ? 'local' : 'none', url,
+      acceptLocal
+        ? `Evidence-console unreachable (${err instanceof Error ? err.message : String(err)}) — local status is operational fallback only; no claim evidence is verified.`
+        : `Evidence-console unreachable (${err instanceof Error ? err.message : String(err)}) — no evidence source is available.`,
       checkedAt
-    };
+    );
   }
 }

@@ -1,10 +1,12 @@
 import {
   heat,
   PHI,
+  PHI_INV,
   CONE,
   stateAt,
   beliefToScale,
-  snapshotFromBelief
+  snapshotFromBelief,
+  readinessFromBelief
 } from '../src/bridge/great-scale.mjs';
 import { tension } from '../src/audio/jacobian.mjs';
 
@@ -15,7 +17,7 @@ function assert(c, m) {
 assert(Math.abs(heat(0.5) - 0.25) < 1e-12, 'heat peak');
 assert(Math.abs(heat(0.5) - tension(0.5)) < 1e-12, 'heat ≡ tension');
 assert(PHI > 1.6 && PHI < 1.62, 'phi');
-assert(CONE > 0 && CONE < 0.4, 'cone');
+assert(Math.abs(CONE - PHI_INV * PHI_INV) < 1e-12, 'canonical phi^-2 cone');
 
 const st = stateAt(0);
 assert(st.phase >= 0 && st.phase < 1, 'phase');
@@ -26,5 +28,9 @@ assert(Math.abs(map.S - tension(0.55)) < 1e-12, 'map tension');
 const snap = snapshotFromBelief(0.55);
 assert(snap.coherence.tensionEqualsHeat === true, 'coherence flag');
 assert(snap.xyz.length === 3, 'xyz');
+const readiness = readinessFromBelief(0.55, { t: 0 });
+assert(readiness.ready === true, 'scale software readiness checks pass');
+assert(readiness.evidenceStatus.includes('not empirical'), 'scale readiness disclaims empirical evidence');
+assert(readinessFromBelief(1.2, { t: 0 }).ready === false, 'out-of-range belief fails readiness');
 
 console.log('great-scale.test.mjs PASS');

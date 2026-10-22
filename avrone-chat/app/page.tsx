@@ -9,11 +9,14 @@ type Cockpit = {
   observedAt?: string;
   platformConfigured?: boolean;
   platform?: { ok?: boolean; error?: string };
+  scale?: { ready?: boolean; evidenceStatus?: string };
   anomalies?: { severity?: string } | null;
   evidenceConsole?: {
     status?: string;
     httpStatus?: number | null;
-    authority?: string;
+    source?: string;
+    evidenceDisposition?: string;
+    evidenceVerified?: boolean;
     note?: string;
   };
 };
@@ -68,11 +71,10 @@ export default function Page() {
 
   const evidenceLabel = useMemo(() => {
     if (!evidence?.status) return 'unchecked';
-    if (evidence.status === 'ok') return 'public ok';
-    if (evidence.status === 'not_found') return 'public 404 → local';
-    if (evidence.status === 'unreachable') return 'unreachable → local';
-    if (evidence.status === 'unconfigured') return 'url unset → local';
-    return evidence.status;
+    if (evidence.evidenceVerified) return 'verified';
+    if (evidence.source === 'public') return 'public reachable · unverified';
+    if (evidence.source === 'local') return 'local fallback · unverified';
+    return 'unavailable · unverified';
   }, [evidence]);
 
   async function onSubmit(e: FormEvent) {
@@ -236,6 +238,11 @@ export default function Page() {
             </span>
             <span>
               severity: <strong style={{ color: 'var(--text)' }}>{severity}</strong>
+            </span>
+            <span>
+              scale: <strong style={{ color: 'var(--text)' }}>
+                {cockpit?.scale?.ready ? 'software ready' : cockpit?.scale ? 'check failed' : 'unchecked'}
+              </strong>
             </span>
             <span>
               evidence: <strong style={{ color: 'var(--text)' }}>{evidenceLabel}</strong>
