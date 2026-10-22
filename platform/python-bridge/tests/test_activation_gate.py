@@ -45,17 +45,17 @@ class ActivationGateTests(unittest.TestCase):
         self.assertFalse(result["liveExecutionAllowed"])
 
     def test_live_missing_evidence_is_blocked(self):
-        self.assertEqual(evaluate_activation("live", None, now=NOW)["decision"], "BLOCKED")
+        self.assertEqual(evaluate_activation("live", None, now=NOW, expected_release_sha="a" * 40)["decision"], "BLOCKED")
 
     def test_fresh_complete_evidence_allows_gate(self):
-        result = evaluate_activation("live", valid_evidence(), now=NOW)
+        result = evaluate_activation("live", valid_evidence(), now=NOW, expected_release_sha="a" * 40)
         self.assertEqual(result["decision"], "LIVE_APPROVED")
         self.assertTrue(result["liveExecutionAllowed"])
 
     def test_expired_evidence_is_blocked(self):
         evidence = valid_evidence()
         evidence["expiresAt"] = (NOW - timedelta(seconds=1)).isoformat()
-        self.assertFalse(evaluate_activation("live", evidence, now=NOW)["liveExecutionAllowed"])
+        self.assertFalse(evaluate_activation("live", evidence, now=NOW, expected_release_sha="a" * 40)["liveExecutionAllowed"])
 
     def test_failed_check_is_blocked(self):
         evidence = valid_evidence()
@@ -66,6 +66,12 @@ class ActivationGateTests(unittest.TestCase):
         evidence = valid_evidence()
         evidence["checks"]["ciPassed"]["reference"] = ""
         self.assertFalse(evaluate_activation("live", evidence, now=NOW)["liveExecutionAllowed"])
+
+    def test_evidence_for_different_release_is_blocked(self):
+        evidence = valid_evidence()
+        evidence["releaseSha"] = "b" * 40
+        result = evaluate_activation("live", evidence, now=NOW, expected_release_sha="a" * 40)
+        self.assertFalse(result["liveExecutionAllowed"])
 
     def test_naive_timestamp_is_blocked(self):
         evidence = valid_evidence()
@@ -96,6 +102,7 @@ class ActivationGateTests(unittest.TestCase):
                 "ALLOW_AGENT_EXECUTION": "true",
                 "AVRONE_ACTIVATION_MODE": "live",
                 "AVRONE_ACTIVATION_EVIDENCE_FILE": f.name,
+                "AVRONE_RELEASE_SHA": "a" * 40,
             }
             with patch.dict(os.environ, env, clear=True):
                 settings = Settings()
