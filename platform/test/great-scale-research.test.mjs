@@ -22,8 +22,8 @@ test('heat equals tension form and rejects values outside its domain', () => {
   assert.equal(heat(0), 0);
   assert.equal(heat(1), 0);
   assert.throws(() => heat(Number.NaN), /finite/);
-  assert.throws(() => heat(-0.1), /\\[0, 1\\]/);
-  assert.throws(() => heat(1.1), /\\[0, 1\\]/);
+  assert.throws(() => heat(-0.1), /\[0, 1\]/);
+  assert.throws(() => heat(1.1), /\[0, 1\]/);
 });
 
 test('soft map converges to fixed point 4.5', () => {
