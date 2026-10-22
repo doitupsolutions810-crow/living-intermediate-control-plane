@@ -84,4 +84,13 @@ const looseTimestamp = validEvidence();
 looseTimestamp.issuedAt = 'October 22, 2026Z';
 assert.equal(evaluateActivation({ mode: 'live', evidence: looseTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 
+
+const lowerCaseZTimestamp = validEvidence();
+lowerCaseZTimestamp.issuedAt = '2026-10-22T11:59:00.000z';
+assert.equal(evaluateActivation({ mode: 'live', evidence: lowerCaseZTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
+const unknownOffsetTimestamp = validEvidence();
+unknownOffsetTimestamp.issuedAt = '2026-10-22T11:59:00.000-00:00';
+assert.equal(evaluateActivation({ mode: 'live', evidence: unknownOffsetTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
 console.log('Activation gate policy checks: PASS');
