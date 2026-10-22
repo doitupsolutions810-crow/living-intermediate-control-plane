@@ -38,3 +38,7 @@ Root Directory: `avrone-chat`. Copy env from `avrone-chat/.env.example`. See `av
 
 - Public evidence-console domain still 404s
 - GitHub Actions automatic runs disabled at account level
+
+## Safe activation
+
+Run `npm run activation:check` to see the default safe-preview decision. The live execution gate requires fresh evidence for all eight success criteria; procurement readiness is not production approval. See `docs/activation-gate.md`.
