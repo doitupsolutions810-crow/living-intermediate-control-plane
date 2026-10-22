@@ -15,9 +15,17 @@ function assert(c, m) {
 assert(Math.abs(heat(0.5) - 0.25) < 1e-12, 'heat peak');
 assert(Math.abs(heat(0.5) - tension(0.5)) < 1e-12, 'heat ≡ tension');
 assert(PHI > 1.6 && PHI < 1.62, 'phi');
-assert(CONE > 0 && CONE < 0.4, 'cone');
+assert(Math.abs(CONE - (PHI - 1) ** 2) < 1e-12, 'cone matches Great Scale φ⁻²');
 
 const st = stateAt(0);
+const negative = stateAt(-1, 0.85);
+const equivalent = stateAt(0.15 / 0.85, 0.85);
+assert(negative.phase >= 0 && negative.phase < 1, 'negative time phase is canonical');
+assert(Math.abs(negative.phase - equivalent.phase) < 1e-12, 'negative-time phase periodicity');
+assert(Math.abs(negative.h - equivalent.h) < 1e-12, 'negative-time height periodicity');
+assert.throws(() => stateAt(Number.NaN), /finite/);
+assert.throws(() => stateAt(Number.POSITIVE_INFINITY), /finite/);
+assert.throws(() => stateAt(Number.MAX_VALUE, 2), /phase product/);
 assert(st.phase >= 0 && st.phase < 1, 'phase');
 assert(st.psi >= CONE - 1e-9, 'psi above cone');
 
