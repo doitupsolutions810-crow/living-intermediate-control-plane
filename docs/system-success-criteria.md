@@ -1,36 +1,43 @@
 # System Success Criteria (kept simple)
 
-## What is required to proceed (procurement)
+There are two different readiness levels. They must not be conflated.
 
-Only three things matter right now:
+## Level 1 — ready to proceed to procurement
 
-1. **Readiness is READY**  
-   Deterministic-local-evidence reports overall READY, five roles READY, and zero failed gates.
+Only three criteria apply to this procurement decision:
 
-2. **Evidence is available**  
-   Either the public evidence-console returns the v5.3.1 contract, **or** the local plane status is accepted as temporary authority.  
-   Code path: `lib/evidence-console.mjs` probes the public URL and **gracefully** treats 404 / unreachable / unset as local authority (no hard fail).
+1. Local readiness is READY: deterministic local evidence reports overall READY, all five roles READY, and zero failed gates.
+2. Evidence authority is available: either the public evidence console returns the expected v5.3.1 contract, or an authorized operator explicitly accepts local plane status as temporary evidence authority.
+3. Supply-chain enforcement remains active: the relevant PR #12 rules are present on the target branch.
 
-3. **Supply-chain stays enforced**  
-   PR #12 rules remain active on main.
+When those three hold, the plane may be considered READY_FOR_PROCUREMENT. This is not production activation approval. Local readiness stubs, a graceful 404 fallback, or procurement permission do not demonstrate that the database, external executor, or worker system is production-ready.
 
-When these three are true, the system is considered ready for the next stage (READY_FOR_PROCUREMENT). Production acceptance (G1–G6) is deliberately left for later.
+## Level 2 — approved for production live execution
 
-## What is already true today
+Production execution has a separate, stricter gate. All eight criteria below must pass for the exact release with reviewable evidence observed within the previous 24 hours:
 
-- Local readiness emitter reports READY
-- Five-role orchestration reports READY
-- LaunchDesk action bridge accepts requests when READY
-- Plane status and continuous readiness stubs are live
-- Supply-chain enforcement from PR #12 is on main
-- **Avrone chat** is Vercel-shippable (`avrone-chat/` + health/cockpit/chat APIs)
-- Evidence-console probe is graceful when the public domain 404s
+1. CI ran on a real runner and passed for this release.
+2. PostgreSQL 16 integration passed against a disposable database, including schema/migration/foreign-key/trigger checks.
+3. Tenant isolation passed for reads, task claims, writes, and budget/audit records.
+4. Staging security review passed.
+5. Backup restore was successfully exercised in isolation.
+6. Worker identity, scoping, rotation, and revocation were verified.
+7. The approved HTTPS executor passed a non-destructive health probe.
+8. An authorized operator reviewed evidence and approved the exact release digest.
 
-## What is still blocked externally
+The evidence must use explicit UTC timestamps, have references a reviewer can inspect, and bind to the exact release digest. Missing, stale, malformed, mismatched, or negative evidence means SAFE_PREVIEW_ONLY.
 
-- Primary evidence-console domain still returns 404 (deployment itself previously reached READY)
-- GitHub Actions automatic runs remain disabled at account level
+## Current blockers
 
-## Decision rule used by this plane
+- GitHub repository access is working, but hosted Actions jobs have failed before running any workflow steps (runner_id: 0, no steps). This is not a test result.
+- Supabase/PostgreSQL provider connection is not confirmed.
+- Vercel connection and a successful preview deployment are not confirmed.
+- Replit is installed as a ChatGPT integration, but no intended AVRONE app was found.
+- No external model executor URL/key/model handshake is confirmed.
+- No successful current evidence-console contract response is recorded.
 
-If local readiness is READY **and** the operator accepts the local plane status as temporary evidence authority (`ACCEPT_LOCAL_EVIDENCE=1` / `npm run procure`), procurement may proceed under Control704 override while the public domain is fixed. Integrate also records evidence-console status without failing the plane when the public URL is missing or 404.
+## Decision rule
+
+READY_FOR_PROCUREMENT may advance procurement only. It never enables live workers.
+
+Production enablement remains blocked until all eight production criteria pass. If any criterion fails or becomes stale, keep preview mode, stop/revoke worker access, resolve the first reported blocker, and rerun the relevant check. Do not create or edit evidence merely to make a check green.
