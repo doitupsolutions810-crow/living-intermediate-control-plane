@@ -1,68 +1,143 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateActivation, REQUIRED_GATES } from '../src/activation/readiness.mjs';
+import { evaluateActivation, ACTIVATION_SCHEMA, REQUIRED_GATES } from '../src/activation/readiness.mjs';
 
 const nowMs = Date.parse('2026-10-22T12:00:00.000Z');
+const releaseSha = 'a'.repeat(40);
 function completeEvidence() {
-  return Object.fromEntries(REQUIRED_GATES.map(gate => [gate, {
-    passed: true, verifiedAt: new Date(nowMs - 60_000).toISOString()
-  }]));
+  const observedAt = new Date(nowMs - 60_000).toISOString();
+  return {
+    schema: ACTIVATION_SCHEMA,
+    environment: 'production',
+    releaseSha,
+    issuedAt: observedAt,
+    expiresAt: new Date(nowMs + 60 * 60 * 1000).toISOString(),
+    checks: Object.fromEntries(REQUIRED_GATES.map(([id]) => [id, {
+      passed: true, reference: 'evidence://' + id, observedAt
+    }]))
+  };
 }
+const evaluateComplete = evidence => evaluateActivation({ evidence }, { nowMs, expectedReleaseSha: releaseSha });
 
 test('defaults to safe preview when evidence is absent', () => {
   const result = evaluateActivation({}, { nowMs });
   assert.equal(result.decision, 'SAFE_PREVIEW_ONLY');
   assert.equal(result.previewEnabled, true);
   assert.equal(result.executionEnabled, false);
-  assert.equal(result.blockers.length, REQUIRED_GATES.length);
+  assert.equal(result.readinessOnly, true);
+  assert.equal(result.passed, 0);
+  assert.equal(result.required, 8);
 });
 
-test('all eight gates with fresh evidence allow a readiness decision', () => {
-  const result = evaluateActivation({ evidence: completeEvidence() }, { nowMs });
+test('all eight canonical gates and exact-release evidence yield readiness only', () => {
+  const result = evaluateComplete(completeEvidence());
   assert.equal(result.decision, 'ENABLE_EXECUTION');
   assert.equal(result.executionEnabled, true);
+  assert.equal(result.readinessOnly, true);
   assert.deepEqual(result.blockers, []);
+  assert.equal(result.passed, REQUIRED_GATES.length);
 });
 
-test('one failed gate blocks execution', () => {
+test('wrong or missing deployed release digest blocks readiness', () => {
   const evidence = completeEvidence();
-  evidence.executorConnected.passed = false;
-  const result = evaluateActivation({ evidence }, { nowMs });
+  assert.equal(evaluateActivation({ evidence }, { nowMs }).executionEnabled, false);
+  evidence.releaseSha = 'b'.repeat(40);
+  assert.equal(evaluateComplete(evidence).executionEnabled, false);
+});
+
+test('missing or unsupported evidence schema blocks readiness', () => {
+  const evidence = completeEvidence();
+  evidence.schema = 'other/v1';
+  assert.equal(evaluateComplete(evidence).executionEnabled, false);
+});
+
+test('non-production evidence blocks readiness', () => {
+  const evidence = completeEvidence();
+  evidence.environment = 'staging';
+  assert.equal(evaluateComplete(evidence).executionEnabled, false);
+});
+
+test('a single failed criterion blocks readiness', () => {
+  const evidence = completeEvidence();
+  evidence.checks.executorHealthPassed.passed = false;
+  const result = evaluateComplete(evidence);
   assert.equal(result.executionEnabled, false);
-  assert.ok(result.blockers.some(b => b.gate === 'executorConnected' && b.status === 'failed'));
+  assert.ok(result.blockers.some(b => b.gate === 'executorHealthPassed' && b.status === 'failed'));
 });
 
-test('truthy strings are not accepted as evidence', () => {
+test('truthy strings are not accepted in place of boolean true', () => {
   const evidence = completeEvidence();
-  evidence.postgresConnected.passed = 'true';
-  const result = evaluateActivation({ evidence }, { nowMs });
-  assert.equal(result.executionEnabled, false);
-  assert.ok(result.blockers.some(b => b.gate === 'postgresConnected' && b.status === 'invalid-evidence'));
+  evidence.checks.postgresIntegrationPassed.passed = 'true';
+  assert.equal(evaluateComplete(evidence).executionEnabled, false);
 });
 
-test('stale evidence blocks execution', () => {
+test('missing reviewable reference blocks readiness', () => {
   const evidence = completeEvidence();
-  evidence.schemaCurrent.verifiedAt = new Date(nowMs - 25 * 60 * 60 * 1000).toISOString();
-  const result = evaluateActivation({ evidence }, { nowMs });
-  assert.ok(result.blockers.some(b => b.gate === 'schemaCurrent' && b.status === 'stale-or-invalid-evidence'));
+  evidence.checks.tenantIsolationPassed.reference = '  ';
+  assert.ok(evaluateComplete(evidence).blockers.some(b => b.gate === 'tenantIsolationPassed' && b.status === 'missing-reference'));
 });
 
-test('future-dated evidence blocks execution', () => {
+test('stale gate evidence blocks readiness', () => {
   const evidence = completeEvidence();
-  evidence.rollbackTestPassed.verifiedAt = new Date(nowMs + 60_000).toISOString();
-  const result = evaluateActivation({ evidence }, { nowMs });
-  assert.ok(result.blockers.some(b => b.gate === 'rollbackTestPassed' && b.status === 'stale-or-invalid-evidence'));
+  evidence.checks.backupRestorePassed.observedAt = new Date(nowMs - 25 * 60 * 60 * 1000).toISOString();
+  assert.ok(evaluateComplete(evidence).blockers.some(b => b.gate === 'backupRestorePassed' && b.status === 'stale-or-invalid-time'));
+});
+
+test('future-dated gate evidence blocks readiness', () => {
+  const evidence = completeEvidence();
+  evidence.checks.workerIdentityVerified.observedAt = new Date(nowMs + 60 * 60 * 1000).toISOString();
+  assert.equal(evaluateComplete(evidence).executionEnabled, false);
+});
+
+test('stale issue time blocks readiness even when checks are recent', () => {
+  const evidence = completeEvidence();
+  evidence.issuedAt = new Date(nowMs - 25 * 60 * 60 * 1000).toISOString();
+  assert.ok(evaluateComplete(evidence).blockers.some(b => b.gate === 'issuedAt' && b.status === 'stale'));
+});
+
+test('expired evidence blocks readiness', () => {
+  const evidence = completeEvidence();
+  evidence.expiresAt = new Date(nowMs - 1000).toISOString();
+  assert.ok(evaluateComplete(evidence).blockers.some(b => b.gate === 'expiresAt' && b.status === 'expired'));
+});
+
+test('evidence validity longer than 24 hours is rejected', () => {
+  const evidence = completeEvidence();
+  evidence.expiresAt = new Date(nowMs + 25 * 60 * 60 * 1000).toISOString();
+  assert.ok(evaluateComplete(evidence).blockers.some(b => b.gate === 'evidenceLifetime'));
+});
+
+test('timezone-naive and non-UTC timestamps are rejected', () => {
+  for (const timestamp of ['2026-10-22T11:59:00', '2026-10-22T13:59:00+02:00']) {
+    const evidence = completeEvidence();
+    evidence.issuedAt = timestamp;
+    assert.equal(evaluateComplete(evidence).executionEnabled, false);
+  }
+});
+
+test('invalid calendar dates and loose timestamp formats are rejected', () => {
+  for (const timestamp of ['2026-02-31T11:59:00.000Z', 'October 22, 2026Z', '2026-10-22T11:59:00.000z', '2026-10-22T11:59:00.000-00:00']) {
+    const evidence = completeEvidence();
+    evidence.issuedAt = timestamp;
+    assert.equal(evaluateComplete(evidence).executionEnabled, false);
+  }
+});
+
+test('UTC +00:00 timestamps are accepted consistently', () => {
+  const evidence = completeEvidence();
+  evidence.issuedAt = evidence.issuedAt.replace('Z', '+00:00');
+  evidence.expiresAt = evidence.expiresAt.replace('Z', '+00:00');
+  for (const [id] of REQUIRED_GATES) evidence.checks[id].observedAt = evidence.checks[id].observedAt.replace('Z', '+00:00');
+  assert.equal(evaluateComplete(evidence).executionEnabled, true);
 });
 
 test('malformed top-level input fails closed', () => {
   for (const input of [null, [], 'yes', 4]) {
-    assert.equal(evaluateActivation(input, { nowMs }).executionEnabled, false);
+    assert.equal(evaluateActivation(input, { nowMs, expectedReleaseSha: releaseSha }).executionEnabled, false);
   }
 });
 
-test('explicit operator denial blocks execution', () => {
-  const evidence = completeEvidence();
-  evidence.operatorApproved = { passed: false, verifiedAt: new Date(nowMs).toISOString() };
-  const result = evaluateActivation({ evidence }, { nowMs });
-  assert.ok(result.blockers.some(b => b.gate === 'operatorApproved' && b.status === 'failed'));
+test('invalid evaluator options are rejected', () => {
+  assert.throws(() => evaluateActivation({}, { nowMs: NaN }), TypeError);
+  assert.throws(() => evaluateActivation({}, { nowMs, maxAgeMs: 25 * 60 * 60 * 1000 }), TypeError);
 });
