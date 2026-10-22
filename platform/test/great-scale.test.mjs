@@ -6,18 +6,44 @@ import {
   beliefToScale,
   snapshotFromBelief
 } from '../src/bridge/great-scale.mjs';
-import { tension } from '../src/audio/jacobian.mjs';
+import { tension, integrateBeliefStep } from '../src/audio/jacobian.mjs';
 
 function assert(c, m) {
   if (!c) throw new Error(m || 'fail');
 }
 
+function assertThrows(fn, pattern) {
+  let error = null;
+  try { fn(); } catch (e) { error = e; }
+  if (!error) throw new Error('expected function to throw');
+  if (pattern && !pattern.test(error.message)) {
+    throw new Error(`unexpected error message: ${error.message}`);
+  }
+}
+
 assert(Math.abs(heat(0.5) - 0.25) < 1e-12, 'heat peak');
+assert(Math.abs(heat(0) - 0) < 1e-12 && Math.abs(heat(1) - 0) < 1e-12, 'heat endpoints');
+assertThrows(() => heat(Number.NaN), /finite/);
+assertThrows(() => heat(Number.POSITIVE_INFINITY), /finite/);
+assertThrows(() => heat(-0.01), /\[0, 1\]/);
+assertThrows(() => heat(1.01), /\[0, 1\]/);
+assertThrows(() => beliefToScale(Number.NaN), /finite/);
+assertThrows(() => beliefToScale(Number.POSITIVE_INFINITY), /finite/);
+assertThrows(() => integrateBeliefStep(0.5, { delta: Number.NaN }), /finite/);
+assertThrows(() => integrateBeliefStep(0.5, { scale: Number.POSITIVE_INFINITY }), /finite/);
 assert(Math.abs(heat(0.5) - tension(0.5)) < 1e-12, 'heat ≡ tension');
 assert(PHI > 1.6 && PHI < 1.62, 'phi');
-assert(CONE > 0 && CONE < 0.4, 'cone');
+assert(Math.abs(CONE - (PHI - 1) ** 2) < 1e-12, 'cone matches Great Scale φ⁻²');
 
 const st = stateAt(0);
+const negative = stateAt(-1, 0.85);
+const equivalent = stateAt(0.15 / 0.85, 0.85);
+assert(negative.phase >= 0 && negative.phase < 1, 'negative time phase is canonical');
+assert(Math.abs(negative.phase - equivalent.phase) < 1e-12, 'negative-time phase periodicity');
+assert(Math.abs(negative.h - equivalent.h) < 1e-12, 'negative-time height periodicity');
+assertThrows(() => stateAt(Number.NaN), /finite/);
+assertThrows(() => stateAt(Number.POSITIVE_INFINITY), /finite/);
+assertThrows(() => stateAt(Number.MAX_VALUE, 2), /phase product/);
 assert(st.phase >= 0 && st.phase < 1, 'phase');
 assert(st.psi >= CONE - 1e-9, 'psi above cone');
 

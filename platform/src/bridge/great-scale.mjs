@@ -7,7 +7,7 @@
  * Laws (from great-scale repo):
  *   - keep the mean (zero-mode ≈ φ)
  *   - residual partition 4+3+1
- *   - Ψ never below cone √5−2
+ *   - Ψ never below cone φ⁻², matching Great Scale's public contract
  *   - only add scale-generated geometry
  */
 
@@ -15,7 +15,7 @@ import { tension, integrateBeliefStep } from '../audio/jacobian.mjs';
 
 export const PHI = (1 + Math.sqrt(5)) / 2;
 export const PHI_INV = PHI - 1;
-export const CONE = PHI_INV - PHI_INV * PHI_INV;
+export const CONE = PHI_INV * PHI_INV;
 export const RATE = 0.85;
 export const RESIDUAL_DIMS = Object.freeze([4, 3, 1]);
 
@@ -36,12 +36,20 @@ export const LAWS = Object.freeze([
 
 export function heat(h) {
   const x = Number(h);
-  if (!Number.isFinite(x)) return 0;
+  if (!Number.isFinite(x)) throw new TypeError('heat input h must be finite');
+  if (x < 0 || x > 1) throw new RangeError('heat input h must be in [0, 1]');
   return x * (1 - x);
 }
 
 export function stateAt(t, rate = RATE) {
-  const phase = ((Number(t) || 0) * rate) % 1;
+  const time = Number(t);
+  const phaseRate = Number(rate);
+  if (!Number.isFinite(time) || !Number.isFinite(phaseRate)) {
+    throw new TypeError('phase time t and rate must be finite');
+  }
+  const cycles = time * phaseRate;
+  if (!Number.isFinite(cycles)) throw new RangeError('phase product t * rate must be finite');
+  const phase = ((cycles % 1) + 1) % 1;
   const h = 0.5 - 0.5 * Math.cos(2 * Math.PI * phase);
   const S = heat(h);
   const n = 8 - 4 * S;
@@ -94,9 +102,9 @@ export function phaseXYZ(phase, S) {
   return [r * Math.cos(th), height, r * Math.sin(th)];
 }
 
-export function snapshotFromBelief(belief, { t = Date.now() / 1000, view = 'Observer' } = {}) {
+export function snapshotFromBelief(belief, { t = Date.now() / 1000, rate = RATE, view = 'Observer' } = {}) {
   const map = beliefToScale(belief);
-  const st = stateAt(t);
+  const st = stateAt(t, rate);
   const preset = VIEW_PRESETS[view] || VIEW_PRESETS.Observer;
   return {
     schema: 'great-scale.bridge/v1',
@@ -118,7 +126,7 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, view = 'Obse
 
 function clamp01(x) {
   const n = Number(x);
-  if (!Number.isFinite(n)) return 0.5;
+  if (!Number.isFinite(n)) throw new TypeError('belief input must be finite');
   return Math.max(0, Math.min(1, n));
 }
 
