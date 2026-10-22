@@ -236,6 +236,9 @@ const handler = async (req, res) => {
 
     if (req.method === 'POST' && url.pathname === '/api/v1/scale/step') {
       const body = await readJson(req, config.maxBodyBytes);
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return sendJson(res, 400, { error: 'request body must be a JSON object' });
+      }
       const live = resonant.getState();
       const currentBelief = body.belief == null ? live.belief : Number(body.belief);
       const t = body.t == null ? Date.now() / 1000 : Number(body.t);
