@@ -25,7 +25,7 @@ Production execution has a separate, stricter gate. All eight criteria below mus
 7. The approved HTTPS executor passed a non-destructive health probe.
 8. An authorized operator reviewed evidence and approved the exact release digest.
 
-The evidence must use explicit UTC timestamps, have references a reviewer can inspect, and bind to the exact release digest. Missing, stale, malformed, mismatched, or negative evidence means SAFE_PREVIEW_ONLY.
+The evidence must use explicit UTC timestamps, have references a reviewer can inspect, and bind to the exact release digest. A five-minute clock-skew allowance is accepted; timestamps further in the future are rejected. Missing, stale, malformed, mismatched, or negative evidence means SAFE_PREVIEW_ONLY.
 
 ## Current blockers
 
