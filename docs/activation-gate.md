@@ -98,6 +98,9 @@ The default is preview. The guide is advisory and read-only; it is not an enable
 
 ## Protecting the activation evidence file
 
-For live mode on POSIX systems, the evidence loader now requires a regular file owned by the service account, readable by that account only (mode `400` or `600`), and not a symbolic link. Group/world-readable or writable evidence files are rejected. Keep the file outside the repository, provision it through the deployment secret/configuration process, and verify the service account can read it.
+For live mode, both Node and Python use a fail-closed evidence-file loader. On POSIX systems it requires a regular file owned by the service account, readable by that account only (mode `400` or `600`), not a symbolic link, and no larger than 256 KiB. Group/world permissions and executable bits are rejected. The Node loader opens with `O_NOFOLLOW` and checks the open file descriptor to avoid a path-swap race. Keep the file outside the repository, provision it through the deployment secret/configuration process, and verify the service account can read it.
 
 This filesystem guard reduces accidental or cross-user tampering; it is not a digital signature and does not independently prove that a referenced CI run, database test, restore, or operator approval is genuine. The evidence references still require human review. Preview mode does not need to read the file and remains available.
+
+
+The Node activation CLI and the plain-language guide share the same `status/activation-evidence-file.mjs` loader, so the guide cannot mark evidence complete by following a symlink or reading an unsafe POSIX file. Regression tests cover private-file acceptance, symlink rejection, loose permissions, malformed input, non-regular files, and the 256 KiB limit. These checks establish file hygiene only; they still do not cryptographically authenticate evidence references or prove that a human reviewed them.

@@ -5,6 +5,8 @@ on:
     branches: [main, feat/avrone-activation-gate-v0.36.1]
     paths:
       - 'status/activation-gate.mjs'
+      - 'status/activation-evidence-file.mjs'
+      - 'test/activation-evidence-file.test.mjs'
       - 'status/activation-guide.mjs'
       - 'test/activation-gate.test.mjs'
       - 'test/activation-guide.test.mjs'
@@ -28,6 +30,8 @@ on:
     branches: [main, feat/avrone-activation-gate-v0.36.1]
     paths:
       - 'status/activation-gate.mjs'
+      - 'status/activation-evidence-file.mjs'
+      - 'test/activation-evidence-file.test.mjs'
       - 'status/activation-guide.mjs'
       - 'test/activation-gate.test.mjs'
       - 'test/activation-guide.test.mjs'

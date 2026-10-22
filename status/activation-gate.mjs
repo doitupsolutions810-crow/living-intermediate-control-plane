@@ -4,7 +4,7 @@
  * requires fresh, referenced, operator-reviewed evidence from all required gates.
  * This tool never flips runtime switches or creates evidence on its own.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readActivationEvidenceFile } from './activation-evidence-file.mjs';
 import { pathToFileURL } from 'node:url';
 
 export const ACTIVATION_SCHEMA = 'avrone.activation-evidence/v1';
@@ -131,11 +131,6 @@ export function evaluateActivation({ mode = 'preview', evidence = null, now = ne
   };
 }
 
-function readEvidence(path) {
-  if (!path || !existsSync(path)) return null;
-  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return null; }
-}
-
 function main() {
   const args = process.argv.slice(2);
   function value(name) {
@@ -144,7 +139,7 @@ function main() {
   }
   const mode = value('--mode') || process.env.AVRONE_ACTIVATION_MODE || 'preview';
   const evidencePath = value('--evidence') || process.env.AVRONE_ACTIVATION_EVIDENCE_FILE || '';
-  const result = evaluateActivation({ mode, evidence: readEvidence(evidencePath), expectedReleaseSha: process.env.AVRONE_RELEASE_SHA || null });
+  const result = evaluateActivation({ mode, evidence: readActivationEvidenceFile(evidencePath), expectedReleaseSha: process.env.AVRONE_RELEASE_SHA || null });
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.decision === 'BLOCKED' ? 2 : 0);
 }

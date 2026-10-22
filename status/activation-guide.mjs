@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Plain-language, read-only activation guide. Never changes runtime switches or evidence. */
-import { existsSync, readFileSync } from 'node:fs';
+import { readActivationEvidenceFile } from './activation-evidence-file.mjs';
 import { pathToFileURL } from 'node:url';
 
 export const GUIDE_CHECKS = Object.freeze([
@@ -38,18 +38,13 @@ export function buildGuide({ liveDecision = {}, requestedMode = 'preview', requi
   };
 }
 
-function readEvidence(path) {
-  if (!path || !existsSync(path)) return null;
-  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return null; }
-}
-
 function main() {
   const args = process.argv.slice(2);
   const value = name => { const index = args.indexOf(name); return index >= 0 ? args[index + 1] : null; };
   const evidencePath = value('--evidence') || process.env.AVRONE_ACTIVATION_EVIDENCE_FILE || '';
   const mode = value('--mode') || process.env.AVRONE_ACTIVATION_MODE || 'preview';
   import('./activation-gate.mjs').then(({ evaluateActivation, REQUIRED_CHECKS }) => {
-    const evidence = readEvidence(evidencePath);
+    const evidence = readActivationEvidenceFile(evidencePath);
     const expectedReleaseSha = process.env.AVRONE_RELEASE_SHA || null;
     // Evaluate live readiness for reporting only. No runtime flag is modified and no execution is started.
     const liveDecision = evaluateActivation({ mode: 'live', evidence, expectedReleaseSha });
