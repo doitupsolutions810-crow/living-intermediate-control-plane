@@ -79,3 +79,18 @@ If any criterion goes red, expires, or cannot be checked: keep preview mode, set
 GO: safe preview, read-only health checks, activation review, and a test-only external-model probe.
 
 NO-GO: live requests, autonomous workers, external write tools, or production budget mutations until the eight criteria pass, the actual database test completes, hosted CI works, and the exact release is approved.
+
+## Guided activation (plain language)
+
+Use `npm run activation:guide` to get a short, read-only checklist in priority order. It reports the configured activation mode, how many of the eight evidence checks are marked current, and the next action in ordinary language. It never prints evidence references, changes settings, creates evidence, starts workers, calls the external executor, or writes production data.
+
+The guide checks the same evidence policy as `npm run activation:check`; it does not prove a reference is genuine or replace the independent review. If the guide says `NO-GO`, leave workers off and complete the first action it lists. If it reports all eight evidence checks complete, an authorized operator must still inspect the evidence and verify the deployed release digest before changing deployment controls.
+
+For a prepared evidence file, use:
+
+```bash
+npm run activation:guide -- --evidence /secure/path/activation-evidence.json
+```
+
+The default is preview. The guide is advisory and read-only; it is not an enable switch.
+
