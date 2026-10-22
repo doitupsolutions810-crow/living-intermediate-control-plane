@@ -5,6 +5,7 @@
  * This tool never flips runtime switches or creates evidence on its own.
  */
 import { existsSync, readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 export const ACTIVATION_SCHEMA = 'avrone.activation-evidence/v1';
 export const MAX_EVIDENCE_AGE_MS = 24 * 60 * 60 * 1000;
@@ -130,4 +131,4 @@ function main() {
   process.exit(result.decision === 'BLOCKED' ? 2 : 0);
 }
 
-if (process.argv[1] && new URL('file://' + process.argv[1]).href === import.meta.url) main();
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) main();
