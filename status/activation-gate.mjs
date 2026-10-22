@@ -22,6 +22,8 @@ export const REQUIRED_CHECKS = Object.freeze([
 
 function timestamp(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
+  // Require an explicit UTC marker so Node and Python interpret evidence identically.
+  if (!/(?:Z|\\+00:00)$/i.test(value.trim())) return null;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
