@@ -1,8 +1,11 @@
 """Fail-closed activation evidence policy shared by AVRONE's Python executor."""
 from __future__ import annotations
 
+import errno
 import json
+import os
 import re
+import stat
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -113,11 +116,50 @@ def evaluate_activation(mode: str = "preview", evidence: Any = None,
     }
 
 
+def _blocked_evidence_file(reason: str, mode: str, expected_release_sha: str | None) -> dict[str, Any]:
+    result = evaluate_activation(mode=mode, evidence=None, expected_release_sha=expected_release_sha)
+    # A filesystem-integrity failure must override every other result to NO-GO.
+    result["decision"] = "BLOCKED"
+    result["liveExecutionAllowed"] = False
+    result.setdefault("blockers", []).insert(0, reason)
+    return result
+
+
 def evaluate_evidence_file(path: str | None, mode: str = "live", expected_release_sha: str | None = None) -> dict[str, Any]:
-    if not path:
+    # Preview never needs to read the activation evidence file.
+    if not path or str(mode or "preview").strip().lower() == "preview":
         return evaluate_activation(mode=mode, evidence=None, expected_release_sha=expected_release_sha)
+
+    flags = os.O_RDONLY
+    if os.name == "posix" and hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
     try:
-        evidence = json.loads(Path(path).read_text(encoding="utf-8"))
+        fd = os.open(path, flags)
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            reason = "Activation evidence file must not be a symbolic link."
+        else:
+            reason = "Activation evidence file could not be opened securely."
+        return _blocked_evidence_file(reason, mode, expected_release_sha)
+
+    try:
+        with os.fdopen(fd, "r", encoding="utf-8") as handle:
+            metadata = os.fstat(handle.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                return _blocked_evidence_file("Activation evidence must be a regular file.", mode, expected_release_sha)
+            if os.name == "posix":
+                if metadata.st_uid != os.geteuid():
+                    return _blocked_evidence_file(
+                        "Activation evidence file must be owned by the service account.", mode, expected_release_sha
+                    )
+                permissions = stat.S_IMODE(metadata.st_mode)
+                if permissions & 0o077 or not permissions & stat.S_IRUSR or permissions & 0o111:
+                    return _blocked_evidence_file(
+                        "Activation evidence file must be readable by its owner only (use mode 400 or 600).",
+                        mode,
+                        expected_release_sha,
+                    )
+            evidence = json.load(handle)
     except (OSError, ValueError, TypeError):
         evidence = None
     return evaluate_activation(mode=mode, evidence=evidence, expected_release_sha=expected_release_sha)
