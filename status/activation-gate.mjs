@@ -25,7 +25,7 @@ function timestamp(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function evaluateActivation({ mode = 'preview', evidence = null, now = new Date() } = {}) {
+export function evaluateActivation({ mode = 'preview', evidence = null, now = new Date(), expectedReleaseSha = null } = {}) {
   const requestedMode = String(mode || 'preview').toLowerCase();
   const at = now instanceof Date ? now.getTime() : Date.parse(now);
   if (!Number.isFinite(at)) throw new TypeError('now must be a valid date');
@@ -55,6 +55,11 @@ export function evaluateActivation({ mode = 'preview', evidence = null, now = ne
     if (evidence.environment !== 'production') blockers.push('Evidence must name the production environment.');
     if (typeof evidence.releaseSha !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(evidence.releaseSha)) {
       blockers.push('Evidence must identify the exact release with a Git or SHA-256 digest.');
+    }
+    if (typeof expectedReleaseSha !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(expectedReleaseSha)) {
+      blockers.push('AVRONE_RELEASE_SHA must identify the deployed release.');
+    } else if (typeof evidence.releaseSha !== 'string' || evidence.releaseSha.toLowerCase() !== expectedReleaseSha.toLowerCase()) {
+      blockers.push('Activation evidence is for a different release than the deployed release.');
     }
     const issuedAt = timestamp(evidence.issuedAt);
     const expiresAt = timestamp(evidence.expiresAt);
@@ -120,7 +125,7 @@ function main() {
   }
   const mode = value('--mode') || process.env.AVRONE_ACTIVATION_MODE || 'preview';
   const evidencePath = value('--evidence') || process.env.AVRONE_ACTIVATION_EVIDENCE_FILE || '';
-  const result = evaluateActivation({ mode, evidence: readEvidence(evidencePath) });
+  const result = evaluateActivation({ mode, evidence: readEvidence(evidencePath), expectedReleaseSha: process.env.AVRONE_RELEASE_SHA || null });
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.decision === 'BLOCKED' ? 2 : 0);
 }
