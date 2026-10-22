@@ -27,7 +27,7 @@ def _parse_time(value: Any) -> datetime | None:
     normalized = value.strip()
     # Keep Python and Node acceptance criteria identical: explicit ISO UTC only.
     if not re.fullmatch(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|\+00:00)",
+        r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?(?:Z|\+00:00)",
         normalized,
     ):
         return None
