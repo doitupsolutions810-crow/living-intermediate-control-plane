@@ -1,40 +1,51 @@
-# System Success Criteria (kept simple)
+# System Success Criteria (plain-language operator version)
 
-## What is required to proceed (procurement)
+This file separates **procurement readiness** from **production activation**. A green procurement result never authorizes live agents or production writes.
 
-Only three things matter right now:
+## A. Procurement readiness
 
-1. **Readiness is READY**  
-   Deterministic-local-evidence reports overall READY, five roles READY, and zero failed gates.
+Proceed to the next procurement stage only when all three are true:
 
-2. **Evidence is available**  
-   Either the public evidence-console returns the v5.3.1 contract, **or** the local plane status is accepted as temporary authority.  
-   Code path: `lib/evidence-console.mjs` probes the public URL and **gracefully** treats 404 / unreachable / unset as local authority (no hard fail).
+1. **Local readiness is READY** — deterministic local evidence reports READY, five roles are READY, and there are zero failed gates.
+2. **Evidence authority is explicit** — either the public evidence console returns the expected v5.3.1 contract, or an authorized operator explicitly accepts local plane status as temporary authority with `ACCEPT_LOCAL_EVIDENCE=1`. A missing/404 public endpoint must be disclosed; it is not proof of external readiness.
+3. **Supply-chain checks are active and passing** — inspect the current branch and check results. Do not infer that a draft pull request is merged or enforced on main.
 
-3. **Supply-chain stays enforced**  
-   PR #12 rules remain active on main.
+If these pass, the result is `READY_FOR_PROCUREMENT` only. Production acceptance (G1–G6) remains a separate decision.
 
-When these three are true, the system is considered ready for the next stage (READY_FOR_PROCUREMENT). Production acceptance (G1–G6) is deliberately left for later.
+## B. Production activation — eight required green lights
 
-## What is already true today
+Live workers, external write tools, and production budget mutations remain **OFF** unless all eight checks below have fresh evidence for the exact release:
 
-- Local readiness emitter reports READY
-- Five-role orchestration reports READY
-- LaunchDesk action bridge accepts requests when READY
-- Plane status and continuous readiness stubs are live
-- Supply-chain enforcement from PR #12 is on main
-- **Avrone chat** is Vercel-shippable (`avrone-chat/` + health/cockpit/chat APIs)
-- Evidence-console probe is graceful when the public domain 404s
+1. CI ran its steps and passed for the exact release.
+2. PostgreSQL 16 integration passed against a disposable test database.
+3. Tenant isolation passed, including cross-tenant read/write and worker-claim attempts.
+4. A staging security review approved authentication, TLS, permissions, and exposure.
+5. A backup was restored successfully and the result was checked.
+6. Worker identity, scope, expiry, and rotation were verified.
+7. The intended executor answered a real health check and is bound to the approved runtime.
+8. An authorized operator approved the exact release.
 
-## What is still blocked externally
+Each item must have a reviewable evidence reference, a UTC observation timestamp, and be no older than 24 hours. The evidence release digest must match `AVRONE_RELEASE_SHA`. Missing, stale, mismatched, or unverifiable evidence means **NO-GO**.
 
-- Primary evidence-console domain still returns 404 (deployment itself previously reached READY)
-- GitHub Actions automatic runs remain disabled at account level
+## C. Connection inventory — verified 2026-10-22
 
-## Decision rule used by this plane
+This inventory is a snapshot, not a permanent guarantee. Recheck each connection before rollout.
 
-If local readiness is READY **and** the operator accepts the local plane status as temporary evidence authority (`ACCEPT_LOCAL_EVIDENCE=1` / `npm run procure`), procurement may proceed under Control704 override while the public domain is fixed. Integrate also records evidence-console status without failing the plane when the public URL is missing or 404.
+| Connection | Verified state | Next action |
+|---|---|---|
+| GitHub repository | Accessible. PR #12 (safe activation gate) is open and draft, not merged. | Keep draft until a real CI run executes steps and passes. |
+| GitHub Actions | Latest activation-gate and Plane CI runs failed before steps were recorded; job step lists were empty and log retrieval returned `BlobNotFound`. | Restore runner startup, then rerun and require passing results. Treat CI as unverified. |
+| Vercel hosting | A Vercel status check exists but is failing for the current activation branch. | Connect the Vercel account integration, inspect the failed deployment, and obtain a healthy preview before relying on it. |
+| PostgreSQL/Supabase | No live PostgreSQL 16 integration result is available in this work session; no Supabase project connection is confirmed. | Connect a disposable database, apply the real schema, run the integration suite, and preserve the run URL/log as evidence. |
+| Replit | Integration is available, but the current app search returned no accessible AVRONE app. | Do not create a duplicate. Open/select the intended app or choose the confirmed Vercel deployment path. |
+| External executor | The Python bridge is a provisional lab stub; no external model/executor binding is verified. | Connect the intended executor, authenticate it, and prove health plus a safe non-production test before enabling workers. |
+| Backup/restore | No restore evidence is present in the reviewed activation record. | Restore a backup into an isolated environment and record the result. |
+| Operator approval | No approval record for the exact production release is present. | Approve only after all seven technical checks above pass. |
 
-## Live execution criteria (separate from procurement)
+## D. Safe decision rule
 
-`READY_FOR_PROCUREMENT` is not production activation. Live worker execution requires all eight fresh criteria in [`activation-gate.md`](./activation-gate.md): green CI, real PostgreSQL integration, tenant-isolation evidence, staging security approval, a tested backup restore, worker identity/rotation verification, executor health, and explicit operator approval for the exact release. If any item is missing, stale, or unclear, remain in safe preview.
+- **GO:** local review, health checks, read-only inspection, and dry-run planning.
+- **NO-GO:** live workers, external tool writes, production budget mutations, or production rollout while any activation check is missing.
+- If a criterion turns red or expires: remain in preview, pause supported work, revoke a suspect worker credential, and investigate before retrying.
+
+The activation gate evaluates operator evidence; it cannot prove that a pasted evidence reference is genuine. Review the evidence itself. Never put tokens, database URLs, or other secrets in the evidence file or commit them to Git.
