@@ -16,7 +16,7 @@ from avrone_stack.settings import Settings
 from avrone_stack import settings as settings_module
 
 _swarm_stub = types.ModuleType("avrone_stack.swarm")
-_swarm_stub.swarm = object()
+_swarm_stub.swarm = types.SimpleNamespace()
 sys.modules.setdefault("avrone_stack.swarm", _swarm_stub)
 from avrone_stack.stdlib_server import Handler  # noqa: E402
 
@@ -112,6 +112,10 @@ class ActivationGateTests(unittest.TestCase):
                 "AVRONE_ACTIVATION_MODE": "live",
                 "AVRONE_ACTIVATION_EVIDENCE_FILE": f.name,
                 "AVRONE_RELEASE_SHA": "a" * 40,
+                "AVRONE_EXECUTOR_BEARER_TOKEN": "inbound-" + "i" * 40,
+                "AVRONE_EXTERNAL_EXECUTOR_URL": "https://executor.example/v1",
+                "AVRONE_EXTERNAL_EXECUTOR_API_KEY": "upstream-" + "u" * 40,
+                "AVRONE_EXTERNAL_EXECUTOR_MODEL": "test-model",
             }
             with patch.dict(os.environ, env, clear=True):
                 settings = Settings()
@@ -168,6 +172,10 @@ class ActivationGateTests(unittest.TestCase):
                 "AVRONE_ACTIVATION_MODE": "live",
                 "AVRONE_ACTIVATION_EVIDENCE_FILE": f.name,
                 "AVRONE_RELEASE_SHA": "a" * 40,
+                "AVRONE_EXECUTOR_BEARER_TOKEN": "inbound-" + "i" * 40,
+                "AVRONE_EXTERNAL_EXECUTOR_URL": "https://executor.example/v1",
+                "AVRONE_EXTERNAL_EXECUTOR_API_KEY": "upstream-" + "u" * 40,
+                "AVRONE_EXTERNAL_EXECUTOR_MODEL": "test-model",
             }, clear=True):
                 summary = Settings().activation_status()
             serialized = json.dumps(summary).lower()
