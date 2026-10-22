@@ -51,8 +51,8 @@ function statusFor(item, check) {
 /**
  * Evaluate evidence with the canonical runtime gate.
  * input: { evidence }, options: { nowMs?, maxAgeMs?, expectedReleaseSha? }.
- * ENABLE_EXECUTION means "ready for separate operator/deployment approval";
- * it is never an instruction to switch execution on.
+ * READY_FOR_OPERATOR_APPROVAL means the evidence gate is satisfied.
+ * This adapter never enables execution; runtime controls remain separate.
  */
 export function evaluateActivation(input = {}, options = {}) {
   const nowMs = options.nowMs ?? Date.now();
@@ -113,9 +113,10 @@ export function evaluateActivation(input = {}, options = {}) {
 
   return Object.freeze({
     schema: 'avrone.activation-readiness/v1',
-    decision: ready ? 'ENABLE_EXECUTION' : 'SAFE_PREVIEW_ONLY',
+    decision: ready ? 'READY_FOR_OPERATOR_APPROVAL' : 'SAFE_PREVIEW_ONLY',
     previewEnabled: true,
-    executionEnabled: ready,
+    executionEnabled: false,
+    readyForOperatorApproval: ready,
     readinessOnly: true,
     evaluatedAt: new Date(nowMs).toISOString(),
     evidenceMaxAgeHours: maxAgeMs / (60 * 60 * 1000),

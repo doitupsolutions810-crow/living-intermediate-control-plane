@@ -32,8 +32,9 @@ test('defaults to safe preview when evidence is absent', () => {
 
 test('all eight canonical gates and exact-release evidence yield readiness only', () => {
   const result = evaluateComplete(completeEvidence());
-  assert.equal(result.decision, 'ENABLE_EXECUTION');
-  assert.equal(result.executionEnabled, true);
+  assert.equal(result.decision, 'READY_FOR_OPERATOR_APPROVAL');
+  assert.equal(result.executionEnabled, false);
+  assert.equal(result.readyForOperatorApproval, true);
   assert.equal(result.readinessOnly, true);
   assert.deepEqual(result.blockers, []);
   assert.equal(result.passed, REQUIRED_GATES.length);
@@ -153,7 +154,8 @@ test('platform adapter uses canonical gate identifiers and matches runtime decis
     expectedReleaseSha: releaseSha
   });
   const platform = evaluateActivation({ evidence }, { nowMs, expectedReleaseSha: releaseSha });
-  assert.equal(platform.executionEnabled, runtime.liveExecutionAllowed);
+  assert.equal(platform.readyForOperatorApproval, runtime.liveExecutionAllowed);
+  assert.equal(platform.executionEnabled, false);
   assert.equal(platform.passed, runtime.passed);
   assert.equal(platform.required, runtime.required);
   assert.equal(platform.blockers.length, 0);

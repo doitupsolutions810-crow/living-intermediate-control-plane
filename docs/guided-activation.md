@@ -24,7 +24,7 @@ A reference is not proof by itself. A reviewer must open and inspect each refere
 ## Outcomes
 
 - SAFE_PREVIEW_ONLY: preview, local health checks, read-only review, and dry-run planning remain available. Live workers, external write tools, and production budget mutations stay blocked.
-- ENABLE_EXECUTION: all eight evidence criteria are fresh and positive for the exact release. This is a readiness decision only; it does not deploy or start workers by itself.
+- READY_FOR_OPERATOR_APPROVAL: all eight evidence criteria are fresh and positive for the exact release. This is a readiness decision only; it does not deploy or start workers by itself.
 
 Missing, stale, malformed, mismatched-release, or negative evidence means NO-GO. Future-dated timestamps beyond the five-minute clock-skew tolerance also mean NO-GO.
 
@@ -65,3 +65,8 @@ The test suite uses synthetic evidence and a fixed clock. It validates policy lo
 ## Safety boundary
 
 The readiness helper does not change runtime switches or call a model, create evidence, deploy, write production data, or start agents. Live activation still requires the production bridge's own runtime controls, real infrastructure evidence, and human release authorization.
+
+
+## Activation is not an on-switch
+
+The result `READY_FOR_OPERATOR_APPROVAL` means only that the submitted evidence meets the policy. The platform adapter always reports `executionEnabled: false` and exposes `readyForOperatorApproval` separately. Deployment controls and an authorized operator must still perform any later activation; this readiness check cannot do it.
