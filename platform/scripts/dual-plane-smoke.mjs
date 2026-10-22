@@ -67,6 +67,27 @@ for (let i = 0; i < 16; i++) {
 
 checks.health_node = await hit(`${base}/health`);
 checks.health_py = await hit(`http://127.0.0.1:${PY_PORT}/health`);
+checks.scale_state = await hit(`${base}/api/v1/scale/state?belief=0.55&view=Observer&t=-1&rate=0.85`);
+try {
+  const payload = JSON.parse(checks.scale_state.body);
+  if (payload.schema !== 'great-scale.bridge/v1' || !(payload.phaseTime.phase >= 0 && payload.phaseTime.phase < 1)) {
+    checks.scale_state.status = 500;
+  }
+} catch { checks.scale_state.status = 500; }
+checks.scale_step = await hit(`${base}/api/v1/scale/step`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ belief: 0.55, scale: 0.05, t: -1, rate: 0.85 })
+});
+try {
+  const payload = JSON.parse(checks.scale_step.body);
+  if (payload.schema !== 'great-scale.step/v1' ||
+      !(payload.nextBelief >= 0 && payload.nextBelief <= 1) ||
+      !(payload.nextTension >= 0 && payload.nextTension <= 0.25) ||
+      !(payload.phaseTime.phase >= 0 && payload.phaseTime.phase < 1)) {
+    checks.scale_step.status = 500;
+  }
+} catch { checks.scale_step.status = 500; }
 checks.probe = await hit(`${base}/api/v1/bridge/avrone-stack/probe`);
 checks.route = await hit(`${base}/api/v1/bridge/avrone-stack/route`, {
   method: 'POST',
@@ -114,7 +135,7 @@ checks.jacobian = await hit(`${base}/api/v1/cockpit/action`, {
 node.kill();
 py.kill();
 
-const required = ['health_node', 'health_py', 'probe', 'route', 'obs', 'link', 'cockpit_route', 'jacobian'];
+const required = ['health_node', 'health_py', 'scale_state', 'scale_step', 'probe', 'route', 'obs', 'link', 'cockpit_route', 'jacobian'];
 const failed = required.filter((k) => checks[k]?.status !== 200);
 
 console.log(
