@@ -11,7 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from unittest.mock import patch
 
-from avrone_stack.activation_gate import SCHEMA, REQUIRED_CHECKS, evaluate_activation
+from avrone_stack.activation_gate import SCHEMA, REQUIRED_CHECKS, evaluate_activation, evaluate_evidence_file
 from avrone_stack.settings import Settings
 from avrone_stack import settings as settings_module
 
@@ -206,6 +206,35 @@ class ActivationGateTests(unittest.TestCase):
             serialized = json.dumps(summary).lower()
             self.assertTrue(summary["liveExecutionAllowed"])
             self.assertNotIn("test-evidence", serialized)
+
+
+    @unittest.skipUnless(os.name == "posix", "POSIX-only evidence file permission check")
+    def test_live_evidence_file_rejects_group_or_world_permissions(self):
+        evidence = valid_evidence()
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "activation-evidence.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(evidence, handle)
+            os.chmod(path, 0o644)
+            result = evaluate_evidence_file(path, mode="live", expected_release_sha="a" * 40)
+        self.assertFalse(result["liveExecutionAllowed"])
+        self.assertTrue(any("owner only" in blocker.lower() for blocker in result["blockers"]))
+        self.assertNotIn(path, json.dumps(result))
+
+    @unittest.skipUnless(os.name == "posix", "POSIX-only evidence file symlink check")
+    def test_live_evidence_file_rejects_symlinks(self):
+        evidence = valid_evidence()
+        with tempfile.TemporaryDirectory() as directory:
+            target = os.path.join(directory, "activation-evidence.json")
+            link = os.path.join(directory, "activation-evidence-link.json")
+            with open(target, "w", encoding="utf-8") as handle:
+                json.dump(evidence, handle)
+            os.chmod(target, 0o600)
+            os.symlink(target, link)
+            result = evaluate_evidence_file(link, mode="live", expected_release_sha="a" * 40)
+        self.assertFalse(result["liveExecutionAllowed"])
+        self.assertTrue(any("symbolic link" in blocker.lower() for blocker in result["blockers"]))
+        self.assertNotIn(link, json.dumps(result))
 
 
 if __name__ == "__main__":
