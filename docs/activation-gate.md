@@ -94,3 +94,10 @@ npm run activation:guide -- --evidence /secure/path/activation-evidence.json
 
 The default is preview. The guide is advisory and read-only; it is not an enable switch.
 
+
+
+## Protecting the activation evidence file
+
+For live mode on POSIX systems, the evidence loader now requires a regular file owned by the service account, readable by that account only (mode `400` or `600`), and not a symbolic link. Group/world-readable or writable evidence files are rejected. Keep the file outside the repository, provision it through the deployment secret/configuration process, and verify the service account can read it.
+
+This filesystem guard reduces accidental or cross-user tampering; it is not a digital signature and does not independently prove that a referenced CI run, database test, restore, or operator approval is genuine. The evidence references still require human review. Preview mode does not need to read the file and remains available.
