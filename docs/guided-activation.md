@@ -2,49 +2,66 @@
 
 ## Purpose
 
-Reduce operator technical burden without allowing an unverified deployment to execute agents or external tools. **Preview is always available; execution is not.**
+Reduce operator technical work without allowing an unverified deployment to execute agents or external tools. Safe preview is always available; live execution is blocked until every gate passes.
 
-This helper evaluates evidence only. It does not connect PostgreSQL, deploy the application, create credentials, or start workers.
+The guide and readiness helper evaluate supplied evidence only. They do not connect PostgreSQL, deploy the application, create credentials, start workers, or verify an evidence reference automatically.
 
-## Plain-language success criteria
+## One canonical set of eight success criteria
 
-All eight gates must have a positive result verified within the last 24 hours. Missing, stale, future-dated, malformed, or negative evidence blocks execution.
+All eight criteria are required for the exact release. Each item needs a positive, reviewable evidence reference observed within the last 24 hours. Evidence timestamps must explicitly use UTC (Z or +00:00), and the evidence release digest must match the deployed release digest.
 
-1. **Database connected:** a real PostgreSQL connection succeeds.
-2. **Database structure current:** required migrations, foreign keys, and immutability triggers are present.
-3. **Real database tests passed:** the PostgreSQL 16 integration suite completes against a disposable test database.
-4. **Staging security review passed:** tenant separation, credential boundaries, and audit controls are exercised and reviewed.
-5. **Worker credentials ready:** credentials are tenant-bound, active, scoped, and stored in a secret manager.
-6. **Executor connected:** a configured executor passes a non-destructive health check. A task queue alone does not count.
-7. **Recovery tested:** rollback/recovery procedure has been exercised and recorded.
-8. **Operator approved:** an authorized human explicitly approves execution after reviewing evidence.
+1. CI passed (ciPassed): build and automated tests ran on a real runner and finished green for this release. A job that failed before its first step is not a test result.
+2. PostgreSQL integration passed (postgresIntegrationPassed): connect to a disposable PostgreSQL 16 database, verify migrations/schema/foreign keys/triggers, and run integration/concurrency tests. Database reachability and schema currency are subchecks of this one gate.
+3. Tenant isolation passed (tenantIsolationPassed): demonstrate that tenant A cannot read, claim, or mutate tenant B's data.
+4. Staging security review passed (stagingSecurityReviewPassed): review TLS, authentication, least privilege, network exposure, credential handling, and audit behavior.
+5. Backup and restore passed (backupRestorePassed): restore a recent backup into an isolated environment and validate the restored data and application.
+6. Worker identity verified (workerIdentityVerified): verify tenant-bound, scoped, active credentials and exercise rotation/revocation.
+7. Executor health passed (executorHealthPassed): the approved HTTPS executor/model endpoint passes a non-destructive health probe.
+8. Operator approval recorded (operatorApproved): an authorized human inspects the evidence and approves this exact release.
 
-## Operator outcomes
+A reference is not proof by itself. A reviewer must open and inspect each reference. Synthetic test fixtures, a configured URL without a handshake, a created backup without a restore, or a task queue without an executor do not count as successful evidence.
 
-- **SAFE_PREVIEW_ONLY:** preview and non-executing validation remain available. Execution stays off, and the result lists blockers.
-- **ENABLE_EXECUTION:** evidence for every gate is fresh and positive. This is a readiness decision only; it does not deploy or enable anything by itself.
+## Outcomes
 
-## Mitigation when a gate fails
+- SAFE_PREVIEW_ONLY: preview, local health checks, read-only review, and dry-run planning remain available. Live workers, external write tools, and production budget mutations stay blocked.
+- ENABLE_EXECUTION: all eight evidence criteria are fresh and positive for the exact release. This is a readiness decision only; it does not deploy or start workers by itself.
 
-1. Keep execution disabled. Do not bypass the gate with a string, stale screenshot, or unverified claim.
-2. Show the blocker and the next action: connect database, apply migration, rerun integration suite, complete security review, configure credentials, connect executor, test recovery, or approve.
-3. After remediation, rerun the relevant check and replace old evidence with a timestamped result.
-4. If a passing gate becomes unhealthy, return to preview-only and disable worker credentials until reverified.
-5. Preserve audit events, but never log bearer secrets or raw connection strings.
+Missing, stale, future-dated, malformed, mismatched-release, or negative evidence means NO-GO.
 
-## Current connection reality (checked 2026-10-22)
+## Low-complexity mitigation loop
 
-- GitHub repository access is connected.
-- Replit integration is installed, but no AVRONE app was found by title search or exact-name resolution; do not publish a guessed app.
-- No Supabase/PostgreSQL project connection is established in this session.
-- GitHub Actions has repeatedly failed before any workflow steps started (`runner_id: 0`, empty step lists). That is infrastructure evidence, not a passing or failing application test.
+1. Run the readiness check in preview mode. Do not enable workers.
+2. Follow the first blocker it reports, such as connecting a database, running the integration suite, completing a restore test, or adding an executor health result.
+3. Retest only that criterion and replace old evidence with a timestamped reference.
+4. Re-run the full gate; every criterion must pass within the same 24-hour evidence window.
+5. Have an authorized operator review the evidence and approve the exact release.
+6. If any check expires or a dependency becomes unhealthy, revert to preview-only and revoke/suspend worker credentials until reverified.
 
-## Test
+Never work around a blocker by hand-editing evidence to passed, logging secrets, or claiming a connection exists because a URL or setting is present.
 
-From `platform/`, run:
+## Connection inventory (last checked 2026-10-22)
 
-```bash
-node --test test/activation-readiness.test.mjs
-```
+| Connection | Confirmed state | Minimum closure evidence |
+|---|---|---|
+| GitHub repository | Connected and readable | A real runner executes all steps and completes the exact-release CI job green |
+| GitHub Actions | Repeated hosted jobs fail before steps start (runner_id: 0, empty steps) | Check Actions eligibility/policy and escalate to GitHub Support if settings appear normal; then rerun |
+| PostgreSQL / Supabase | Not connected in this session | Connect provider; use a disposable PostgreSQL 16 database; run migration and integration suite |
+| Hosting / Vercel | Not connected in this session | Connect provider, identify the intended project/root directory, and obtain a successful preview deployment |
+| Replit app | Provider integration installed, but no AVRONE app found by title search | Authorize or identify the existing intended app; do not create a duplicate based on a guessed name |
+| Evidence console | Public endpoint has been reported as returning 404; no current successful live contract check is evidenced | Confirm a real HTTP response and expected schema, or label local evidence temporary |
+| External model executor | No endpoint/secret handshake confirmed | Add approved HTTPS URL/model/API key to secret storage, then run the non-destructive probe |
+| Lattice/control-plane link | No production URL/token handshake confirmed | Configure URL/token in secret storage and verify an expected read-only security/status response |
 
-These unit tests use synthetic evidence and a fixed clock. They verify the policy logic only, not live database or deployment connectivity.
+A provider is connected only after a real handshake and safe test action—not after installing a connector or adding an environment variable.
+
+## How to run
+
+From the repository root:
+
+    node --test platform/test/activation-readiness.test.mjs
+
+The test suite uses synthetic evidence and a fixed clock. It validates policy logic only; it does not connect services or constitute production evidence.
+
+## Safety boundary
+
+The readiness helper does not change runtime switches or call a model, create evidence, deploy, write production data, or start agents. Live activation still requires the production bridge's own runtime controls, real infrastructure evidence, and human release authorization.
