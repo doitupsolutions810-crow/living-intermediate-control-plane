@@ -68,4 +68,11 @@ assert.equal(evaluateActivation({ mode: 'banana', evidence: validEvidence(), now
 const mismatchedRelease = validEvidence();
 mismatchedRelease.releaseSha = 'b'.repeat(40);
 assert.equal(evaluateActivation({ mode: 'live', evidence: mismatchedRelease, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
+const utcOffsetTimestamp = validEvidence();
+utcOffsetTimestamp.issuedAt = new Date(now.getTime() - 60000).toISOString().replace('Z', '+00:00');
+utcOffsetTimestamp.expiresAt = new Date(now.getTime() + 3600000).toISOString().replace('Z', '+00:00');
+utcOffsetTimestamp.checks.ciPassed.observedAt = new Date(now.getTime() - 60000).toISOString().replace('Z', '+00:00');
+assert.equal(evaluateActivation({ mode: 'live', evidence: utcOffsetTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'LIVE_APPROVED');
+
 console.log('Activation gate policy checks: PASS');
