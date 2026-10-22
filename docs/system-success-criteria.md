@@ -35,7 +35,7 @@ This inventory is a snapshot, not a permanent guarantee. Recheck each connection
 |---|---|---|
 | GitHub repository | Accessible. PR #12 (safe activation gate) is open and draft, not merged. | Keep draft until a real CI run executes steps and passes. |
 | GitHub Actions | Latest activation-gate and Plane CI runs failed before steps were recorded; job step lists were empty and log retrieval returned `BlobNotFound`. | Restore runner startup, then rerun and require passing results. Treat CI as unverified. |
-| Vercel hosting | A Vercel status check exists but is failing for the current activation branch. | Connect the Vercel account integration, inspect the failed deployment, and obtain a healthy preview before relying on it. |
+| Vercel hosting | A Vercel status check exists but is still pending for the latest activation branch; no healthy preview is confirmed. | Connect the Vercel account integration, inspect the failed deployment, and obtain a healthy preview before relying on it. |
 | PostgreSQL/Supabase | No live PostgreSQL 16 integration result is available in this work session; no Supabase project connection is confirmed. | Connect a disposable database, apply the real schema, run the integration suite, and preserve the run URL/log as evidence. |
 | Replit | Integration is available, but the current app search returned no accessible AVRONE app. | Do not create a duplicate. Open/select the intended app or choose the confirmed Vercel deployment path. |
 | External executor | The Python bridge is a provisional lab stub; no external model/executor binding is verified. | Connect the intended executor, authenticate it, and prove health plus a safe non-production test before enabling workers. |
