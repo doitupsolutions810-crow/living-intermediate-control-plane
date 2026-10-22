@@ -24,8 +24,15 @@ REQUIRED_CHECKS = (
 def _parse_time(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
+    normalized = value.strip()
+    # Keep Python and Node acceptance criteria identical: explicit ISO UTC only.
+    if not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|\+00:00)",
+        normalized,
+    ):
+        return None
     try:
-        result = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        result = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
         if result.tzinfo is None or result.utcoffset() != timedelta(0):
             return None
         return result.astimezone(timezone.utc)
