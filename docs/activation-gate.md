@@ -31,14 +31,14 @@ This defaults to safe preview and must not start agents or write to production. 
 
 The file should be created only after all eight checks are actually completed. Store it with controlled permissions and keep its evidence references reviewable. Do not commit secrets or production tokens.
 
-The evidence shape is avrone.activation-evidence/v1; required fields are environment=production, the exact releaseSha, UTC issuedAt/expiresAt (maximum 24 hours), and the eight checks with passed=true, observedAt, and a non-empty reference. A passing file is an operator record, not cryptographic proof that the references themselves are genuine.
+The evidence shape is avrone.activation-evidence/v1; required fields are environment=production, releaseSha equal to the deployed AVRONE_RELEASE_SHA, UTC issuedAt/expiresAt (maximum 24 hours), and the eight checks with passed=true, observedAt, and a non-empty reference. If AVRONE_RELEASE_SHA is missing or does not match exactly, live execution is blocked. A passing file is an operator record, not cryptographic proof that the references themselves are genuine.
 
 ## What the execution service enforces
 
 The optional Python executor refuses /v1/chat/completions unless both of these conditions hold:
 
 - ALLOW_AGENT_EXECUTION=true and AVRONE_ACTIVATION_MODE=live are explicitly set; and
-- AVRONE_ACTIVATION_EVIDENCE_FILE points to fresh, complete evidence that satisfies the same policy.
+- AVRONE_ACTIVATION_EVIDENCE_FILE points to fresh, complete evidence that satisfies the same policy; and\n- AVRONE_RELEASE_SHA matches the exact deployed build.
 
 The default is preview. Merely setting ALLOW_AGENT_EXECUTION=true is no longer enough. The health response exposes only a short status summary, not evidence references.
 
