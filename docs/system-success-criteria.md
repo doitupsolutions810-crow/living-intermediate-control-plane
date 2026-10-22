@@ -34,3 +34,7 @@ When these three are true, the system is considered ready for the next stage (RE
 ## Decision rule used by this plane
 
 If local readiness is READY **and** the operator accepts the local plane status as temporary evidence authority (`ACCEPT_LOCAL_EVIDENCE=1` / `npm run procure`), procurement may proceed under Control704 override while the public domain is fixed. Integrate also records evidence-console status without failing the plane when the public URL is missing or 404.
+
+## Live execution criteria (separate from procurement)
+
+`READY_FOR_PROCUREMENT` is not production activation. Live worker execution requires all eight fresh criteria in [`activation-gate.md`](./activation-gate.md): green CI, real PostgreSQL integration, tenant-isolation evidence, staging security approval, a tested backup restore, worker identity/rotation verification, executor health, and explicit operator approval for the exact release. If any item is missing, stale, or unclear, remain in safe preview.
