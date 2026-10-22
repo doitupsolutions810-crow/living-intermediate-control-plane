@@ -1,7 +1,10 @@
 export const FIXED = 4.5;
 export const PAIRS = [[1,8],[2,7],[3,6],[4,5]];
 
-export function involution(x){ return 9 - ((x % 9) + 9) % 9; }
+export function involution(x){
+  const m = ((x % 9) + 9) % 9;
+  return (9 - m) % 9;
+}
 export function softMap(x, k = 0.5){ return FIXED + (x - FIXED) * Math.cos(Math.PI * k); }
 export function heat(h){ return h * (1 - h); }
 
@@ -24,7 +27,9 @@ export function cycleStability(k = 0.5){
 
 export function stressInvariant(x){
   const f = involution(x), g = softMap(x);
-  return { x, involution: f, soft: g, residual: Math.abs(g - f) };
+  const d = Math.abs(((x - f) % 9 + 9) % 9);
+  const residual = Math.min(d, 9 - d);
+  return { x, involution: f, soft: g, residual };
 }
 
 export function hypothesisReport(x){
