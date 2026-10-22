@@ -58,4 +58,4 @@ assert.equal(evaluateActivation({ mode: 'banana', evidence: validEvidence(), now
 const mismatchedRelease = validEvidence();
 mismatchedRelease.releaseSha = 'b'.repeat(40);
 assert.equal(evaluateActivation({ mode: 'live', evidence: mismatchedRelease, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
-console.log('Activation gate tests: 9 passed, 0 failed');
+console.log('Activation gate policy checks: PASS');
