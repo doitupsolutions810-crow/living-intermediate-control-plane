@@ -13,3 +13,7 @@ node_modules/
 avrone-chat/.next/
 avrone-chat/out/
 avrone-chat/next-env.d.ts
+
+# Live activation evidence contains operational references and must stay local
+/activation-evidence.json
+*.activation-evidence.json
