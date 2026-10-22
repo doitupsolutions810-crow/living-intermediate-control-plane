@@ -158,3 +158,14 @@ test('platform adapter uses canonical gate identifiers and matches runtime decis
   assert.equal(platform.required, runtime.required);
   assert.equal(platform.blockers.length, 0);
 });
+
+test('a stricter evidence age window is enforced and reported as a blocker', () => {
+  const evidence = completeEvidence();
+  const result = evaluateActivation({ evidence }, {
+    nowMs,
+    expectedReleaseSha: releaseSha,
+    maxAgeMs: 30 * 60 * 1000
+  });
+  assert.equal(result.executionEnabled, false);
+  assert.ok(result.blockers.some(b => b.gate === 'evidenceLifetime' && b.status === 'invalid'));
+});

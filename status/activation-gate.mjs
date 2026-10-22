@@ -88,7 +88,7 @@ export function evaluateActivation({ mode = 'preview', evidence = null, now = ne
       if (issuedAt > at + 5 * 60 * 1000) blockers.push('Evidence issue time is in the future.');
       if (expiresAt <= at) blockers.push('Activation evidence has expired.');
       if (expiresAt <= issuedAt || expiresAt - issuedAt > maxAgeMs) {
-        blockers.push('Evidence validity must be positive and no longer than 24 hours.');
+        blockers.push('Evidence validity must be positive and no longer than ' + (maxAgeMs / (60 * 60 * 1000)) + ' hours.');
       }
       if (at - issuedAt > maxAgeMs) blockers.push('Activation evidence is older than ' + (maxAgeMs / (60 * 60 * 1000)) + ' hours.');
     }
