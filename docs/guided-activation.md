@@ -8,7 +8,7 @@ The guide and readiness helper evaluate supplied evidence only. They do not conn
 
 ## One canonical set of eight success criteria
 
-All eight criteria are required for the exact release. Each item needs a positive, reviewable evidence reference observed within the last 24 hours. Evidence timestamps must explicitly use UTC (Z or +00:00), and the evidence release digest must match the deployed release digest.
+All eight criteria are required for the exact release. Each item needs a positive, reviewable evidence reference observed within the last 24 hours. Evidence timestamps must explicitly use UTC (Z or +00:00), and the evidence release digest must match the deployed release digest. To tolerate small clock skew, timestamps up to five minutes in the future are accepted; anything beyond that blocks readiness.
 
 1. CI passed (ciPassed): build and automated tests ran on a real runner and finished green for this release. A job that failed before its first step is not a test result.
 2. PostgreSQL integration passed (postgresIntegrationPassed): connect to a disposable PostgreSQL 16 database, verify migrations/schema/foreign keys/triggers, and run integration/concurrency tests. Database reachability and schema currency are subchecks of this one gate.
@@ -26,7 +26,7 @@ A reference is not proof by itself. A reviewer must open and inspect each refere
 - SAFE_PREVIEW_ONLY: preview, local health checks, read-only review, and dry-run planning remain available. Live workers, external write tools, and production budget mutations stay blocked.
 - ENABLE_EXECUTION: all eight evidence criteria are fresh and positive for the exact release. This is a readiness decision only; it does not deploy or start workers by itself.
 
-Missing, stale, future-dated, malformed, mismatched-release, or negative evidence means NO-GO.
+Missing, stale, malformed, mismatched-release, or negative evidence means NO-GO. Future-dated timestamps beyond the five-minute clock-skew tolerance also mean NO-GO.
 
 ## Low-complexity mitigation loop
 
