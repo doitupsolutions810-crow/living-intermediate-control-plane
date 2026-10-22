@@ -1,12 +1,23 @@
 export const FIXED = 4.5;
 export const PAIRS = [[1,8],[2,7],[3,6],[4,5]];
 
-export function involution(x){
-  const m = ((x % 9) + 9) % 9;
+export function canonicalizeCircleCoordinate(x) {
+  const value = Number(x);
+  if (!Number.isFinite(value)) throw new TypeError('circle coordinate must be finite');
+  return ((value % 9) + 9) % 9;
+}
+
+export function involution(x) {
+  const m = canonicalizeCircleCoordinate(x);
   return (9 - m) % 9;
 }
 export function softMap(x, k = 0.5){ return FIXED + (x - FIXED) * Math.cos(Math.PI * k); }
-export function heat(h){ return h * (1 - h); }
+export function heat(h) {
+  const value = Number(h);
+  if (!Number.isFinite(value)) throw new TypeError('heat input h must be finite');
+  if (value < 0 || value > 1) throw new RangeError('heat input h must be in [0, 1]');
+  return value * (1 - value);
+}
 
 export function convergenceSteps(start, eps = 1e-6, max = 5000, k = 0.5){
   let x = start, n = 0;
@@ -33,8 +44,9 @@ export function stressInvariant(x){
 }
 
 export function hypothesisReport(x){
-  const S = heat(x/9);
-  const inv = stressInvariant(x);
+  const canonical = canonicalizeCircleCoordinate(x);
+  const S = heat(canonical / 9);
+  const inv = stressInvariant(canonical);
   return {
     hypothesis: 'S(h)=h(1-h) ≡ T(B)=B(1-B); f(x)=9-(x mod 9); fixed point 4.5; two-cycles (1,8)(2,7)(3,6)(4,5); cone floor; phi zero-mode; stress = moment of now computationally; recursive observation: geometry generates the scale that observes it. No certainty.',
     x, S, residual: inv.residual,
