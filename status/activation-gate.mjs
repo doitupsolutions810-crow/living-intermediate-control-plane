@@ -4,7 +4,7 @@
  * requires fresh, referenced, operator-reviewed evidence from all required gates.
  * This tool never flips runtime switches or creates evidence on its own.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readActivationEvidenceFile } from './activation-evidence-file.mjs';
 import { pathToFileURL } from 'node:url';
 
 export const ACTIVATION_SCHEMA = 'avrone.activation-evidence/v1';
@@ -41,10 +41,13 @@ function timestamp(value) {
   return parsed;
 }
 
-export function evaluateActivation({ mode = 'preview', evidence = null, now = new Date(), expectedReleaseSha = null } = {}) {
+export function evaluateActivation({ mode = 'preview', evidence = null, now = new Date(), expectedReleaseSha = null, maxAgeMs = MAX_EVIDENCE_AGE_MS } = {}) {
   const requestedMode = String(mode || 'preview').toLowerCase();
   const at = now instanceof Date ? now.getTime() : Date.parse(now);
   if (!Number.isFinite(at)) throw new TypeError('now must be a valid date');
+  if (!Number.isFinite(maxAgeMs) || maxAgeMs <= 0 || maxAgeMs > MAX_EVIDENCE_AGE_MS) {
+    throw new TypeError('maxAgeMs must be finite, positive, and no greater than 24 hours');
+  }
 
   if (requestedMode === 'preview') {
     return {
@@ -84,10 +87,10 @@ export function evaluateActivation({ mode = 'preview', evidence = null, now = ne
     } else {
       if (issuedAt > at + 5 * 60 * 1000) blockers.push('Evidence issue time is in the future.');
       if (expiresAt <= at) blockers.push('Activation evidence has expired.');
-      if (expiresAt <= issuedAt || expiresAt - issuedAt > MAX_EVIDENCE_AGE_MS) {
-        blockers.push('Evidence validity must be positive and no longer than 24 hours.');
+      if (expiresAt <= issuedAt || expiresAt - issuedAt > maxAgeMs) {
+        blockers.push('Evidence validity must be positive and no longer than ' + (maxAgeMs / (60 * 60 * 1000)) + ' hours.');
       }
-      if (at - issuedAt > MAX_EVIDENCE_AGE_MS) blockers.push('Activation evidence is older than 24 hours.');
+      if (at - issuedAt > maxAgeMs) blockers.push('Activation evidence is older than ' + (maxAgeMs / (60 * 60 * 1000)) + ' hours.');
     }
     const values = evidence.checks && typeof evidence.checks === 'object' && !Array.isArray(evidence.checks)
       ? evidence.checks : {};
@@ -95,7 +98,7 @@ export function evaluateActivation({ mode = 'preview', evidence = null, now = ne
       const item = values[id];
       const observedAt = timestamp(item && item.observedAt);
       const reference = typeof (item && item.reference) === 'string' ? item.reference.trim() : '';
-      const fresh = observedAt !== null && observedAt <= at + 5 * 60 * 1000 && at - observedAt <= MAX_EVIDENCE_AGE_MS;
+      const fresh = observedAt !== null && observedAt <= at + 5 * 60 * 1000 && at - observedAt <= maxAgeMs;
       const passed = Boolean(item && item.passed === true && reference.length >= 4 && fresh);
       if (!passed) {
         let reason = 'not confirmed';
@@ -128,11 +131,6 @@ export function evaluateActivation({ mode = 'preview', evidence = null, now = ne
   };
 }
 
-function readEvidence(path) {
-  if (!path || !existsSync(path)) return null;
-  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return null; }
-}
-
 function main() {
   const args = process.argv.slice(2);
   function value(name) {
@@ -141,7 +139,7 @@ function main() {
   }
   const mode = value('--mode') || process.env.AVRONE_ACTIVATION_MODE || 'preview';
   const evidencePath = value('--evidence') || process.env.AVRONE_ACTIVATION_EVIDENCE_FILE || '';
-  const result = evaluateActivation({ mode, evidence: readEvidence(evidencePath), expectedReleaseSha: process.env.AVRONE_RELEASE_SHA || null });
+  const result = evaluateActivation({ mode, evidence: readActivationEvidenceFile(evidencePath), expectedReleaseSha: process.env.AVRONE_RELEASE_SHA || null });
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.decision === 'BLOCKED' ? 2 : 0);
 }

@@ -1,51 +1,49 @@
-# System Success Criteria (plain-language operator version)
+# System Success Criteria (kept simple)
 
-This file separates **procurement readiness** from **production activation**. A green procurement result never authorizes live agents or production writes.
+There are two different readiness levels. They must not be conflated.
 
-## A. Procurement readiness
+## Level 1 — ready to proceed to procurement
 
-Proceed to the next procurement stage only when all three are true:
+Only three criteria apply to this procurement decision:
 
-1. **Local readiness is READY** — deterministic local evidence reports READY, five roles are READY, and there are zero failed gates.
-2. **Evidence authority is explicit** — either the public evidence console returns the expected v5.3.1 contract, or an authorized operator explicitly accepts local plane status as temporary authority with `ACCEPT_LOCAL_EVIDENCE=1`. A missing/404 public endpoint must be disclosed; it is not proof of external readiness.
-3. **Supply-chain checks are active and passing** — inspect the current branch and check results. Do not infer that a draft pull request is merged or enforced on main.
+1. Local readiness is READY: deterministic local evidence reports overall READY, all five roles READY, and zero failed gates.
+2. Evidence authority is available: either the public evidence console returns the expected v5.3.1 contract, or an authorized operator explicitly accepts local plane status as temporary evidence authority.
+3. Supply-chain enforcement remains active: the relevant PR #12 rules are present on the target branch.
 
-If these pass, the result is `READY_FOR_PROCUREMENT` only. Production acceptance (G1–G6) remains a separate decision.
+When those three hold, the plane may be considered READY_FOR_PROCUREMENT. This is not production activation approval. Local readiness stubs, a graceful 404 fallback, or procurement permission do not demonstrate that the database, external executor, or worker system is production-ready.
 
-## B. Production activation — eight required green lights
+## Level 2 — approved for production live execution
 
-Live workers, external write tools, and production budget mutations remain **OFF** unless all eight checks below have fresh evidence for the exact release:
+Production execution has a separate, stricter gate. All eight criteria below must pass for the exact release with reviewable evidence observed within the previous 24 hours:
 
-1. CI ran its steps and passed for the exact release.
-2. PostgreSQL 16 integration passed against a disposable test database.
-3. Tenant isolation passed, including cross-tenant read/write and worker-claim attempts.
-4. A staging security review approved authentication, TLS, permissions, and exposure.
-5. A backup was restored successfully and the result was checked.
-6. Worker identity, scope, expiry, and rotation were verified.
-7. The intended executor answered a real health check and is bound to the approved runtime.
-8. An authorized operator approved the exact release.
+1. CI ran on a real runner and passed for this release.
+2. PostgreSQL 16 integration passed against a disposable database, including schema/migration/foreign-key/trigger checks.
+3. Tenant isolation passed for reads, task claims, writes, and budget/audit records.
+4. Staging security review passed.
+5. Backup restore was successfully exercised in isolation.
+6. Worker identity, scoping, rotation, and revocation were verified.
+7. The approved HTTPS executor passed a non-destructive health probe.
+8. An authorized operator reviewed evidence and approved the exact release digest.
 
-Each item must have a reviewable evidence reference, a UTC observation timestamp, and be no older than 24 hours. The evidence release digest must match `AVRONE_RELEASE_SHA`. Missing, stale, mismatched, or unverifiable evidence means **NO-GO**.
+The evidence must use explicit UTC timestamps, have references a reviewer can inspect, and bind to the exact release digest. A five-minute clock-skew allowance is accepted; timestamps further in the future are rejected. Missing, stale, malformed, mismatched, or negative evidence means SAFE_PREVIEW_ONLY.
 
-## C. Connection inventory — verified 2026-10-22
+## Current blockers
 
-This inventory is a snapshot, not a permanent guarantee. Recheck each connection before rollout.
+- GitHub repository access is working, but hosted Actions jobs have failed before running any workflow steps (runner_id: 0, no steps). This is not a test result.
+- Supabase/PostgreSQL provider connection is not confirmed.
+- Vercel connection and a successful preview deployment are not confirmed.
+- Replit is installed as a ChatGPT integration, but no intended AVRONE app was found.
+- No external model executor URL/key/model handshake is confirmed.
+- No successful current evidence-console contract response is recorded.
 
-| Connection | Verified state | Next action |
-|---|---|---|
-| GitHub repository | Accessible. PR #12 (safe activation gate) is open and draft, not merged. | Keep draft until a real CI run executes steps and passes. |
-| GitHub Actions | Latest activation-gate and Plane CI runs failed before steps were recorded; job step lists were empty and log retrieval returned `BlobNotFound`. | Restore runner startup, then rerun and require passing results. Treat CI as unverified. |
-| Vercel hosting | A Vercel status check exists but is still pending for the latest activation branch; no healthy preview is confirmed. | Connect the Vercel account integration, inspect the failed deployment, and obtain a healthy preview before relying on it. |
-| PostgreSQL/Supabase | No live PostgreSQL 16 integration result is available in this work session; no Supabase project connection is confirmed. | Connect a disposable database, apply the real schema, run the integration suite, and preserve the run URL/log as evidence. |
-| Replit | Integration is available, but the current app search returned no accessible AVRONE app. | Do not create a duplicate. Open/select the intended app or choose the confirmed Vercel deployment path. |
-| External executor | The Python bridge is a provisional lab stub; no external model/executor binding is verified. | Connect the intended executor, authenticate it, and prove health plus a safe non-production test before enabling workers. |
-| Backup/restore | No restore evidence is present in the reviewed activation record. | Restore a backup into an isolated environment and record the result. |
-| Operator approval | No approval record for the exact production release is present. | Approve only after all seven technical checks above pass. |
+## Decision rule
 
-## D. Safe decision rule
+READY_FOR_PROCUREMENT may advance procurement only. It never enables live workers.
 
-- **GO:** local review, health checks, read-only inspection, and dry-run planning.
-- **NO-GO:** live workers, external tool writes, production budget mutations, or production rollout while any activation check is missing.
-- If a criterion turns red or expires: remain in preview, pause supported work, revoke a suspect worker credential, and investigate before retrying.
+Production enablement remains blocked until all eight production criteria pass. If any criterion fails or becomes stale, keep preview mode, stop/revoke worker access, resolve the first reported blocker, and rerun the relevant check. Do not create or edit evidence merely to make a check green.
 
-The activation gate evaluates operator evidence; it cannot prove that a pasted evidence reference is genuine. Review the evidence itself. Never put tokens, database URLs, or other secrets in the evidence file or commit them to Git.
+## Implementation rule to prevent gate drift
+
+The canonical Node activation policy lives in `status/activation-gate.mjs`. The platform readiness module is only an adapter to that policy; it must not create a second set of time, release, or evidence rules. The Python runtime keeps a language-specific equivalent because it gates Python execution, and `test/activation-policy-parity.test.mjs` must keep its schema and ordered checks aligned with the Node policy. Treat any mismatch as NO-GO.
+
+The readiness result is not an enable command. The live executor must continue to require its separate runtime switches, exact release match, scoped credentials, healthy approved executor, and operator approval.
