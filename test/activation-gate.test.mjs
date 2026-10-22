@@ -27,6 +27,8 @@ const missing = evaluateActivation({ mode: 'live', now });
 assert.equal(missing.decision, 'BLOCKED');
 assert.ok(missing.blockers.some(function (value) { return value.includes('missing'); }));
 
+assert.equal(evaluateActivation({ mode: 'live', evidence: validEvidence(), now }).decision, 'BLOCKED');
+
 const valid = evaluateActivation({ mode: 'live', evidence: validEvidence(), now, expectedReleaseSha: 'a'.repeat(40) });
 assert.equal(valid.decision, 'LIVE_APPROVED');
 assert.equal(valid.liveExecutionAllowed, true);
