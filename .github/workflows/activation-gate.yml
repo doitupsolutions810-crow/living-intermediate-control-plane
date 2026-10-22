@@ -1,0 +1,54 @@
+name: AVRONE Safe Activation Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'status/activation-gate.mjs'
+      - 'test/activation-gate.test.mjs'
+      - 'platform/python-bridge/avrone_stack/activation_gate.py'
+      - 'platform/python-bridge/avrone_stack/settings.py'
+      - 'platform/python-bridge/tests/**'
+      - 'docs/activation-gate.md'
+      - '.github/workflows/activation-gate.yml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'status/activation-gate.mjs'
+      - 'test/activation-gate.test.mjs'
+      - 'platform/python-bridge/avrone_stack/activation_gate.py'
+      - 'platform/python-bridge/avrone_stack/settings.py'
+      - 'platform/python-bridge/tests/**'
+      - 'docs/activation-gate.md'
+      - '.github/workflows/activation-gate.yml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activation-gate:
+    name: Safe activation policy checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Activation policy tests
+        run: node test/activation-gate.test.mjs
+      - name: Python execution gate tests
+        env:
+          PYTHONPATH: platform/python-bridge
+        run: python -m unittest discover -s platform/python-bridge/tests -v
+      - name: Confirm safe default
+        run: npm run activation:check
