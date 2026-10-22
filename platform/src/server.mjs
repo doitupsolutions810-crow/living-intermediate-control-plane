@@ -16,6 +16,7 @@ import { createFederationApi } from './api/federation/index.mjs';
 import { createAttestationApi } from './api/attestation/index.mjs';
 import { ComponentRegistry } from './attestation/component-registry.mjs';
 import { buildSessionLink, createSessionLinkStore } from './attestation/session-link.mjs';
+import { RATE, stateAt, beliefToScale, scaleToBeliefStep, snapshotFromBelief } from './bridge/great-scale.mjs';
 
 await fs.mkdir(config.root, { recursive: true });
 await fs.mkdir(config.workspace, { recursive: true });
@@ -104,7 +105,29 @@ const handler = async (req, res) => {
         version: config.version,
         chatOpen: config.chatOpen,
         requireQuorum: config.requireQuorum,
-        mtls: config.mtls
+        mtls: config.mtls,
+        scale: beliefToScale(resonant.getState().belief)
+      });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/v1/scale/state') {
+      const live = resonant.getState();
+      const beliefParam = url.searchParams.get('belief');
+      const tParam = url.searchParams.get('t');
+      const rateParam = url.searchParams.get('rate');
+      const belief = beliefParam === null ? live.belief : Number(beliefParam);
+      const t = tParam === null ? Date.now() / 1000 : Number(tParam);
+      const rate = rateParam === null ? RATE : Number(rateParam);
+      if (!Number.isFinite(belief) || belief < 0 || belief > 1) {
+        return sendJson(res, 400, { error: 'belief must be finite and in [0, 1]' });
+      }
+      if (!Number.isFinite(t) || !Number.isFinite(rate) || !Number.isFinite(t * rate)) {
+        return sendJson(res, 400, { error: 't, rate, and t * rate must be finite' });
+      }
+      const view = url.searchParams.get('view') || 'Observer';
+      return sendJson(res, 200, {
+        ...snapshotFromBelief(belief, { t, rate, view }),
+        live
       });
     }
 
@@ -210,6 +233,42 @@ const handler = async (req, res) => {
     }
 
     if (req.method === 'POST') requireAuth(req, config.apiToken);
+
+    if (req.method === 'POST' && url.pathname === '/api/v1/scale/step') {
+      const body = await readJson(req, config.maxBodyBytes);
+      const live = resonant.getState();
+      const currentBelief = body.belief == null ? live.belief : Number(body.belief);
+      const t = body.t == null ? Date.now() / 1000 : Number(body.t);
+      const rate = body.rate == null ? RATE : Number(body.rate);
+      const stepScale = body.scale == null ? 0.05 : Number(body.scale);
+      if (!Number.isFinite(currentBelief) || currentBelief < 0 || currentBelief > 1) {
+        return sendJson(res, 400, { error: 'belief must be finite and in [0, 1]' });
+      }
+      if (!Number.isFinite(t) || !Number.isFinite(rate) || !Number.isFinite(t * rate)) {
+        return sendJson(res, 400, { error: 't, rate, and t * rate must be finite' });
+      }
+      if (!Number.isFinite(stepScale) || stepScale < 0 || stepScale > 1) {
+        return sendJson(res, 400, { error: 'scale must be finite and in [0, 1]' });
+      }
+      const view = typeof body.view === 'string' ? body.view : 'Observer';
+      const phaseTime = stateAt(t, rate);
+      const prior = beliefToScale(currentBelief);
+      const nextBelief = scaleToBeliefStep(currentBelief, phaseTime, { scale: stepScale });
+      const frame = resonant.tick(nextBelief);
+      const scaleState = snapshotFromBelief(frame.belief, { t, rate, view });
+      return sendJson(res, 200, {
+        schema: 'great-scale.step/v1',
+        priorBelief: currentBelief,
+        priorTension: prior.S,
+        nextBelief: frame.belief,
+        nextTension: frame.tension,
+        scale: stepScale,
+        phaseTime,
+        scaleState,
+        frame,
+        provisional: true
+      });
+    }
 
     if (req.method === 'POST' && url.pathname === '/api/v1/audio/tick') {
       const body = await readJson(req, config.maxBodyBytes);
