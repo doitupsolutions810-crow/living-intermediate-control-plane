@@ -34,6 +34,14 @@ assert.equal(valid.decision, 'LIVE_APPROVED');
 assert.equal(valid.liveExecutionAllowed, true);
 assert.equal(valid.passed, REQUIRED_CHECKS.length);
 
+const naiveTimestamp = validEvidence();
+naiveTimestamp.issuedAt = '2026-10-22T11:59:00';
+assert.equal(evaluateActivation({ mode: 'live', evidence: naiveTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
+const offsetTimestamp = validEvidence();
+offsetTimestamp.issuedAt = '2026-10-22T11:59:00+02:00';
+assert.equal(evaluateActivation({ mode: 'live', evidence: offsetTimestamp, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
 const expiredEvidence = validEvidence();
 expiredEvidence.expiresAt = new Date(now.getTime() - 1000).toISOString();
 assert.equal(evaluateActivation({ mode: 'live', evidence: expiredEvidence, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
