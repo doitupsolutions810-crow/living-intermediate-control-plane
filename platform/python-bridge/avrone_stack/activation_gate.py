@@ -34,7 +34,7 @@ def _parse_time(value: Any) -> datetime | None:
 
 
 def evaluate_activation(mode: str = "preview", evidence: Any = None,
-                        now: datetime | None = None) -> dict[str, Any]:
+                        now: datetime | None = None, expected_release_sha: str | None = None) -> dict[str, Any]:
     """Return a decision without revealing file content or secrets."""
     current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     selected = str(mode or "preview").lower()
@@ -59,6 +59,10 @@ def evaluate_activation(mode: str = "preview", evidence: Any = None,
         release_sha = evidence.get("releaseSha")
         if not isinstance(release_sha, str) or not re.fullmatch(r"(?:[a-f0-9]{40}|[a-f0-9]{64})", release_sha, re.I):
             blockers.append("Evidence must identify the exact release with a Git or SHA-256 digest.")
+        if not isinstance(expected_release_sha, str) or not re.fullmatch(r"(?:[a-f0-9]{40}|[a-f0-9]{64})", expected_release_sha, re.I):
+            blockers.append("AVRONE_RELEASE_SHA must identify the deployed release.")
+        elif not isinstance(release_sha, str) or release_sha.lower() != expected_release_sha.lower():
+            blockers.append("Activation evidence is for a different release than the deployed release.")
 
         issued = _parse_time(evidence.get("issuedAt"))
         expires = _parse_time(evidence.get("expiresAt"))
@@ -102,11 +106,11 @@ def evaluate_activation(mode: str = "preview", evidence: Any = None,
     }
 
 
-def evaluate_evidence_file(path: str | None, mode: str = "live") -> dict[str, Any]:
+def evaluate_evidence_file(path: str | None, mode: str = "live", expected_release_sha: str | None = None) -> dict[str, Any]:
     if not path:
-        return evaluate_activation(mode=mode, evidence=None)
+        return evaluate_activation(mode=mode, evidence=None, expected_release_sha=expected_release_sha)
     try:
         evidence = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError):
         evidence = None
-    return evaluate_activation(mode=mode, evidence=evidence)
+    return evaluate_activation(mode=mode, evidence=evidence, expected_release_sha=expected_release_sha)
