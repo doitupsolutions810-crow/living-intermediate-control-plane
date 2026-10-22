@@ -52,6 +52,10 @@ class ActivationGateTests(unittest.TestCase):
         self.assertEqual(result["decision"], "LIVE_APPROVED")
         self.assertTrue(result["liveExecutionAllowed"])
 
+    def test_fresh_evidence_without_expected_deployment_sha_is_blocked(self):
+        result = evaluate_activation("live", valid_evidence(), now=NOW)
+        self.assertFalse(result["liveExecutionAllowed"])
+
     def test_expired_evidence_is_blocked(self):
         evidence = valid_evidence()
         evidence["expiresAt"] = (NOW - timedelta(seconds=1)).isoformat()
