@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'status/activation-gate.mjs'
+      - 'status/activation-guide.mjs'
       - 'test/activation-gate.test.mjs'
+      - 'test/activation-guide.test.mjs'
       - 'platform/python-bridge/avrone_stack/activation_gate.py'
       - 'platform/python-bridge/avrone_stack/settings.py'
       - 'platform/python-bridge/avrone_stack/stdlib_server.py'
