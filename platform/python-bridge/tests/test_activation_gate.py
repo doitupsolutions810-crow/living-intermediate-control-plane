@@ -87,6 +87,16 @@ class ActivationGateTests(unittest.TestCase):
         evidence["issuedAt"] = "2026-10-22T13:59:00+02:00"
         self.assertFalse(evaluate_activation("live", evidence, now=NOW, expected_release_sha="a" * 40)["liveExecutionAllowed"])
 
+    def test_utc_zero_offset_timestamp_is_allowed(self):
+        evidence = valid_evidence()
+        evidence["issuedAt"] = (NOW - timedelta(minutes=1)).isoformat()
+        evidence["expiresAt"] = (NOW + timedelta(hours=1)).isoformat()
+        evidence["checks"]["ciPassed"]["observedAt"] = (NOW - timedelta(minutes=1)).isoformat()
+        result = evaluate_activation(
+            "live", evidence, now=NOW, expected_release_sha="a" * 40
+        )
+        self.assertTrue(result["liveExecutionAllowed"])
+
     def test_settings_require_both_operator_flag_and_evidence(self):
         with patch.dict(os.environ, {
             "ALLOW_AGENT_EXECUTION": "true",
