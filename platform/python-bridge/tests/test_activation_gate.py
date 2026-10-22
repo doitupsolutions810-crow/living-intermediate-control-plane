@@ -97,6 +97,21 @@ class ActivationGateTests(unittest.TestCase):
         )
         self.assertTrue(result["liveExecutionAllowed"])
 
+    def test_loose_and_invalid_calendar_timestamps_are_blocked(self):
+        for value in (
+            "October 22, 2026Z",
+            "2026-02-31T11:59:00.000Z",
+            "2026-10-22T11:59:00.000z",
+            "2026-10-22T11:59:00.000-00:00",
+        ):
+            with self.subTest(value=value):
+                evidence = valid_evidence()
+                evidence["issuedAt"] = value
+                result = evaluate_activation(
+                    "live", evidence, now=NOW, expected_release_sha="a" * 40
+                )
+                self.assertFalse(result["liveExecutionAllowed"])
+
     def test_settings_require_both_operator_flag_and_evidence(self):
         with patch.dict(os.environ, {
             "ALLOW_AGENT_EXECUTION": "true",
