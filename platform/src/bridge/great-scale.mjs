@@ -36,7 +36,8 @@ export const LAWS = Object.freeze([
 
 export function heat(h) {
   const x = Number(h);
-  if (!Number.isFinite(x)) return 0;
+  if (!Number.isFinite(x)) throw new TypeError('heat input h must be finite');
+  if (x < 0 || x > 1) throw new RangeError('heat input h must be in [0, 1]');
   return x * (1 - x);
 }
 
@@ -125,7 +126,7 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, rate = RATE,
 
 function clamp01(x) {
   const n = Number(x);
-  if (!Number.isFinite(n)) return 0.5;
+  if (!Number.isFinite(n)) throw new TypeError('belief input must be finite');
   return Math.max(0, Math.min(1, n));
 }
 
