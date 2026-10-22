@@ -26,7 +26,7 @@ def _parse_time(value: Any) -> datetime | None:
         return None
     try:
         result = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        if result.tzinfo is None:
+        if result.tzinfo is None or result.utcoffset() != timedelta(0):
             return None
         return result.astimezone(timezone.utc)
     except (TypeError, ValueError):
