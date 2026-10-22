@@ -6,7 +6,7 @@ import {
   beliefToScale,
   snapshotFromBelief
 } from '../src/bridge/great-scale.mjs';
-import { tension } from '../src/audio/jacobian.mjs';
+import { tension, integrateBeliefStep } from '../src/audio/jacobian.mjs';
 
 function assert(c, m) {
   if (!c) throw new Error(m || 'fail');
@@ -22,6 +22,15 @@ function assertThrows(fn, pattern) {
 }
 
 assert(Math.abs(heat(0.5) - 0.25) < 1e-12, 'heat peak');
+assert(Math.abs(heat(0) - 0) < 1e-12 && Math.abs(heat(1) - 0) < 1e-12, 'heat endpoints');
+assertThrows(() => heat(Number.NaN), /finite/);
+assertThrows(() => heat(Number.POSITIVE_INFINITY), /finite/);
+assertThrows(() => heat(-0.01), /\[0, 1\]/);
+assertThrows(() => heat(1.01), /\[0, 1\]/);
+assertThrows(() => beliefToScale(Number.NaN), /finite/);
+assertThrows(() => beliefToScale(Number.POSITIVE_INFINITY), /finite/);
+assertThrows(() => integrateBeliefStep(0.5, { delta: Number.NaN }), /finite/);
+assertThrows(() => integrateBeliefStep(0.5, { scale: Number.POSITIVE_INFINITY }), /finite/);
 assert(Math.abs(heat(0.5) - tension(0.5)) < 1e-12, 'heat ≡ tension');
 assert(PHI > 1.6 && PHI < 1.62, 'phi');
 assert(Math.abs(CONE - (PHI - 1) ** 2) < 1e-12, 'cone matches Great Scale φ⁻²');
