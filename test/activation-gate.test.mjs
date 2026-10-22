@@ -27,31 +27,35 @@ const missing = evaluateActivation({ mode: 'live', now });
 assert.equal(missing.decision, 'BLOCKED');
 assert.ok(missing.blockers.some(function (value) { return value.includes('missing'); }));
 
-const valid = evaluateActivation({ mode: 'live', evidence: validEvidence(), now });
+const valid = evaluateActivation({ mode: 'live', evidence: validEvidence(), now, expectedReleaseSha: 'a'.repeat(40) });
 assert.equal(valid.decision, 'LIVE_APPROVED');
 assert.equal(valid.liveExecutionAllowed, true);
 assert.equal(valid.passed, REQUIRED_CHECKS.length);
 
 const expiredEvidence = validEvidence();
 expiredEvidence.expiresAt = new Date(now.getTime() - 1000).toISOString();
-assert.equal(evaluateActivation({ mode: 'live', evidence: expiredEvidence, now }).decision, 'BLOCKED');
+assert.equal(evaluateActivation({ mode: 'live', evidence: expiredEvidence, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 
 const staleEvidence = validEvidence();
 staleEvidence.issuedAt = new Date(now.getTime() - 25 * 3600000).toISOString();
 staleEvidence.expiresAt = new Date(now.getTime() + 3600000).toISOString();
-assert.equal(evaluateActivation({ mode: 'live', evidence: staleEvidence, now }).decision, 'BLOCKED');
+assert.equal(evaluateActivation({ mode: 'live', evidence: staleEvidence, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 
 const missingSource = validEvidence();
 missingSource.checks.postgresIntegrationPassed.reference = '';
-assert.equal(evaluateActivation({ mode: 'live', evidence: missingSource, now }).decision, 'BLOCKED');
+assert.equal(evaluateActivation({ mode: 'live', evidence: missingSource, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 
 const failedTenant = validEvidence();
 failedTenant.checks.tenantIsolationPassed.passed = false;
-assert.equal(evaluateActivation({ mode: 'live', evidence: failedTenant, now }).decision, 'BLOCKED');
+assert.equal(evaluateActivation({ mode: 'live', evidence: failedTenant, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 
 const wrongEnv = validEvidence();
 wrongEnv.environment = 'staging';
-assert.equal(evaluateActivation({ mode: 'live', evidence: wrongEnv, now }).decision, 'BLOCKED');
+assert.equal(evaluateActivation({ mode: 'live', evidence: wrongEnv, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 
-assert.equal(evaluateActivation({ mode: 'banana', evidence: validEvidence(), now }).decision, 'BLOCKED');
+assert.equal(evaluateActivation({ mode: 'banana', evidence: validEvidence(), now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
+
+const mismatchedRelease = validEvidence();
+mismatchedRelease.releaseSha = 'b'.repeat(40);
+assert.equal(evaluateActivation({ mode: 'live', evidence: mismatchedRelease, now, expectedReleaseSha: 'a'.repeat(40) }).decision, 'BLOCKED');
 console.log('Activation gate tests: 9 passed, 0 failed');
