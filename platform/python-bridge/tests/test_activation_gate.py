@@ -158,6 +158,7 @@ class ActivationGateTests(unittest.TestCase):
                 "ALLOW_AGENT_EXECUTION": "true",
                 "AVRONE_ACTIVATION_MODE": "live",
                 "AVRONE_ACTIVATION_EVIDENCE_FILE": f.name,
+                "AVRONE_RELEASE_SHA": "a" * 40,
             }, clear=True):
                 summary = Settings().activation_status()
             serialized = json.dumps(summary).lower()
