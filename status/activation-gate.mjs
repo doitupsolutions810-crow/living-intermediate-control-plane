@@ -24,7 +24,7 @@ function timestamp(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
   const normalized = value.trim();
   // Accept only ISO timestamps in UTC; match Python's timezone rule and avoid Date.parse's loose formats.
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(?:Z|\+00:00)$/i.exec(normalized);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(?:Z|\+00:00)$/.exec(normalized);
   if (!match) return null;
   const parsed = Date.parse(normalized);
   if (!Number.isFinite(parsed)) return null;
