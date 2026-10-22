@@ -62,4 +62,4 @@ export function runResearch(k = 0.5){
   return { k, convergence: conv, cycles, stress, hypothesis: hyp };
 }
 
-export default { FIXED, PAIRS, involution, softMap, heat, convergenceSteps, cycleStability, stressInvariant, hypothesisReport, runResearch };
+export default { FIXED, PAIRS, canonicalizeCircleCoordinate, involution, softMap, heat, convergenceSteps, cycleStability, stressInvariant, hypothesisReport, runResearch };
