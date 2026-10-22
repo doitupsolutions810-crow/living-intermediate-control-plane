@@ -8,7 +8,7 @@ import {
   constants as fsConstants,
   fstatSync,
   openSync,
-  readFileSync
+  readSync
 } from 'node:fs';
 
 export const MAX_ACTIVATION_EVIDENCE_BYTES = 256 * 1024;
@@ -32,7 +32,17 @@ export function readActivationEvidenceFile(path) {
       if ((permissions & 0o077) !== 0 || (permissions & 0o400) === 0 || (permissions & 0o111) !== 0) return null;
     }
 
-    const parsed = JSON.parse(readFileSync(fd, 'utf8'));
+    // Bound the read itself as well as the initial stat: another process
+    // must not be able to grow the open file between fstat and read.
+    const buffer = Buffer.alloc(MAX_ACTIVATION_EVIDENCE_BYTES + 1);
+    let total = 0;
+    while (total < buffer.length) {
+      const bytesRead = readSync(fd, buffer, total, buffer.length - total, null);
+      if (bytesRead === 0) break;
+      total += bytesRead;
+    }
+    if (total > MAX_ACTIVATION_EVIDENCE_BYTES) return null;
+    const parsed = JSON.parse(buffer.subarray(0, total).toString('utf8'));
     return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
