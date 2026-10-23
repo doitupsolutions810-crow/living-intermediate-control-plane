@@ -78,3 +78,9 @@ curl -s "http://127.0.0.1:4400/api/v1/bridge/avrone-stack/probe" | jq .
 2. Publish observation digests into federation (belief+spectrum only).
 3. Cockpit action `avrone_stack_route` for operator-triggered dual-plane turns.
 4. Shared attestation key linking Node SBOM to AVRONE training export session ids.
+
+## Safe activation gate
+
+The Python executor now defaults to preview-only operation. Setting ALLOW_AGENT_EXECUTION=true alone is not sufficient. Live execution also requires AVRONE_ACTIVATION_MODE=live, AVRONE_ACTIVATION_EVIDENCE_FILE pointing to a fresh evidence file satisfying the eight checks in activation-gate.md, and AVRONE_RELEASE_SHA matching the evidence file's releaseSha exactly. Do not create or approve that file until the exact release has passed real PostgreSQL integration, tenant isolation, staging security review, backup restoration, worker-identity checks, executor health, CI, and operator approval. Missing or stale evidence keeps the executor closed.
+
+Live activation also requires `AVRONE_RELEASE_SHA` to match the evidence file's `releaseSha` exactly. Missing release identity is a hard NO-GO.

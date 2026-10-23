@@ -1,0 +1,17 @@
+{
+  "schema": "avrone.activation-evidence/v1",
+  "environment": "production",
+  "releaseSha": "REPLACE_WITH_EXACT_40_OR_64_CHARACTER_RELEASE_DIGEST",
+  "issuedAt": "",
+  "expiresAt": "",
+  "checks": {
+    "ciPassed": { "passed": false, "reference": "", "observedAt": "" },
+    "postgresIntegrationPassed": { "passed": false, "reference": "", "observedAt": "" },
+    "tenantIsolationPassed": { "passed": false, "reference": "", "observedAt": "" },
+    "stagingSecurityReviewPassed": { "passed": false, "reference": "", "observedAt": "" },
+    "backupRestorePassed": { "passed": false, "reference": "", "observedAt": "" },
+    "workerIdentityVerified": { "passed": false, "reference": "", "observedAt": "" },
+    "executorHealthPassed": { "passed": false, "reference": "", "observedAt": "" },
+    "operatorApproved": { "passed": false, "reference": "", "observedAt": "" }
+  }
+}

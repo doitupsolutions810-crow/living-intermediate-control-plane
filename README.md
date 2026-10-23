@@ -37,4 +37,8 @@ Root Directory: `avrone-chat`. Copy env from `avrone-chat/.env.example`. See `av
 ## External blockers
 
 - Public evidence-console domain still 404s
-- GitHub Actions automatic runs disabled at account level
+- GitHub Actions workflows currently fail before any steps execute; see issue #11 for runner-dispatch diagnostics
+
+## Safe activation
+
+Run `npm run activation:guide` for a plain-language next-step checklist, or `npm run activation:check` for the underlying safe-preview decision. The guide is read-only: it never enables workers or writes production data. Live execution requires fresh evidence for all eight success criteria; procurement readiness is not production approval. See `docs/activation-gate.md`.
