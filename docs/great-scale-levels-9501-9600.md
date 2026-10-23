@@ -45,32 +45,28 @@ Let:
 - (J(O)) = real transport acknowledges operation (O);
 - (P(O)) = outbox records (O) as published.
 
-A minimum build contract is:
-[
-I Rightarrow S
-]
-for the runtime dependency set of the module being built, with import checks actually executed in the target environment.
+A minimum build contract is that a module's runtime imports resolve within the exact release artifact (or declared, reproducible dependencies), and that this is tested by an actual import check.
 
 The transport contract remains:
-[
-P(O) Rightarrow J(O)
-]
+
+`P(O) => J(O)`
 
 The unsafe implementation allows:
-[
-	ext{callback returns normally} Rightarrow P(O)
-]
-without requiring (J(O)). No amount of numerical coherence in Great Scale can repair a missing source dependency or manufacture transport evidence.
+
+`callback returns normally => P(O)`
+
+without requiring `J(O)`. No amount of numerical coherence in Great Scale can repair a missing source dependency or manufacture transport evidence.
 
 For the model's numerical side:
-[
-mathrm{CONE}=arphi^{-2}approx0.381966,qquad
-Psi=mathrm{CONE}+h(1-h),quad hin[0,1]
-]
-and therefore:
-[
-mathrm{CONE}leqPsileqmathrm{CONE}+	frac14approx0.631966.
-]
+
+`CONE = φ^-2 ≈ 0.381966`
+
+`Ψ = CONE + h(1-h), with h in [0,1]`
+
+Since `0 <= h(1-h) <= 1/4`:
+
+`CONE <= Ψ <= CONE + 1/4 ≈ 0.631966`.
+
 This is a valid bounded model invariant, not a software build or message-delivery certificate. Great Scale must keep model validity, artifact validity, and operational evidence as distinct coordinates.
 
 ### Levels 9501–9510
