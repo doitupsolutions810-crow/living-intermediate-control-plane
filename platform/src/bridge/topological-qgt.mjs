@@ -182,7 +182,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   const n = currentMidpoint.negativeCurvatureBudget;
   const area = currentMidpoint.metricAreaBudget;
   // Signed companion prevents the scalar correction from erasing Chern orientation.
-  const signedTopologicalPolarization = area > EPS ? chernNumber / area : 0;
+  const signedTopologicalPolarization = Math.sign(chernNumber) * topologicalSaturation;
   const curvatureMixingIndex = area > EPS ? (p * n) / (area * area) : 0;
   const curvatureMixingResidual = Math.abs(STopological - curvatureMixingIndex);
   const curvatureChernResidual = Math.abs(currentMidpoint.integratedCurvature - chernNumber);
