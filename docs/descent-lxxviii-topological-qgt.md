@@ -40,3 +40,52 @@ Retain \(S_Q=(1-\chi^2)/4\) and \(\Psi_Q=\phi^{-2}+S_Q\) unchanged. Treat \(C\in
 ## Verification
 
 The new tests check \(C=-1,+1,0\) for \(m=-1,+1,3\), reject the critical masses \(m=-2,0,2\) even on odd-sized grids, verify local QGT saturation, and compare 20×20 and 40×40 grids in gapped phases. This is numerical verification of the specified model, not a claim of experimental validation or universality beyond the model.
+
+
+## Descent LXXIX — Sign-consistent curvature and a topological metric-area bound
+
+### Finding 1: the occupied-band curvature sign must agree with the global invariant
+
+The lower-band projector of this Hamiltonian has Bloch vector \(s(k)=-d(k)/|d(k)|\), not \(+d/|d|\). Replacing \(n\) by \(-n\) leaves the quantum metric unchanged but reverses the Berry-curvature sign. Therefore the analytic lower-band curvature must be
+\[
+F_{12}=-\frac12 n\cdot(\partial_{k_x}n\times\partial_{k_y}n),
+\quad n=d/|d|.
+\]
+The old sign did not affect the absolute-curvature Great Scale scalar, but it disagreed with the Fukui–Hatsugai–Suzuki (FHS) Chern-number orientation. The analytic routine is corrected, and a new test compares the full-zone curvature integral with the independently link-computed Chern number for \(m=\pm1\).
+
+### Finding 2: quantum-metric area pays a topological minimum
+
+For a pure two-band state,
+\[
+\det g=\frac{F_{12}^{2}}4,\qquad
+\sqrt{\det g}=\frac{|F_{12}|}{2}.
+\]
+Define the dimensionless metric-area budget on the Brillouin torus:
+\[
+\mathcal A_Q=\frac1\pi\int_{\mathrm{BZ}}\sqrt{\det g}\,d^2k
+=\frac1{2\pi}\int_{\mathrm{BZ}}|F_{12}|\,d^2k.
+\]
+Because the Chern number is the signed curvature integral, the triangle inequality gives
+\[
+\boxed{\mathcal A_Q\ge |C|},\qquad
+\mathcal E_Q=\mathcal A_Q-|C|\ge0.
+\]
+This separates net topological degree from unsigned geometric coverage: positive and negative local curvature can cancel in \(C\), but both contribute to metric area. The excess \(\mathcal E_Q\) measures area beyond the minimum forced by topology.
+
+### Great Scale mapping
+
+Keep the established local scalar unchanged:
+\[
+\Psi_Q=\phi^{-2}+S_Q,\quad S_Q=\frac14(1-\chi^2).
+\]
+Expose a separate global channel with \(C\in\mathbb Z\), \(\mathcal A_Q\), and \(\mathcal E_Q\). For a compact Great Scale scalar, define the topological saturation ratio \(\tau=|C|/\mathcal A_Q\in[0,1]\), then
+\[
+h_T=\frac{1+\tau}{2},\quad
+S_T=h_T(1-h_T)=\frac{1-\tau^2}{4},\quad
+\Psi_T=\phi^{-2}+S_T.
+\]
+The implementation emits chernNumber, metricAreaBudget, metricAreaExcess, topologicalSaturation, STopological, and psiTopological. Preserve the signed integer \(C\) separately: the heat scalar intentionally loses its sign. This is an additive diagnostic, not a replacement for the phase-driven Great Scale state or a physical law.
+
+### Verification added
+
+Tests check (1) local curvature integration agrees in sign and value with the FHS Chern result in both \(C=\pm1\) phases, (2) \(\mathcal A_Q=\frac1{2\pi}\int|F|\ge|C|\), (3) the metric-area budget approaches a stable value from 40×40 to 80×80, and (4) the trivial phase has \(C=0\) despite a nonzero unsigned metric-area budget. The lower bound follows analytically from the QGT identity and triangle inequality; the numerical tests verify its implementation for this Hamiltonian.

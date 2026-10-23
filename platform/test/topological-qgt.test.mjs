@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { quantumGeometryToScale } from '../src/bridge/quantum-geometry.mjs';
-import { qiWuZhangChernNumber, qiWuZhangLocalQGT } from '../src/bridge/topological-qgt.mjs';
+import { CONE } from '../src/bridge/great-scale.mjs';
+import { qiWuZhangChernNumber, qiWuZhangLocalQGT, qiWuZhangGlobalGeometry } from '../src/bridge/topological-qgt.mjs';
 
 function close(a, b, tolerance = 1e-8) { assert.ok(Math.abs(a - b) <= tolerance, a + ' != ' + b); }
 
@@ -26,16 +27,33 @@ test('Chern result is stable between 20x20 and 40x40 grids in gapped phases', ()
   close(qiWuZhangChernNumber(1, 20), qiWuZhangChernNumber(1, 40));
 });
 
-test('Chern result is stable across 20x20 and 40x40 grids', () => {
-  close(qiWuZhangChernNumber(-1, 20), qiWuZhangChernNumber(-1, 40));
-  close(qiWuZhangChernNumber(1, 20), qiWuZhangChernNumber(1, 40));
-});
 test('invalid grid sizes and nonfinite masses are rejected', () => {
   assert.throws(() => qiWuZhangChernNumber(1, 3), /gridSize/);
   assert.throws(() => qiWuZhangChernNumber(Number.NaN), /finite/);
 });
-
-test('invalid grid sizes and nonfinite masses are rejected', () => {
-  assert.throws(() => qiWuZhangChernNumber(1, 3), /gridSize/);
-  assert.throws(() => qiWuZhangChernNumber(Number.NaN), /finite/);
+test('signed local curvature integral agrees with the FHS Chern orientation', () => {
+  for (const m of [-1, 1]) {
+    const d = qiWuZhangGlobalGeometry(m, 40);
+    close(d.integratedCurvature, d.chernNumber, 1e-8);
+  }
+});
+test('metric-area budget obeys the Chern lower bound and maps into Great Scale', () => {
+  for (const m of [-1, 1]) {
+    const d = qiWuZhangGlobalGeometry(m, 40);
+    assert.ok(d.metricAreaBudget >= Math.abs(d.chernNumber) - 1e-9);
+    close(d.metricAreaBudget, d.absoluteCurvatureBudget, 1e-8);
+    assert.ok(d.metricAreaExcess > 0);
+    assert.ok(d.topologicalSaturation >= 0 && d.topologicalSaturation <= 1);
+    close(d.psiTopological, CONE + d.STopological, 1e-12);
+  }
+  const trivial = qiWuZhangGlobalGeometry(3, 40);
+  close(trivial.chernNumber, 0);
+  close(trivial.topologicalSaturation, 0);
+  close(trivial.STopological, 0.25);
+  close(trivial.psiTopological, CONE + 0.25);
+  assert.ok(trivial.metricAreaBudget > 0);
+});
+test('global metric-area budget converges under grid refinement', () => {
+  close(qiWuZhangGlobalGeometry(-1, 40).metricAreaBudget, qiWuZhangGlobalGeometry(-1, 80).metricAreaBudget, 2e-4);
+  close(qiWuZhangGlobalGeometry(1, 40).metricAreaBudget, qiWuZhangGlobalGeometry(1, 80).metricAreaBudget, 2e-4);
 });
