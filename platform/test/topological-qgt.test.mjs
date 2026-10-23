@@ -161,6 +161,22 @@ test('curvature orientation variance and minority-sign cancellation identity map
   }
 });
 
+test('signed topological polarization restores orientation lost by the Great Scale scalar', () => {
+  const negative = qiWuZhangGlobalGeometry(-1, 40);
+  const positive = qiWuZhangGlobalGeometry(1, 40);
+  const trivial = qiWuZhangGlobalGeometry(3, 40);
+  for (const d of [negative, positive, trivial]) {
+    assert.equal(d.topologicalMappingValid, true);
+    close(d.signedTopologicalPolarization, d.chernNumber / d.metricAreaBudget, 1e-12);
+  }
+  close(negative.psiTopological, positive.psiTopological, 1e-10);
+  close(negative.signedTopologicalPolarization, -positive.signedTopologicalPolarization, 1e-10);
+  close(trivial.signedTopologicalPolarization, 0, 1e-12);
+  close(trivial.STopological, 0.25, 1e-12);
+  close(trivial.psiTopological, CONE + 0.25, 1e-12);
+  assert.ok(trivial.metricAreaBudget > 0);
+});
+
 test('numerically accepted scalar is withheld when quadrature is under-resolved', () => {
   const near = qiWuZhangGlobalGeometry(-1.99, 40);
   assert.equal(near.topologicalMappingValid, false);
