@@ -26,6 +26,9 @@ function phase(z) {
 /** Discrete Chern number using FHS plaquette phases; orientation fixes the reported sign. */
 export function qiWuZhangChernNumber(m, gridSize = 40) {
   if (!Number.isFinite(m)) throw new TypeError('Mass parameter m must be finite.');
+  if (Math.abs(m + 2) < EPS || Math.abs(m) < EPS || Math.abs(m - 2) < EPS) {
+    throw new RangeError('Band gap closes at a topological phase boundary for m=' + m + '.');
+  }
   if (!Number.isInteger(gridSize) || gridSize < 4) throw new RangeError('gridSize must be an integer >= 4.');
   const states = Array.from({ length: gridSize }, (_, i) =>
     Array.from({ length: gridSize }, (_, j) =>
