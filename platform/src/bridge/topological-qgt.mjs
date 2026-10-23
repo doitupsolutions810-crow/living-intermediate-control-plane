@@ -68,7 +68,7 @@ export function qiWuZhangLocalQGT(kx, ky, m) {
  * occupied lower-band FHS Chern number. The normalized metric area obeys A/pi >= |C|.
  */
 /**
- * Midpoint-sampled whole-Brillouin-zone QGT integrals at a given grid.
+ * Uniform-grid whole-Brillouin-zone QGT integrals at a given grid.
  * The signed curvature and unsigned metric area are separate quadratures.
  */
 function qiWuZhangLocalIntegrals(m, gridSize) {
