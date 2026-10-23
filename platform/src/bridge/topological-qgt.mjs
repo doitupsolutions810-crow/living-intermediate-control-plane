@@ -105,6 +105,10 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     throw new RangeError('maxRefinements must be an integer between 1 and 5.');
   }
 
+  // Gap-aware numerical conditioning: avoid treating Richardson estimates as reliable
+  // when the model is too close to a known gap-closing mass.
+  const gapDistance = Math.min(Math.abs(m + 2), Math.abs(m), Math.abs(m - 2));
+  const gapAwareToleranceScale = Math.min(1, Math.max(0.05, gapDistance / 0.25));
   const rawChernNumber = qiWuZhangChernNumber(m, gridSize);
   const chernNumber = Math.round(rawChernNumber);
   const chernIntegerResidual = Math.abs(rawChernNumber - chernNumber);
@@ -147,7 +151,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
       metricAreaObservedOrder >= 1.5 && metricAreaObservedOrder <= 2.5;
     gridAlignmentCurvatureDiscrepancy = Math.abs(nextVertex.integratedCurvature - nextMidpoint.integratedCurvature);
     gridAlignmentAreaDiscrepancy = Math.abs(nextVertex.metricAreaBudget - nextMidpoint.metricAreaBudget);
-    quadratureTolerance = 1e-3 * Math.max(1, Math.abs(nextMidpoint.metricAreaBudget));
+    quadratureTolerance = 1e-3 * Math.max(1, Math.abs(nextMidpoint.metricAreaBudget)) * gapAwareToleranceScale;
     currentGridSize = nextGridSize;
     currentMidpoint = nextMidpoint;
     refinementCount++;
@@ -202,6 +206,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     curvatureQuadratureError, metricAreaQuadratureError,
     curvatureRichardsonErrorEstimate, metricAreaRichardsonErrorEstimate,
     curvatureObservedOrder, metricAreaObservedOrder, richardsonAsymptotic,
+    gapDistance, gapAwareToleranceScale,
     gridAlignmentCurvatureDiscrepancy, gridAlignmentAreaDiscrepancy,
     quadratureTolerance, quadratureConverged,
     refinementCount, refinedGridSize: currentGridSize
