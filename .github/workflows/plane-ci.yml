@@ -48,8 +48,8 @@ jobs:
       - name: Doctor
         run: node status/doctor.mjs
 
-      - name: Self-test
-        run: node test/self-test.mjs
+      - name: Self-test and platform tests
+        run: npm test
 
       - name: Health
         run: node status/health.mjs
