@@ -28,7 +28,7 @@ For \(\mathcal A_Q>0\) and a valid map:
 - If \(C=0\), then \(S_T=1/4\) and \(\Psi_T=(3-\sqrt5)/2+1/4\) for every positive area. The scalar is maximally corrected and cannot recover the absolute geometric area.
 - The sign of \(C\) is not inferable from \(\Psi_T\) alone. Retain the signed companion \(\eta_T=C/\mathcal A_Q\), together with \(C\) and \(\mathcal A_Q\), whenever orientation matters.
 
-The implementation now exposes `signedTopologicalPolarization` as the signed Chern number divided by the computed metric-area budget. It is a diagnostic for converged maps; it may fall outside \([-1,1]\) when a raw numerical area estimate violates the theoretical bound, in which case the existing validity gate must reject the scalar.
+The implementation exposes `signedTopologicalPolarization` as the signed counterpart of the bounded `topologicalSaturation`. For a converged physical estimate with \\(|C|\\leq\\mathcal A_Q\\), it equals \\(C/\\mathcal A_Q\\). If quadrature noise makes the raw area estimate slightly violate the bound, the polarization remains in \\([-1,1]\\), while `metricAreaExcess`, residuals, and `topologicalMappingValid` retain the numerical warning.
 
 ## Great Scale mapping
 
