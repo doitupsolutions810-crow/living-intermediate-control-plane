@@ -112,6 +112,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
 
   let currentGridSize = gridSize;
   let currentMidpoint = initial;
+  let currentVertex = qiWuZhangLocalIntegrals(m, currentGridSize, 0);
   let curvatureQuadratureError = Infinity;
   let metricAreaQuadratureError = Infinity;
   let gridAlignmentCurvatureDiscrepancy = Math.abs(currentVertex.integratedCurvature - currentMidpoint.integratedCurvature);
