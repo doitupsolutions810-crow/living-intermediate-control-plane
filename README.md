@@ -32,7 +32,7 @@ npm run continuous       # optional always-on readiness
 
 ## Quantum-geometry research bridge
 
-The additive QGT bridge is covered by `platform/test/quantum-geometry.test.mjs`. The follow-on [Descent LXXVIII](docs/descent-lxxviii-topological-qgt.md) demonstrates why a local scalar residual cannot encode the global Chern number of a two-band model. [Descent LXXXVIII — curvature-sign variance and cancellation](platform/research/DESCENT_LXXXVIII_CURVATURE_SIGN_VARIANCE.md) derives a global variance interpretation and adds cancellation-identity checks. Root `npm test` now includes `npm --prefix platform test` so the platform regression suite is in the standard test command.
+The additive QGT bridge is covered by `platform/test/quantum-geometry.test.mjs`. The follow-on [Descent LXXVIII](docs/descent-lxxviii-topological-qgt.md) demonstrates why a local scalar residual cannot encode the global Chern number of a two-band model. [Descent LXXXVIII — curvature-sign variance and cancellation](platform/research/DESCENT_LXXXVIII_CURVATURE_SIGN_VARIANCE.md) derives a global variance interpretation and adds cancellation-identity checks. [Descent LXXXIX — orientation blindness and identifiability](platform/research/DESCENT_LXXXIX_ORIENTATION_IDENTIFIABILITY.md) adds signed polarization and regression coverage for orientation reversal. Root `npm test` now includes `npm --prefix platform test` so the platform regression suite is in the standard test command.
 
 ## Avrone on Vercel
 
