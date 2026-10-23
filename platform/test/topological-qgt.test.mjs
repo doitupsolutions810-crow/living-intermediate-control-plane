@@ -8,7 +8,9 @@ function close(a, b, tolerance = 1e-8) { assert.ok(Math.abs(a - b) <= tolerance,
 test('QWZ lower band has Chern number -1 for m=-1', () => close(qiWuZhangChernNumber(-1), -1));
 test('QWZ lower band has Chern number +1 for m=+1', () => close(qiWuZhangChernNumber(1), 1));
 test('QWZ trivial phase m=3 has Chern number zero', () => close(qiWuZhangChernNumber(3), 0));
-test('gap-closing model at m=0 is rejected', () => assert.throws(() => qiWuZhangChernNumber(0), /Band gap closes/));
+test('all phase-boundary masses are rejected even on odd grids', () => {
+  for (const m of [-2, 0, 2]) assert.throws(() => qiWuZhangChernNumber(m, 41), /phase boundary/);
+});
 test('local QGT saturates the positivity bound in the m=-1 phase', () => {
   const r = quantumGeometryToScale(qiWuZhangLocalQGT(.37, .81, -1));
   close(r.curvatureFraction, 1, 1e-9); close(r.S, 0, 1e-9); close(r.psi, .3819660112501051, 1e-9);
