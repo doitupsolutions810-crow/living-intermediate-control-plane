@@ -4,10 +4,24 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const { involution, softMap, heat, convergenceSteps, cycleStability, stressInvariant, hypothesisReport, FIXED, PAIRS } = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale-research.mjs')).href);
+const { involution, modDist, heat, convergenceSteps, stressInvariant, hypothesisReport, FIXED, PAIRS } =
+  await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale-research.mjs')).href);
+const { PHI, PHI_INV, CONE, stateAt } =
+  await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale.mjs')).href);
 
-test('involution is an involution: f(f(x)) = x', () => {
-  for (const x of [0,1,2,3,4,4.5,5,6,7,8,9]) assert.equal(involution(involution(x)), x);
+test('involution is identity modulo nine, including 0 ≡ 9', () => {
+  for (const x of [0,1,2,3,4,4.5,5,6,7,8,9,-9]) {
+    assert.ok(modDist(involution(involution(x)), x) < 1e-9, `x=${x}`);
+  }
+  assert.equal(involution(0), 0);
+  assert.equal(involution(9), 0);
+});
+
+test('canonical cone is φ⁻²', () => {
+  assert.ok(Math.abs(CONE - PHI_INV * PHI_INV) < 1e-12);
+  assert.ok(Math.abs(CONE - 0.38196601125) < 1e-10);
+  assert.ok(Math.abs(stateAt(0).psi - CONE) < 1e-12);
+  assert.ok(PHI > 1.6);
 });
 
 test('heat equals tension form', () => {
@@ -32,12 +46,11 @@ test('two-cycles preserved by involution', () => {
 });
 
 test('stress invariant residual is zero at fixed point', () => {
-  const s = stressInvariant(4.5);
-  assert.ok(s.residual < 1e-9);
+  assert.ok(stressInvariant(4.5).residual < 1e-9);
 });
 
 test('hypothesis report at 4.5 supports', () => {
   const h = hypothesisReport(4.5);
-  assert.equal(h.support, 'supports);
+  assert.equal(h.support, 'supports');
   assert.ok(h.S <= 0.25);
 });
