@@ -67,13 +67,11 @@ export function qiWuZhangLocalQGT(kx, ky, m) {
  * Whole-Brillouin-zone diagnostic. Curvature is oriented to match the
  * occupied lower-band FHS Chern number. The normalized metric area obeys A/pi >= |C|.
  */
-export function qiWuZhangGlobalGeometry(m, gridSize = 80) {
-  if (!Number.isFinite(m)) throw new TypeError('Mass parameter m must be finite.');
-  if (Math.abs(m + 2) < EPS || Math.abs(m) < EPS || Math.abs(m - 2) < EPS) {
-    throw new RangeError('Band gap closes at a topological phase boundary for m=' + m + '.');
-  }
-  if (!Number.isInteger(gridSize) || gridSize < 4) throw new RangeError('gridSize must be an integer >= 4.');
-  const chernNumber = Math.round(qiWuZhangChernNumber(m, gridSize));
+/**
+ * Midpoint-sampled whole-Brillouin-zone QGT integrals at a given grid.
+ * The signed curvature and unsigned metric area are separate quadratures.
+ */
+function qiWuZhangLocalIntegrals(m, gridSize) {
   const dk = TWO_PI / gridSize;
   let signedCurvature = 0, absoluteCurvature = 0, metricAreaDensity = 0;
   for (let i = 0; i < gridSize; i++) for (let j = 0; j < gridSize; j++) {
@@ -83,19 +81,53 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80) {
     metricAreaDensity += Math.sqrt(Math.max(0, q.g11 * q.g22 - q.g12 * q.g12));
   }
   const cellArea = dk * dk;
-  const integratedCurvature = signedCurvature * cellArea / TWO_PI;
-  const absoluteCurvatureBudget = absoluteCurvature * cellArea / TWO_PI;
-  const metricAreaBudget = metricAreaDensity * cellArea / Math.PI;
+  return {
+    integratedCurvature: signedCurvature * cellArea / TWO_PI,
+    absoluteCurvatureBudget: absoluteCurvature * cellArea / TWO_PI,
+    metricAreaBudget: metricAreaDensity * cellArea / Math.PI
+  };
+}
+
+/**
+ * Whole-Brillouin-zone diagnostic plus a one-level refinement check.
+ * quadratureConverged is a resolution heuristic, not a rigorous error bound.
+ * A flagged result must not be interpreted as a converged geometric-area estimate.
+ */
+export function qiWuZhangGlobalGeometry(m, gridSize = 80) {
+  if (!Number.isFinite(m)) throw new TypeError('Mass parameter m must be finite.');
+  if (Math.abs(m + 2) < EPS || Math.abs(m) < EPS || Math.abs(m - 2) < EPS) {
+    throw new RangeError('Band gap closes at a topological phase boundary for m=' + m + '.');
+  }
+  if (!Number.isInteger(gridSize) || gridSize < 4) throw new RangeError('gridSize must be an integer >= 4.');
+
+  const chernNumber = Math.round(qiWuZhangChernNumber(m, gridSize));
+  const base = qiWuZhangLocalIntegrals(m, gridSize);
+  const refined = qiWuZhangLocalIntegrals(m, gridSize * 2);
+  const curvatureQuadratureError = Math.abs(refined.integratedCurvature - base.integratedCurvature);
+  const metricAreaQuadratureError = Math.abs(refined.metricAreaBudget - base.metricAreaBudget);
+  const quadratureTolerance = 1e-3 * Math.max(1, Math.abs(refined.metricAreaBudget));
+  const quadratureConverged =
+    curvatureQuadratureError <= quadratureTolerance &&
+    metricAreaQuadratureError <= quadratureTolerance;
+
   const topologicalFloor = Math.abs(chernNumber);
-  const metricAreaExcess = metricAreaBudget - topologicalFloor;
-  const topologicalSaturation = metricAreaBudget > EPS
-    ? Math.max(0, Math.min(1, topologicalFloor / metricAreaBudget)) : 0;
+  const metricAreaExcess = base.metricAreaBudget - topologicalFloor;
+  const topologicalSaturation = base.metricAreaBudget > EPS
+    ? Math.max(0, Math.min(1, topologicalFloor / base.metricAreaBudget)) : 0;
   const hTopological = (1 + topologicalSaturation) / 2;
   const STopological = heat(hTopological);
   const psiTopological = CONE + STopological;
   return {
-    chernNumber, integratedCurvature, absoluteCurvatureBudget,
-    metricAreaBudget, topologicalFloor, metricAreaExcess,
-    topologicalSaturation, hTopological, STopological, psiTopological
+    chernNumber,
+    integratedCurvature: base.integratedCurvature,
+    absoluteCurvatureBudget: base.absoluteCurvatureBudget,
+    metricAreaBudget: base.metricAreaBudget,
+    topologicalFloor, metricAreaExcess, topologicalSaturation,
+    hTopological, STopological, psiTopological,
+    refinedIntegratedCurvature: refined.integratedCurvature,
+    refinedAbsoluteCurvatureBudget: refined.absoluteCurvatureBudget,
+    refinedMetricAreaBudget: refined.metricAreaBudget,
+    curvatureQuadratureError, metricAreaQuadratureError,
+    quadratureTolerance, quadratureConverged
   };
 }

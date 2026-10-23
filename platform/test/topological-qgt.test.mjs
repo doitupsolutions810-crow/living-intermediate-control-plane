@@ -77,3 +77,18 @@ test('curvature quadrature converges across refinement for phases away from tran
       'refined quadrature should not worsen the error at m=' + m);
   }
 });
+test('quadrature diagnostics flag near-transition under-resolution', () => {
+  const near = qiWuZhangGlobalGeometry(-1.99, 40);
+  assert.strictEqual(near.chernNumber, -1);
+  assert.strictEqual(near.quadratureConverged, false);
+  assert.ok(near.metricAreaQuadratureError > 1);
+  close(near.metricAreaQuadratureError,
+    Math.abs(near.refinedMetricAreaBudget - near.metricAreaBudget), 1e-12);
+  close(near.refinedMetricAreaBudget,
+    qiWuZhangGlobalGeometry(-1.99, 80).metricAreaBudget, 1e-10);
+
+  const stable = qiWuZhangGlobalGeometry(-1, 40);
+  assert.strictEqual(stable.quadratureConverged, true);
+  close(stable.refinedMetricAreaBudget,
+    qiWuZhangGlobalGeometry(-1, 80).metricAreaBudget, 1e-10);
+});

@@ -102,3 +102,16 @@ For the Qi–Wu–Zhang model, the gapped phases represented by the sweep are:
 - (m>2): (C=0)
 
 The exact transition masses (m=-2,0,2) remain rejected. The added sweep samples multiple parameter values in each gapped region, requiring the FHS result to be close to an integer and to match the expected phase. A separate refinement check compares 40×40 and 80×80 curvature quadrature error. This is a numerical reliability improvement for this Hamiltonian, not a universal grid-size guarantee; points close to a transition may require much finer sampling.
+
+
+## Descent LXXXI — A correct integer can coexist with a badly resolved geometric integral
+
+The global FHS link calculation and the local-curvature/metric-area quadrature answer different numerical questions. Near a gap closing, the occupied-state geometry becomes sharply concentrated in momentum space. The discrete FHS invariant can remain stable and integer-valued while a coarse regular-grid quadrature substantially over- or under-resolves \(\int |F|\,d^2k\).
+
+For example, independent evaluation of the analytic QGT density gives these normalized metric-area estimates:
+- \(m=-1.99\): about \(20.24\) at 40×40, versus \(5.57\) at 80×80;
+- \(m=2.05\): about \(1.29\) at 40×40, versus \(0.82\) at 80×80.
+
+Those large differences are a numerical-resolution warning, not a violation of the analytic bound \(\mathcal A_Q\ge |C|\). The diagnostic now returns a 2× grid estimate and the absolute change in both curvature integral and metric area, along with the refinement tolerance and convergence flag. The convergence flag is a practical one-step refinement heuristic, not a rigorous error estimate; near-transition inputs may require repeated refinement or adaptive integration.
+
+Great Scale should therefore treat the scalar \(\Psi_T\) as provisional whenever the convergence flag is false. Keep the discrete integer Chern number distinct from that numerical confidence signal. This is the new operational finding: topology may be correctly classified before the geometric measure used to characterize it has numerically converged.
