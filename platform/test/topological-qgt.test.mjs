@@ -23,6 +23,16 @@ test('Chern result is stable between 20x20 and 40x40 grids in gapped phases', ()
   close(qiWuZhangChernNumber(-1, 20), qiWuZhangChernNumber(-1, 40));
   close(qiWuZhangChernNumber(1, 20), qiWuZhangChernNumber(1, 40));
 });
+
+test('Chern result is stable across 20x20 and 40x40 grids', () => {
+  close(qiWuZhangChernNumber(-1, 20), qiWuZhangChernNumber(-1, 40));
+  close(qiWuZhangChernNumber(1, 20), qiWuZhangChernNumber(1, 40));
+});
+test('invalid grid sizes and nonfinite masses are rejected', () => {
+  assert.throws(() => qiWuZhangChernNumber(1, 3), /gridSize/);
+  assert.throws(() => qiWuZhangChernNumber(Number.NaN), /finite/);
+});
+
 test('invalid grid sizes and nonfinite masses are rejected', () => {
   assert.throws(() => qiWuZhangChernNumber(1, 3), /gridSize/);
   assert.throws(() => qiWuZhangChernNumber(Number.NaN), /finite/);
