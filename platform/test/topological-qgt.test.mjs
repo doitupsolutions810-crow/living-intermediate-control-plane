@@ -105,6 +105,18 @@ test('metric-area excess measures minority-sign curvature cancellation in conver
   }
 });
 
+test('Great Scale correction equals normalized opposite-curvature mixing in converged phases', () => {
+  for (const m of [-1, 1, 3]) {
+    const d = qiWuZhangGlobalGeometry(m, 40);
+    assert.equal(d.topologicalMappingValid, true);
+    close(d.curvatureMixingIndex,
+      d.positiveCurvatureBudget * d.negativeCurvatureBudget / (d.metricAreaBudget ** 2), 1e-12);
+    close(d.curvatureMixingResidual, Math.abs(d.STopological - d.curvatureMixingIndex), 1e-12);
+    assert.ok(d.curvatureMixingResidual < 2e-3,
+      'integer-C scalar and sampled curvature mixing should agree in converged phase m=' + m);
+  }
+});
+
 test('numerically accepted scalar is withheld when quadrature is under-resolved', () => {
   const near = qiWuZhangGlobalGeometry(-1.99, 40);
   assert.equal(near.topologicalMappingValid, false);
