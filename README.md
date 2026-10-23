@@ -30,6 +30,10 @@ npm run report
 npm run continuous       # optional always-on readiness
 ```
 
+## Quantum-geometry research bridge
+
+The additive QGT bridge is covered by `platform/test/quantum-geometry.test.mjs`. The follow-on [Descent LXXVIII](docs/descent-lxxviii-topological-qgt.md) demonstrates why a local scalar residual cannot encode the global Chern number of a two-band model.
+
 ## Avrone on Vercel
 
 Root Directory: `avrone-chat`. Copy env from `avrone-chat/.env.example`. See `avrone-chat/README.md`.
