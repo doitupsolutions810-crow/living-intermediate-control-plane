@@ -1,21 +1,15 @@
 /**
  * Great Scale bridge — coherent geometry ↔ living-intermediate belief.
  *
- * Identity (provisional, not a claim of certainty):
- *   heat(h) = h(1-h)  ≡  tension(belief) = B(1-B)
- *
- * Laws (from great-scale repo):
- *   - keep the mean (zero-mode ≈ φ)
- *   - residual partition 4+3+1
- *   - Ψ never below cone √5−2
- *   - only add scale-generated geometry
+ * Canonical invariant source: doitupsolutions810-crow/great-scale.
+ * heat(h) = h(1-h) ≡ tension(B) = B(1-B).
+ * The cone is φ⁻², not φ⁻¹ − φ⁻².
  */
-
 import { tension, integrateBeliefStep } from '../audio/jacobian.mjs';
 
 export const PHI = (1 + Math.sqrt(5)) / 2;
 export const PHI_INV = PHI - 1;
-export const CONE = PHI_INV - PHI_INV * PHI_INV;
+export const CONE = PHI_INV * PHI_INV;
 export const RATE = 0.85;
 export const RESIDUAL_DIMS = Object.freeze([4, 3, 1]);
 
@@ -49,16 +43,8 @@ export function stateAt(t, rate = RATE) {
   const psi = CONE + S;
   return {
     schema: 'great-scale.state/v1',
-    phase,
-    h,
-    S,
-    n,
-    lam,
-    psi,
-    fold: 0.8,
-    zero_mode: PHI,
-    residual: RESIDUAL_DIMS,
-    cone: CONE
+    phase, h, S, n, lam, psi, fold: 0.8, zero_mode: PHI,
+    residual: RESIDUAL_DIMS, cone: CONE
   };
 }
 
@@ -68,16 +54,10 @@ export function beliefToScale(belief) {
   const n = 8 - 4 * S;
   return {
     schema: 'great-scale.belief-map/v1',
-    belief: B,
-    h: B,
-    S,
-    tension: S,
-    n,
+    belief: B, h: B, S, tension: S, n,
     lam: Math.pow(PHI, -n),
     psi: Math.max(CONE, CONE + S),
-    zero_mode: PHI,
-    cone: CONE,
-    view: 'Observer'
+    zero_mode: PHI, cone: CONE, view: 'Observer'
   };
 }
 
@@ -101,7 +81,7 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, view = 'Obse
   return {
     schema: 'great-scale.bridge/v1',
     at: new Date().toISOString(),
-    version: '0.4.0-bridge',
+    version: '0.4.1-bridge',
     laws: LAWS,
     belief: map,
     phaseTime: st,
@@ -123,15 +103,6 @@ function clamp01(x) {
 }
 
 export default {
-  PHI,
-  CONE,
-  RATE,
-  heat,
-  stateAt,
-  beliefToScale,
-  scaleToBeliefStep,
-  phaseXYZ,
-  snapshotFromBelief,
-  VIEW_PRESETS,
-  LAWS
+  PHI, CONE, RATE, heat, stateAt, beliefToScale, scaleToBeliefStep,
+  phaseXYZ, snapshotFromBelief, VIEW_PRESETS, LAWS
 };
