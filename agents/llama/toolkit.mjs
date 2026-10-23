@@ -76,6 +76,12 @@ export function createToolkit(root) {
 
     read_workspace_file(rel) {
       const full = resolveWorkspace(rel);
+      if (!existsSync(full)) {
+        throw new Error(`workspace path not found: ${rel || '(empty)'}`);
+      }
+      if (statSync(full).isDirectory()) {
+        return JSON.stringify(this.list_workspace(rel || ''), null, 2);
+      }
       return readFileSync(full, 'utf8');
     },
 

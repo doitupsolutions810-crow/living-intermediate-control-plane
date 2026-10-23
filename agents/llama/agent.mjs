@@ -11,7 +11,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createToolkit } from './toolkit.mjs';
 import { authorize, revoke, isAuthorized, readSession } from './session.mjs';
@@ -59,7 +59,7 @@ async function callTool(name, args = {}) {
     case 'read_workspace_file':
       return toolkit.read_workspace_file(args.path);
     case 'write_workspace_file':
-      return toolkit.write_workspace_file(args.path, args.content ?? '');
+      return toolkit.write_workspace_file(args.path, args.content ?? args.value ?? '');
     case 'read_repo_file':
       return toolkit.read_repo_file(args.path);
     case 'run_plane_step':
@@ -70,6 +70,15 @@ async function callTool(name, args = {}) {
       return readSession(root) || { authorized: false };
     default:
       return { error: `unknown tool: ${name}` };
+  }
+}
+
+/** Run a tool and convert throws into `{ error }` so one failure cannot abort the turn. */
+export async function invokeTool(name, args = {}) {
+  try {
+    return await callTool(name, args);
+  } catch (err) {
+    return { error: err?.message || String(err) };
   }
 }
 
@@ -101,7 +110,7 @@ async function agentTurn(userText, history) {
   for (let i = 0; i < 5; i++) {
     const call = tryParseTool(reply);
     if (!call) break;
-    const result = await callTool(call.tool, call.args || {});
+    const result = await invokeTool(call.tool, call.args || {});
     history.push({ role: 'assistant', content: reply });
     history.push({
       role: 'user',
@@ -227,7 +236,10 @@ async function main() {
   process.exit(1);
 }
 
-main().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  main().catch(e => {
+    console.error(e);
+    process.exit(1);
+  });
+}
