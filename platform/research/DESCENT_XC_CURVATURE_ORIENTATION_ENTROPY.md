@@ -65,7 +65,7 @@ The derivative has limit \(2\) as \(S_T\to1/4\) and diverges as \(S_T\to0^+\), w
 \[
 \boxed{\Psi_T=\frac{3-\sqrt5}{2}+S_T},\quad
 \boxed{H_{T,\mathrm{bits}}=
-\frac{-p_+\log_2p_+-p_-\log_2p_-}{1}}.
+-p_+\log_2p_+-p_-\log_2p_-}.
 \]
 
 This adds an optional entropy interpretation to the existing heat law \(S=h(1-h)\). It does not alter the canonical phase-driven state, and it is not a new physical law.
