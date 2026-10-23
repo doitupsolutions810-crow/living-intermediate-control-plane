@@ -9,38 +9,47 @@ function close(actual, expected, tolerance = 1e-10) {
 
 test('zero curvature maps to maximum geometric heat', () => {
   const r = quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: 0 });
-  close(r.curvatureFraction, 0);
-  close(r.h, 0.5);
-  close(r.S, 0.25);
-  close(r.S, heat(r.h));
-  close(r.normalizedResidual, 1);
-  close(r.psi, CONE + 0.25);
+  close(r.curvatureFraction, 0); close(r.h, 0.5); close(r.S, 0.25);
+  close(r.S, heat(r.h)); close(r.normalizedResidual, 1); close(r.psi, CONE + 0.25);
 });
 
 test('saturation maps to zero heat and canonical cone floor', () => {
   const r = quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: 2 });
-  close(r.curvatureFraction, 1);
-  close(r.h, 1);
-  close(r.S, 0);
-  close(r.normalizedResidual, 0);
-  close(r.detQ, 0);
-  close(r.psi, CONE);
+  close(r.curvatureFraction, 1); close(r.h, 1); close(r.S, 0);
+  close(r.normalizedResidual, 0); close(r.detQ, 0); close(r.psi, CONE);
   close(r.cone, 0.38196601125, 1e-10);
 });
 
 test('intermediate curvature exactly encodes normalized QGT residual', () => {
   const r = quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: 1 });
-  close(r.detQ, 0.75);
-  close(r.normalizedResidual, 0.75);
-  close(r.S, 0.1875);
-  close(r.S, r.normalizedResidual / 4);
+  close(r.detQ, 0.75); close(r.normalizedResidual, 0.75);
+  close(r.S, 0.1875); close(r.S, r.normalizedResidual / 4);
 });
 
 test('mapping is invariant under common positive metric-curvature scaling', () => {
   const a = quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: 1 });
   const b = quantumGeometryToScale({ g11: 4, g12: 0, g22: 4, curvature: 4 });
-  close(a.curvatureFraction, b.curvatureFraction);
-  close(a.S, b.S);
+  close(a.curvatureFraction, b.curvatureFraction); close(a.S, b.S);
+});
+
+test('curvature sign is intentionally discarded by scalar heat channel', () => {
+  const positive = quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: 1 });
+  const negative = quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: -1 });
+  close(positive.S, negative.S);
+  close(positive.curvatureFraction, negative.curvatureFraction);
+});
+
+test('qutrit family with zero curvature retains nonzero metric area', () => {
+  // |psi> = (|0> + x|1> + i y|2>)/sqrt(1+x^2+y^2)
+  const x = 0.3, y = 0.4, s = 1 + x*x + y*y;
+  const g11 = (1 + y*y) / (s*s);
+  const g12 = -x*y / (s*s);
+  const g22 = (1 + x*x) / (s*s);
+  const result = quantumGeometryToScale({ g11, g12, g22, curvature: 0 });
+  close(result.detG, 1 / (s*s*s));
+  close(result.detQ, result.detG);
+  close(result.normalizedResidual, 1);
+  close(result.S, 0.25);
 });
 
 test('rejects curvature violating QGT positivity', () => {
