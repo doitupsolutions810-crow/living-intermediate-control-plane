@@ -64,18 +64,16 @@ export function qiWuZhangLocalQGT(kx, ky, m) {
 }
 
 /**
- * Whole-Brillouin-zone diagnostic. Curvature is oriented to match the
- * occupied lower-band FHS Chern number. The normalized metric area obeys A/pi >= |C|.
+ * Uniform-grid whole-Brillouin-zone QGT integrals.
+ * offset=0 samples grid vertices; offset=0.5 samples cell centers.
  */
-/**
- * Uniform-grid whole-Brillouin-zone QGT integrals at a given grid.
- * The signed curvature and unsigned metric area are separate quadratures.
- */
-function qiWuZhangLocalIntegrals(m, gridSize) {
+function qiWuZhangLocalIntegrals(m, gridSize, offset = 0.5) {
   const dk = TWO_PI / gridSize;
   let signedCurvature = 0, absoluteCurvature = 0, metricAreaDensity = 0;
   for (let i = 0; i < gridSize; i++) for (let j = 0; j < gridSize; j++) {
-    const q = qiWuZhangLocalQGT(TWO_PI * i / gridSize, TWO_PI * j / gridSize, m);
+    const kx = TWO_PI * (i + offset) / gridSize;
+    const ky = TWO_PI * (j + offset) / gridSize;
+    const q = qiWuZhangLocalQGT(kx, ky, m);
     signedCurvature += q.curvature;
     absoluteCurvature += Math.abs(q.curvature);
     metricAreaDensity += Math.sqrt(Math.max(0, q.g11 * q.g22 - q.g12 * q.g12));
@@ -89,45 +87,83 @@ function qiWuZhangLocalIntegrals(m, gridSize) {
 }
 
 /**
- * Whole-Brillouin-zone diagnostic plus a one-level refinement check.
- * quadratureConverged is a resolution heuristic, not a rigorous error bound.
- * A flagged result must not be interpreted as a converged geometric-area estimate.
+ * Bounded refinement with grid-origin sensitivity checks.
+ * The convergence flag is a numerical heuristic, not a rigorous error bound.
  */
-export function qiWuZhangGlobalGeometry(m, gridSize = 80) {
+export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   if (!Number.isFinite(m)) throw new TypeError('Mass parameter m must be finite.');
   if (Math.abs(m + 2) < EPS || Math.abs(m) < EPS || Math.abs(m - 2) < EPS) {
     throw new RangeError('Band gap closes at a topological phase boundary for m=' + m + '.');
   }
   if (!Number.isInteger(gridSize) || gridSize < 4) throw new RangeError('gridSize must be an integer >= 4.');
+  if (!Number.isInteger(maxRefinements) || maxRefinements < 1 || maxRefinements > 5) {
+    throw new RangeError('maxRefinements must be an integer between 1 and 5.');
+  }
 
-  const chernNumber = Math.round(qiWuZhangChernNumber(m, gridSize));
-  const base = qiWuZhangLocalIntegrals(m, gridSize);
-  const refined = qiWuZhangLocalIntegrals(m, gridSize * 2);
-  const curvatureQuadratureError = Math.abs(refined.integratedCurvature - base.integratedCurvature);
-  const metricAreaQuadratureError = Math.abs(refined.metricAreaBudget - base.metricAreaBudget);
-  const quadratureTolerance = 1e-3 * Math.max(1, Math.abs(refined.metricAreaBudget));
-  const quadratureConverged =
-    curvatureQuadratureError <= quadratureTolerance &&
-    metricAreaQuadratureError <= quadratureTolerance;
+  const rawChernNumber = qiWuZhangChernNumber(m, gridSize);
+  const chernNumber = Math.round(rawChernNumber);
+  const chernIntegerResidual = Math.abs(rawChernNumber - chernNumber);
+  const initial = qiWuZhangLocalIntegrals(m, gridSize, 0.5);
+
+  let currentGridSize = gridSize;
+  let currentMidpoint = initial;
+  let currentVertex = qiWuZhangLocalIntegrals(m, currentGridSize, 0);
+  let curvatureQuadratureError = Infinity;
+  let metricAreaQuadratureError = Infinity;
+  let gridAlignmentCurvatureDiscrepancy = Math.abs(currentVertex.integratedCurvature - currentMidpoint.integratedCurvature);
+  let gridAlignmentAreaDiscrepancy = Math.abs(currentVertex.metricAreaBudget - currentMidpoint.metricAreaBudget);
+  let quadratureTolerance = 1e-3 * Math.max(1, Math.abs(currentMidpoint.metricAreaBudget));
+  let quadratureConverged = false;
+  let refinementCount = 0;
+
+  for (let level = 0; level < maxRefinements; level++) {
+    const nextGridSize = currentGridSize * 2;
+    const nextMidpoint = qiWuZhangLocalIntegrals(m, nextGridSize, 0.5);
+    const nextVertex = qiWuZhangLocalIntegrals(m, nextGridSize, 0);
+    curvatureQuadratureError = Math.abs(nextMidpoint.integratedCurvature - currentMidpoint.integratedCurvature);
+    metricAreaQuadratureError = Math.abs(nextMidpoint.metricAreaBudget - currentMidpoint.metricAreaBudget);
+    gridAlignmentCurvatureDiscrepancy = Math.abs(nextVertex.integratedCurvature - nextMidpoint.integratedCurvature);
+    gridAlignmentAreaDiscrepancy = Math.abs(nextVertex.metricAreaBudget - nextMidpoint.metricAreaBudget);
+    quadratureTolerance = 1e-3 * Math.max(1, Math.abs(nextMidpoint.metricAreaBudget));
+    currentGridSize = nextGridSize;
+    currentMidpoint = nextMidpoint;
+    currentVertex = nextVertex;
+    refinementCount++;
+    quadratureConverged =
+      curvatureQuadratureError <= quadratureTolerance &&
+      metricAreaQuadratureError <= quadratureTolerance &&
+      gridAlignmentCurvatureDiscrepancy <= quadratureTolerance &&
+      gridAlignmentAreaDiscrepancy <= quadratureTolerance;
+    if (quadratureConverged) break;
+  }
 
   const topologicalFloor = Math.abs(chernNumber);
-  const metricAreaExcess = base.metricAreaBudget - topologicalFloor;
-  const topologicalSaturation = base.metricAreaBudget > EPS
-    ? Math.max(0, Math.min(1, topologicalFloor / base.metricAreaBudget)) : 0;
+  const metricAreaExcess = currentMidpoint.metricAreaBudget - topologicalFloor;
+  const topologicalSaturationRaw = currentMidpoint.metricAreaBudget > EPS
+    ? topologicalFloor / currentMidpoint.metricAreaBudget : 0;
+  const topologicalSaturation = Math.max(0, Math.min(1, topologicalSaturationRaw));
+  const topologicalMappingValid = quadratureConverged &&
+    chernIntegerResidual <= 1e-6 &&
+    topologicalSaturationRaw <= 1 + quadratureTolerance;
   const hTopological = (1 + topologicalSaturation) / 2;
   const STopological = heat(hTopological);
   const psiTopological = CONE + STopological;
+
   return {
-    chernNumber,
-    integratedCurvature: base.integratedCurvature,
-    absoluteCurvatureBudget: base.absoluteCurvatureBudget,
-    metricAreaBudget: base.metricAreaBudget,
-    topologicalFloor, metricAreaExcess, topologicalSaturation,
-    hTopological, STopological, psiTopological,
-    refinedIntegratedCurvature: refined.integratedCurvature,
-    refinedAbsoluteCurvatureBudget: refined.absoluteCurvatureBudget,
-    refinedMetricAreaBudget: refined.metricAreaBudget,
+    chernNumber, rawChernNumber, chernIntegerResidual,
+    integratedCurvature: currentMidpoint.integratedCurvature,
+    absoluteCurvatureBudget: currentMidpoint.absoluteCurvatureBudget,
+    metricAreaBudget: currentMidpoint.metricAreaBudget,
+    topologicalFloor, metricAreaExcess,
+    topologicalSaturationRaw, topologicalSaturation,
+    hTopological, STopological, psiTopological, topologicalMappingValid,
+    baseMetricAreaBudget: initial.metricAreaBudget,
+    refinedIntegratedCurvature: currentMidpoint.integratedCurvature,
+    refinedAbsoluteCurvatureBudget: currentMidpoint.absoluteCurvatureBudget,
+    refinedMetricAreaBudget: currentMidpoint.metricAreaBudget,
     curvatureQuadratureError, metricAreaQuadratureError,
-    quadratureTolerance, quadratureConverged
+    gridAlignmentCurvatureDiscrepancy, gridAlignmentAreaDiscrepancy,
+    quadratureTolerance, quadratureConverged,
+    refinementCount, refinedGridSize: currentGridSize
   };
 }

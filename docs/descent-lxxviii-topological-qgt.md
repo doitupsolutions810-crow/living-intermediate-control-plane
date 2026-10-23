@@ -115,3 +115,30 @@ For example, independent evaluation of the analytic QGT density gives these norm
 Those large differences are a numerical-resolution warning, not a violation of the analytic bound \(\mathcal A_Q\ge |C|\). The diagnostic now returns a 2× grid estimate and the absolute change in both curvature integral and metric area, along with the refinement tolerance and convergence flag. The convergence flag is a practical one-step refinement heuristic, not a rigorous error estimate; near-transition inputs may require repeated refinement or adaptive integration.
 
 Great Scale should therefore treat the scalar \(\Psi_T\) as provisional whenever the convergence flag is false. Keep the discrete integer Chern number distinct from that numerical confidence signal. This is the new operational finding: topology may be correctly classified before the geometric measure used to characterize it has numerically converged.
+
+
+## Descent LXXXII — Grid-origin aliasing and topology-aware geometric confidence
+
+### Finding
+
+A periodic Riemann sum can alias a narrow curvature hotspot if a grid vertex lands directly on it. In this model, the previous vertex-aligned quadrature samples \((k_x,k_y)=(0,0)\). Near \(m=-2\), the direct gap at that point is small, so the local curvature density can be extremely large and the single vertex may dominate the area sum. This can generate a large area estimate that shrinks dramatically under refinement.
+
+The remedy is not to trust a single offset or a single grid size. The integration now compares vertex-aligned uniform samples with cell-center (half-step offset) samples, then successively doubles the cell-center grid up to a bounded refinement budget. At each step it reports the area and signed-curvature change under refinement and the discrepancy between vertex-aligned and cell-center estimates.
+
+The convergence flag is true only when all these differences are below the configured threshold. This is a practical resolution heuristic, not a rigorous quadrature error bound.
+
+### Great Scale mapping
+
+The discrete FHS Chern number remains a separate integer channel. The geometric channel uses the finest cell-center estimate reached within the refinement budget. It reports the raw saturation ratio before clipping to \([0,1]\), and adds a topological-mapping-valid flag. That flag is false when the quadrature has not converged, the raw Chern sum is not sufficiently close to an integer, or the sampled metric area contradicts the topological lower floor beyond tolerance.
+
+Keep
+\[
+\mathcal A_Q=\frac1\pi\int_{\mathrm{BZ}}\sqrt{\det g}\,d^2k,\qquad
+\mathcal A_Q\ge |C|,\qquad
+\mathcal E_Q=\mathcal A_Q-|C|.
+\]
+The bound applies to the true integral. A finite-grid estimate below \(|C|\) indicates under-resolution or numerical error, not a failure of topology. When the topological-mapping-valid flag is false, the encoded \(\Psi_T\) is diagnostic only and should not be treated as a certified geometric value.
+
+### Test coverage
+
+Regression checks compare vertex-aligned and cell-center quadrature, require the near-transition value \(m=-1.99\) to be flagged under-resolved within the bounded refinement budget, and require a well-gapped phase such as \(m=-1\) to reach the consistency threshold. The standard phase sweep and FHS integer tests remain separate. This is a model-level numerical reliability improvement, not a new physical law.
