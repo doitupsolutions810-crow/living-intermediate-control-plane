@@ -70,18 +70,23 @@ export function qiWuZhangLocalQGT(kx, ky, m) {
 function qiWuZhangLocalIntegrals(m, gridSize, offset = 0.5) {
   const dk = TWO_PI / gridSize;
   let signedCurvature = 0, absoluteCurvature = 0, metricAreaDensity = 0;
+  let positiveCurvature = 0, negativeCurvature = 0;
   for (let i = 0; i < gridSize; i++) for (let j = 0; j < gridSize; j++) {
     const kx = TWO_PI * (i + offset) / gridSize;
     const ky = TWO_PI * (j + offset) / gridSize;
     const q = qiWuZhangLocalQGT(kx, ky, m);
     signedCurvature += q.curvature;
     absoluteCurvature += Math.abs(q.curvature);
+    if (q.curvature >= 0) positiveCurvature += q.curvature;
+    else negativeCurvature += -q.curvature;
     metricAreaDensity += Math.sqrt(Math.max(0, q.g11 * q.g22 - q.g12 * q.g12));
   }
   const cellArea = dk * dk;
   return {
     integratedCurvature: signedCurvature * cellArea / TWO_PI,
     absoluteCurvatureBudget: absoluteCurvature * cellArea / TWO_PI,
+    positiveCurvatureBudget: positiveCurvature * cellArea / TWO_PI,
+    negativeCurvatureBudget: negativeCurvature * cellArea / TWO_PI,
     metricAreaBudget: metricAreaDensity * cellArea / Math.PI
   };
 }
@@ -151,6 +156,9 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     chernNumber, rawChernNumber, chernIntegerResidual,
     integratedCurvature: currentMidpoint.integratedCurvature,
     absoluteCurvatureBudget: currentMidpoint.absoluteCurvatureBudget,
+    positiveCurvatureBudget: currentMidpoint.positiveCurvatureBudget,
+    negativeCurvatureBudget: currentMidpoint.negativeCurvatureBudget,
+    curvatureCancellationBudget: Math.max(0, currentMidpoint.absoluteCurvatureBudget - Math.abs(currentMidpoint.integratedCurvature)),
     metricAreaBudget: currentMidpoint.metricAreaBudget,
     topologicalFloor, metricAreaExcess,
     topologicalSaturationRaw, topologicalSaturation,

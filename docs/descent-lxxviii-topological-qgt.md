@@ -142,3 +142,37 @@ The bound applies to the true integral. A finite-grid estimate below \(|C|\) ind
 ### Test coverage
 
 Regression checks compare vertex-aligned and cell-center quadrature, require the near-transition value \(m=-1.99\) to be flagged under-resolved within the bounded refinement budget, and require a well-gapped phase such as \(m=-1\) to reach the consistency threshold. The standard phase sweep and FHS integer tests remain separate. This is a model-level numerical reliability improvement, not a new physical law.
+
+
+## Descent LXXXIII — The topological area excess is curvature-sign cancellation
+
+Let the normalized positive and negative curvature fluxes be
+\[
+P=\frac1{2\pi}\int_{\mathrm{BZ}}\max(F_{12},0)\,d^2k,\qquad
+N=\frac1{2\pi}\int_{\mathrm{BZ}}\max(-F_{12},0)\,d^2k.
+\]
+Then the signed Chern integral and the unsigned-curvature budget satisfy
+\[
+C=P-N,\qquad \mathcal A_Q=P+N
+\]
+for the pure two-band QGT identity used here. Consequently,
+\[
+\boxed{\mathcal E_Q=\mathcal A_Q-|C|
+=P+N-|P-N|=2\min(P,N)}.
+\]
+This gives the area excess a concrete geometric interpretation: it is twice the smaller of the positive- and negative-curvature fluxes. It quantifies how much local curvature cancels in the signed global invariant while still contributing to the unsigned quantum-metric area.
+
+### Great Scale mapping
+
+The implementation now emits positive and negative curvature budgets and a discrete cancellation budget
+\[
+\mathcal K_Q=\mathcal B_{|F|}-|\mathcal B_F|
+=2\min(P_N,N_N),
+\]
+where the subscript \(N\) denotes the finite-grid quadrature. In a numerically certified regime, \(\mathcal K_Q\) should agree with \(\mathcal E_Q\) to the quadrature tolerance. Large disagreement is additional evidence that the signed integral, unsigned integral, or topology estimate is not yet mutually consistent.
+
+This enriches the existing global scalar without changing the local QGT mapping. The scalar remains only a compact encoding; retain \(C\), \(\mathcal A_Q\), \(\mathcal E_Q\), \(P\), and \(N\) when scientific interpretation matters.
+
+### Verification
+
+The new test checks the exact finite-sum identity \(\mathcal K_Q=2\min(P_N,N_N)\) and numerical agreement between \(\mathcal E_Q\) and \(\mathcal K_Q\) in converged \(C=-1,+1,0\) model phases. The continuum identity follows directly from \(P+N-|P-N|=2\min(P,N)\); the grid comparisons are implementation checks, not a universal physical claim.
