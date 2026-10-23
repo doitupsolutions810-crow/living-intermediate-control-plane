@@ -132,6 +132,16 @@ test('Great Scale correction equals normalized opposite-curvature mixing in conv
   }
 });
 
+test('gap-aware quadrature tightens tolerance near every transition', () => {
+  for (const m of [-1.99, -0.01, 0.01, 1.99, 2.01]) {
+    const d = qiWuZhangGlobalGeometry(m, 40);
+    assert.ok(d.gapDistance > 0);
+    assert.ok(d.gapAwareToleranceScale >= 0.05 && d.gapAwareToleranceScale <= 1);
+    close(d.gapAwareToleranceScale, Math.min(1, Math.max(0.05, d.gapDistance / 0.25)), 1e-12);
+    assert.ok(d.topologicalMappingValid === false || d.quadratureTolerance <= 1e-3 * Math.max(1, Math.abs(d.metricAreaBudget)));
+  }
+});
+
 test('numerically accepted scalar is withheld when quadrature is under-resolved', () => {
   const near = qiWuZhangGlobalGeometry(-1.99, 40);
   assert.equal(near.topologicalMappingValid, false);
