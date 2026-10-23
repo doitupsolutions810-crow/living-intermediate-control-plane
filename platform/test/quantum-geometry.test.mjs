@@ -52,6 +52,21 @@ test('qutrit family with zero curvature retains nonzero metric area', () => {
   close(result.S, 0.25);
 });
 
+test('two-level pure-state Bloch sphere saturates QGT positivity at regular points', () => {
+  // |psi> = cos(theta/2)|0> + exp(i phi) sin(theta/2)|1>.
+  // det(g)=sin(theta)^2/16 and |F_theta_phi|=sin(theta)/2.
+  const theta = 0.7;
+  const result = quantumGeometryToScale({
+    g11: 1 / 4, g12: 0, g22: Math.sin(theta) ** 2 / 4,
+    curvature: Math.sin(theta) / 2
+  });
+  close(result.detG, Math.sin(theta) ** 2 / 16);
+  close(result.detQ, 0, 1e-12);
+  close(result.curvatureFraction, 1);
+  close(result.S, 0);
+  close(result.psi, CONE);
+});
+
 test('rejects curvature violating QGT positivity', () => {
   assert.throws(() => quantumGeometryToScale({ g11: 1, g12: 0, g22: 1, curvature: 2.01 }), /QGT positivity violated/);
 });
