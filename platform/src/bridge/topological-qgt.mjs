@@ -152,6 +152,13 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   const hTopological = (1 + topologicalSaturation) / 2;
   const STopological = heat(hTopological);
   const psiTopological = CONE + STopological;
+  // Independent audit: the two-band identity S_T = P*N/(P+N)^2.
+  // Its residual also exposes disagreement between sampled curvature budgets and integer C.
+  const p = currentMidpoint.positiveCurvatureBudget;
+  const n = currentMidpoint.negativeCurvatureBudget;
+  const area = currentMidpoint.metricAreaBudget;
+  const curvatureMixingIndex = area > EPS ? (p * n) / (area * area) : 0;
+  const curvatureMixingResidual = Math.abs(STopological - curvatureMixingIndex);
 
   return {
     chernNumber, rawChernNumber, chernIntegerResidual,
@@ -164,6 +171,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     topologicalFloor, metricAreaExcess,
     topologicalSaturationRaw, topologicalSaturation,
     hTopological, STopological, psiTopological,
+    curvatureMixingIndex, curvatureMixingResidual,
     acceptedPsiTopological: topologicalMappingValid ? psiTopological : null,
     topologicalMappingValid,
     baseMetricAreaBudget: initial.metricAreaBudget,
