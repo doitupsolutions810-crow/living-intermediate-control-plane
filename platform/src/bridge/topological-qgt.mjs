@@ -119,6 +119,10 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   let gridAlignmentAreaDiscrepancy = Math.abs(currentVertex.metricAreaBudget - currentMidpoint.metricAreaBudget);
   let quadratureTolerance = 1e-3 * Math.max(1, Math.abs(currentMidpoint.metricAreaBudget));
   let quadratureConverged = false;
+  // Successive midpoint rules are second-order for smooth periodic integrands.
+  // Use a Richardson-style estimate (difference/3), while retaining grid-origin checks.
+  let curvatureRichardsonErrorEstimate = Infinity;
+  let metricAreaRichardsonErrorEstimate = Infinity;
   let refinementCount = 0;
 
   for (let level = 0; level < maxRefinements; level++) {
@@ -127,6 +131,8 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     const nextVertex = qiWuZhangLocalIntegrals(m, nextGridSize, 0);
     curvatureQuadratureError = Math.abs(nextMidpoint.integratedCurvature - currentMidpoint.integratedCurvature);
     metricAreaQuadratureError = Math.abs(nextMidpoint.metricAreaBudget - currentMidpoint.metricAreaBudget);
+    curvatureRichardsonErrorEstimate = curvatureQuadratureError / 3;
+    metricAreaRichardsonErrorEstimate = metricAreaQuadratureError / 3;
     gridAlignmentCurvatureDiscrepancy = Math.abs(nextVertex.integratedCurvature - nextMidpoint.integratedCurvature);
     gridAlignmentAreaDiscrepancy = Math.abs(nextVertex.metricAreaBudget - nextMidpoint.metricAreaBudget);
     quadratureTolerance = 1e-3 * Math.max(1, Math.abs(nextMidpoint.metricAreaBudget));
@@ -134,8 +140,8 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     currentMidpoint = nextMidpoint;
     refinementCount++;
     quadratureConverged =
-      curvatureQuadratureError <= quadratureTolerance &&
-      metricAreaQuadratureError <= quadratureTolerance &&
+      curvatureRichardsonErrorEstimate <= quadratureTolerance &&
+      metricAreaRichardsonErrorEstimate <= quadratureTolerance &&
       gridAlignmentCurvatureDiscrepancy <= quadratureTolerance &&
       gridAlignmentAreaDiscrepancy <= quadratureTolerance;
     if (quadratureConverged) break;
@@ -179,6 +185,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     refinedAbsoluteCurvatureBudget: currentMidpoint.absoluteCurvatureBudget,
     refinedMetricAreaBudget: currentMidpoint.metricAreaBudget,
     curvatureQuadratureError, metricAreaQuadratureError,
+    curvatureRichardsonErrorEstimate, metricAreaRichardsonErrorEstimate,
     gridAlignmentCurvatureDiscrepancy, gridAlignmentAreaDiscrepancy,
     quadratureTolerance, quadratureConverged,
     refinementCount, refinedGridSize: currentGridSize
