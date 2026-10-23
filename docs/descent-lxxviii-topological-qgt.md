@@ -39,4 +39,4 @@ Retain \(S_Q=(1-\chi^2)/4\) and \(\Psi_Q=\phi^{-2}+S_Q\) unchanged. Treat \(C\in
 
 ## Verification
 
-The new tests check \(C=-1,+1,0\) for \(m=-1,+1,3\), reject the gap closing at \(m=0\), verify local QGT saturation, and compare 20×20 and 40×40 grids in gapped phases. This is numerical verification of the specified model, not a claim of experimental validation or universality beyond the model.
+The new tests check \(C=-1,+1,0\) for \(m=-1,+1,3\), reject the critical masses \(m=-2,0,2\) even on odd-sized grids, verify local QGT saturation, and compare 20×20 and 40×40 grids in gapped phases. This is numerical verification of the specified model, not a claim of experimental validation or universality beyond the model.
