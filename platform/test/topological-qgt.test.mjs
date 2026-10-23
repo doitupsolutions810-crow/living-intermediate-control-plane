@@ -177,6 +177,33 @@ test('signed topological polarization restores orientation lost by the Great Sca
   assert.ok(trivial.metricAreaBudget > 0);
 });
 
+test('curvature-orientation Shannon entropy is the monotone information form of Great Scale heat', () => {
+  const entropy = p => (p > 0 ? -p * Math.log(p) : 0) + (p < 1 ? -(1 - p) * Math.log1p(-p) : 0);
+  const stable = [-1, -0.5, 3].map(m => qiWuZhangGlobalGeometry(m, 40));
+  for (const d of stable) {
+    assert.equal(d.topologicalMappingValid, true);
+    close(d.curvatureOrientationEntropyNats,
+      entropy((1 + d.signedTopologicalPolarization) / 2), 1e-12);
+    close(d.curvatureOrientationEntropyBits,
+      d.curvatureOrientationEntropyNats / Math.LN2, 1e-12);
+    const total = d.positiveCurvatureBudget + d.negativeCurvatureBudget;
+    const budgetEntropy = entropy(d.positiveCurvatureBudget / total);
+    close(d.curvatureBudgetEntropyNats, budgetEntropy, 1e-12);
+    close(d.curvatureOrientationEntropyResidual,
+      Math.abs(d.curvatureOrientationEntropyNats - budgetEntropy), 1e-12);
+    assert.ok(d.curvatureOrientationEntropyResidual <= 2 * d.quadratureTolerance);
+    assert.ok(d.curvatureOrientationEntropyBits >= 0 && d.curvatureOrientationEntropyBits <= 1);
+  }
+  assert.ok(stable[0].STopological < stable[1].STopological);
+  assert.ok(stable[1].STopological < stable[2].STopological);
+  assert.ok(stable[0].curvatureOrientationEntropyNats < stable[1].curvatureOrientationEntropyNats);
+  assert.ok(stable[1].curvatureOrientationEntropyNats < stable[2].curvatureOrientationEntropyNats);
+  close(stable[2].curvatureOrientationEntropyNats, Math.LN2, 1e-12);
+  close(stable[2].curvatureOrientationEntropyBits, 1, 1e-12);
+  const underResolved = qiWuZhangGlobalGeometry(-1.99, 40);
+  assert.equal(underResolved.topologicalMappingValid, false);
+  assert.ok(underResolved.curvatureOrientationEntropyResidual > underResolved.quadratureTolerance);
+});
 test('numerically accepted scalar is withheld when quadrature is under-resolved', () => {
   const near = qiWuZhangGlobalGeometry(-1.99, 40);
   assert.equal(near.topologicalMappingValid, false);
