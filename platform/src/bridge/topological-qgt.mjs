@@ -173,8 +173,18 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   const topologicalSaturationRaw = currentMidpoint.metricAreaBudget > EPS
     ? topologicalFloor / currentMidpoint.metricAreaBudget : 0;
   const topologicalSaturation = Math.max(0, Math.min(1, topologicalSaturationRaw));
+  const curvatureChernResidual = Math.abs(currentMidpoint.integratedCurvature - chernNumber);
+  const minorityCurvatureBudget = Math.min(currentMidpoint.positiveCurvatureBudget, currentMidpoint.negativeCurvatureBudget);
+  // In a pure two-band model A_Q = P + N and C = P - N, so A_Q - |C| = 2 min(P,N).
+  // This residual audits that cancellation identity against the integer topological invariant.
+  const curvatureCancellationIdentityResidual = Math.abs(metricAreaExcess - 2 * minorityCurvatureBudget);
+  const curvatureOrientationVariance = 4 * STopological;
+  const curvatureOrientationVarianceFromBudgets = 4 * (area > EPS ? p * n / (area * area) : 0);
+  const curvatureOrientationVarianceResidual = Math.abs(curvatureOrientationVariance - curvatureOrientationVarianceFromBudgets);
   const topologicalMappingValid = quadratureConverged &&
     chernIntegerResidual <= 1e-6 &&
+    curvatureChernResidual <= quadratureTolerance &&
+    curvatureCancellationIdentityResidual <= 2 * quadratureTolerance &&
     metricAreaExcess >= -quadratureTolerance;
   const hTopological = (1 + topologicalSaturation) / 2;
   const STopological = heat(hTopological);
@@ -199,6 +209,8 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     topologicalSaturationRaw, topologicalSaturation,
     hTopological, STopological, psiTopological,
     curvatureMixingIndex, curvatureMixingResidual,
+    minorityCurvatureBudget, curvatureChernResidual, curvatureCancellationIdentityResidual,
+    curvatureOrientationVariance, curvatureOrientationVarianceFromBudgets, curvatureOrientationVarianceResidual,
     acceptedPsiTopological: topologicalMappingValid ? psiTopological : null,
     topologicalMappingValid,
     baseMetricAreaBudget: initial.metricAreaBudget,
