@@ -119,10 +119,15 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   let gridAlignmentAreaDiscrepancy = Math.abs(currentVertex.metricAreaBudget - currentMidpoint.metricAreaBudget);
   let quadratureTolerance = 1e-3 * Math.max(1, Math.abs(currentMidpoint.metricAreaBudget));
   let quadratureConverged = false;
-  // Successive midpoint rules are second-order for smooth periodic integrands.
-  // Use a Richardson-style estimate (difference/3), while retaining grid-origin checks.
+  // The difference/3 estimator assumes asymptotic second-order convergence.
+  // Keep it diagnostic-only; certification also requires a three-level order check.
   let curvatureRichardsonErrorEstimate = Infinity;
   let metricAreaRichardsonErrorEstimate = Infinity;
+  let previousCurvatureQuadratureError = Infinity;
+  let previousMetricAreaQuadratureError = Infinity;
+  let curvatureObservedOrder = null;
+  let metricAreaObservedOrder = null;
+  let richardsonAsymptotic = false;
   let refinementCount = 0;
 
   for (let level = 0; level < maxRefinements; level++) {
@@ -133,13 +138,23 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     metricAreaQuadratureError = Math.abs(nextMidpoint.metricAreaBudget - currentMidpoint.metricAreaBudget);
     curvatureRichardsonErrorEstimate = curvatureQuadratureError / 3;
     metricAreaRichardsonErrorEstimate = metricAreaQuadratureError / 3;
+    curvatureObservedOrder = Number.isFinite(previousCurvatureQuadratureError) && curvatureQuadratureError > 0
+      ? Math.log2(previousCurvatureQuadratureError / curvatureQuadratureError) : null;
+    metricAreaObservedOrder = Number.isFinite(previousMetricAreaQuadratureError) && metricAreaQuadratureError > 0
+      ? Math.log2(previousMetricAreaQuadratureError / metricAreaQuadratureError) : null;
+    richardsonAsymptotic = curvatureObservedOrder !== null && metricAreaObservedOrder !== null &&
+      curvatureObservedOrder >= 1.5 && curvatureObservedOrder <= 2.5 &&
+      metricAreaObservedOrder >= 1.5 && metricAreaObservedOrder <= 2.5;
     gridAlignmentCurvatureDiscrepancy = Math.abs(nextVertex.integratedCurvature - nextMidpoint.integratedCurvature);
     gridAlignmentAreaDiscrepancy = Math.abs(nextVertex.metricAreaBudget - nextMidpoint.metricAreaBudget);
     quadratureTolerance = 1e-3 * Math.max(1, Math.abs(nextMidpoint.metricAreaBudget));
     currentGridSize = nextGridSize;
     currentMidpoint = nextMidpoint;
     refinementCount++;
+    previousCurvatureQuadratureError = curvatureQuadratureError;
+    previousMetricAreaQuadratureError = metricAreaQuadratureError;
     quadratureConverged =
+      richardsonAsymptotic &&
       curvatureRichardsonErrorEstimate <= quadratureTolerance &&
       metricAreaRichardsonErrorEstimate <= quadratureTolerance &&
       gridAlignmentCurvatureDiscrepancy <= quadratureTolerance &&
@@ -186,6 +201,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     refinedMetricAreaBudget: currentMidpoint.metricAreaBudget,
     curvatureQuadratureError, metricAreaQuadratureError,
     curvatureRichardsonErrorEstimate, metricAreaRichardsonErrorEstimate,
+    curvatureObservedOrder, metricAreaObservedOrder, richardsonAsymptotic,
     gridAlignmentCurvatureDiscrepancy, gridAlignmentAreaDiscrepancy,
     quadratureTolerance, quadratureConverged,
     refinementCount, refinedGridSize: currentGridSize
