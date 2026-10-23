@@ -105,6 +105,18 @@ test('metric-area excess measures minority-sign curvature cancellation in conver
   }
 });
 
+test('Richardson-style quadrature estimates are exposed and bounded on stable phases', () => {
+  for (const m of [-1, 1, 3]) {
+    const d = qiWuZhangGlobalGeometry(m, 40);
+    assert.equal(d.quadratureConverged, true);
+    assert.ok(Number.isFinite(d.metricAreaRichardsonErrorEstimate));
+    assert.ok(Number.isFinite(d.curvatureRichardsonErrorEstimate));
+    close(d.metricAreaRichardsonErrorEstimate, d.metricAreaQuadratureError / 3, 1e-12);
+    close(d.curvatureRichardsonErrorEstimate, d.curvatureQuadratureError / 3, 1e-12);
+    assert.ok(d.metricAreaRichardsonErrorEstimate <= d.quadratureTolerance);
+  }
+});
+
 test('Great Scale correction equals normalized opposite-curvature mixing in converged phases', () => {
   for (const m of [-1, 1, 3]) {
     const d = qiWuZhangGlobalGeometry(m, 40);
