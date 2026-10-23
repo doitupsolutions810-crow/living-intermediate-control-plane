@@ -105,11 +105,11 @@ test('metric-area excess measures minority-sign curvature cancellation in conver
   }
 });
 
-test('certified topological scalar is withheld when quadrature is under-resolved', () => {
+test('numerically accepted scalar is withheld when quadrature is under-resolved', () => {
   const near = qiWuZhangGlobalGeometry(-1.99, 40);
   assert.equal(near.topologicalMappingValid, false);
-  assert.equal(near.certifiedPsiTopological, null);
+  assert.equal(near.acceptedPsiTopological, null);
   const stable = qiWuZhangGlobalGeometry(-1, 40);
   assert.equal(stable.topologicalMappingValid, true);
-  close(stable.certifiedPsiTopological, stable.psiTopological, 1e-12);
+  close(stable.acceptedPsiTopological, stable.psiTopological, 1e-12);
 });
