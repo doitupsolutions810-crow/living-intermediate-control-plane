@@ -107,7 +107,6 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
 
   let currentGridSize = gridSize;
   let currentMidpoint = initial;
-  let currentVertex = qiWuZhangLocalIntegrals(m, currentGridSize, 0);
   let curvatureQuadratureError = Infinity;
   let metricAreaQuadratureError = Infinity;
   let gridAlignmentCurvatureDiscrepancy = Math.abs(currentVertex.integratedCurvature - currentMidpoint.integratedCurvature);
@@ -127,7 +126,6 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
     quadratureTolerance = 1e-3 * Math.max(1, Math.abs(nextMidpoint.metricAreaBudget));
     currentGridSize = nextGridSize;
     currentMidpoint = nextMidpoint;
-    currentVertex = nextVertex;
     refinementCount++;
     quadratureConverged =
       curvatureQuadratureError <= quadratureTolerance &&
@@ -144,7 +142,7 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   const topologicalSaturation = Math.max(0, Math.min(1, topologicalSaturationRaw));
   const topologicalMappingValid = quadratureConverged &&
     chernIntegerResidual <= 1e-6 &&
-    topologicalSaturationRaw <= 1 + quadratureTolerance;
+    metricAreaExcess >= -quadratureTolerance;
   const hTopological = (1 + topologicalSaturation) / 2;
   const STopological = heat(hTopological);
   const psiTopological = CONE + STopological;
