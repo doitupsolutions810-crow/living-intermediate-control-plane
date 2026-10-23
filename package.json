@@ -43,7 +43,7 @@
     "rekor": "node status/rekor-cli.mjs",
     "ci": "node status/ci-check.mjs",
     "docker:build": "docker build -t living-intermediate-control-plane:0.10.0 .",
-    "test": "node test/self-test.mjs"
+    "test": "node test/self-test.mjs && npm --prefix platform test"
   },
   "engines": {
     "node": ">=18"
