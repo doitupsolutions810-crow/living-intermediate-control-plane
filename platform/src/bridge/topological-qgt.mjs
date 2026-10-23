@@ -173,29 +173,29 @@ export function qiWuZhangGlobalGeometry(m, gridSize = 80, maxRefinements = 3) {
   const topologicalSaturationRaw = currentMidpoint.metricAreaBudget > EPS
     ? topologicalFloor / currentMidpoint.metricAreaBudget : 0;
   const topologicalSaturation = Math.max(0, Math.min(1, topologicalSaturationRaw));
+  const hTopological = (1 + topologicalSaturation) / 2;
+  const STopological = heat(hTopological);
+  const psiTopological = CONE + STopological;
+  // Independent audit: in a pure two-band model S_T = P*N/(P+N)^2.
+  // The signed integral should independently recover the integer Chern number.
+  const p = currentMidpoint.positiveCurvatureBudget;
+  const n = currentMidpoint.negativeCurvatureBudget;
+  const area = currentMidpoint.metricAreaBudget;
+  const curvatureMixingIndex = area > EPS ? (p * n) / (area * area) : 0;
+  const curvatureMixingResidual = Math.abs(STopological - curvatureMixingIndex);
   const curvatureChernResidual = Math.abs(currentMidpoint.integratedCurvature - chernNumber);
-  const minorityCurvatureBudget = Math.min(currentMidpoint.positiveCurvatureBudget, currentMidpoint.negativeCurvatureBudget);
-  // In a pure two-band model A_Q = P + N and C = P - N, so A_Q - |C| = 2 min(P,N).
-  // This residual audits that cancellation identity against the integer topological invariant.
+  const minorityCurvatureBudget = Math.min(p, n);
+  // P+N-|P-N| = 2 min(P,N); this is the curvature-cancellation identity.
   const curvatureCancellationIdentityResidual = Math.abs(metricAreaExcess - 2 * minorityCurvatureBudget);
+  // X=sign(F), sampled with probability proportional to |F|: Var(X)=1-(C/A)^2=4 S_T.
   const curvatureOrientationVariance = 4 * STopological;
-  const curvatureOrientationVarianceFromBudgets = 4 * (area > EPS ? p * n / (area * area) : 0);
+  const curvatureOrientationVarianceFromBudgets = 4 * curvatureMixingIndex;
   const curvatureOrientationVarianceResidual = Math.abs(curvatureOrientationVariance - curvatureOrientationVarianceFromBudgets);
   const topologicalMappingValid = quadratureConverged &&
     chernIntegerResidual <= 1e-6 &&
     curvatureChernResidual <= quadratureTolerance &&
     curvatureCancellationIdentityResidual <= 2 * quadratureTolerance &&
     metricAreaExcess >= -quadratureTolerance;
-  const hTopological = (1 + topologicalSaturation) / 2;
-  const STopological = heat(hTopological);
-  const psiTopological = CONE + STopological;
-  // Independent audit: the two-band identity S_T = P*N/(P+N)^2.
-  // Its residual also exposes disagreement between sampled curvature budgets and integer C.
-  const p = currentMidpoint.positiveCurvatureBudget;
-  const n = currentMidpoint.negativeCurvatureBudget;
-  const area = currentMidpoint.metricAreaBudget;
-  const curvatureMixingIndex = area > EPS ? (p * n) / (area * area) : 0;
-  const curvatureMixingResidual = Math.abs(STopological - curvatureMixingIndex);
 
   return {
     chernNumber, rawChernNumber, chernIntegerResidual,
