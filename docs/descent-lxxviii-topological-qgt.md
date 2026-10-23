@@ -89,3 +89,16 @@ The implementation emits chernNumber, metricAreaBudget, metricAreaExcess, topolo
 ### Verification added
 
 Tests check (1) local curvature integration agrees in sign and value with the FHS Chern result in both \(C=\pm1\) phases, (2) \(\mathcal A_Q=\frac1{2\pi}\int|F|\ge|C|\), (3) the metric-area budget approaches a stable value from 40×40 to 80×80, and (4) the trivial phase has \(C=0\) despite a nonzero unsigned metric-area budget. The lower bound follows analytically from the QGT identity and triangle inequality; the numerical tests verify its implementation for this Hamiltonian.
+
+
+## Descent LXXX — Numerical certification across the phase diagram
+
+A discrete Chern estimate and a quadrature of the analytic Berry curvature are related but distinct numerical procedures. The FHS lattice-link sum is gauge-invariant and is the primary integer diagnostic; the local-curvature integral is a separate numerical quadrature that should be validated by refinement rather than forced to equal the integer at arbitrary precision on one grid.
+
+For the Qi–Wu–Zhang model, the gapped phases represented by the sweep are:
+- (m<-2): (C=0)
+- (-2<m<0): (C=-1) with this code's orientation
+- (0<m<2): (C=+1)
+- (m>2): (C=0)
+
+The exact transition masses (m=-2,0,2) remain rejected. The added sweep samples multiple parameter values in each gapped region, requiring the FHS result to be close to an integer and to match the expected phase. A separate refinement check compares 40×40 and 80×80 curvature quadrature error. This is a numerical reliability improvement for this Hamiltonian, not a universal grid-size guarantee; points close to a transition may require much finer sampling.

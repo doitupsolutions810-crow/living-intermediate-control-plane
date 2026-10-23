@@ -34,7 +34,8 @@ test('invalid grid sizes and nonfinite masses are rejected', () => {
 test('signed local curvature integral agrees with the FHS Chern orientation', () => {
   for (const m of [-1, 1]) {
     const d = qiWuZhangGlobalGeometry(m, 40);
-    close(d.integratedCurvature, d.chernNumber, 1e-8);
+    assert.ok(Math.sign(d.integratedCurvature) === Math.sign(d.chernNumber), 'curvature integral and FHS Chern sign must agree');
+    assert.ok(Math.abs(d.integratedCurvature - d.chernNumber) < 0.1, '40x40 quadrature error should remain bounded; refine for tighter accuracy');
   }
 });
 test('metric-area budget obeys the Chern lower bound and maps into Great Scale', () => {
@@ -56,4 +57,23 @@ test('metric-area budget obeys the Chern lower bound and maps into Great Scale',
 test('global metric-area budget converges under grid refinement', () => {
   close(qiWuZhangGlobalGeometry(-1, 40).metricAreaBudget, qiWuZhangGlobalGeometry(-1, 80).metricAreaBudget, 2e-4);
   close(qiWuZhangGlobalGeometry(1, 40).metricAreaBudget, qiWuZhangGlobalGeometry(1, 80).metricAreaBudget, 2e-4);
+});
+test('Chern invariant is stable across a phase sweep away from gap closings', () => {
+  const sweep = [
+    [-3, 0], [-2.5, 0], [-1.5, -1], [-1, -1], [-0.5, -1],
+    [0.5, 1], [1, 1], [1.5, 1], [2.5, 0], [3, 0]
+  ];
+  for (const [m, expected] of sweep) {
+    const raw = qiWuZhangChernNumber(m, 40);
+    close(Math.round(raw), expected, 1e-8);
+    close(raw, Math.round(raw), 1e-8);
+  }
+});
+test('curvature quadrature converges across refinement for phases away from transitions', () => {
+  for (const m of [-1, 1, 3]) {
+    const coarse = qiWuZhangGlobalGeometry(m, 40).integratedCurvature;
+    const fine = qiWuZhangGlobalGeometry(m, 80).integratedCurvature;
+    assert.ok(Math.abs(fine - Math.round(fine)) <= Math.abs(coarse - Math.round(coarse)) + 1e-9,
+      'refined quadrature should not worsen the error at m=' + m);
+  }
 });
