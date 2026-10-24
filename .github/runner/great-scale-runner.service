@@ -1,0 +1,22 @@
+[Unit]
+Description=Great Scale ephemeral GitHub Actions runner supervisor
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+[Service]
+Type=simple
+EnvironmentFile=/etc/great-scale-runner/runner.env
+Environment=RUNNER_IMAGE=great-scale-runner:local
+ExecStart=/usr/local/sbin/great-scale-runner-supervisor
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+KillMode=mixed
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/great-scale-runner
+StateDirectory=great-scale-runner
+[Install]
+WantedBy=multi-user.target
