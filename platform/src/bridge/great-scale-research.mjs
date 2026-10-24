@@ -66,7 +66,12 @@ export function stressInvariant(x) {
   const f = involution(canonical), g = softContract(canonical);
   const d = Math.abs(((canonical - f) % 9 + 9) % 9);
   const residual = Math.min(d, 9 - d);
-  return { x, involution: f, soft: g, residual };
+  const coordinateHeat = heat(canonical / 9);
+  return {
+    x, involution: f, soft: g, residual,
+    coordinateHeat,
+    heatScope: 'normalized-circle-coordinate'
+  };
 }
 
 export function hypothesisReport(x) {
@@ -75,12 +80,15 @@ export function hypothesisReport(x) {
   const inv = stressInvariant(canonical);
   return {
     hypothesis: 'S(h)=h(1-h) ≡ T(B)=B(1-B); f(x)=9-(x mod 9); fixed point 4.5; two-cycles (1,8)(2,7)(3,6)(4,5); cone floor; phi zero-mode; recursive observation: geometry generates the scale that observes it. No certainty.',
-    x, S, residual: inv.residual,
+    x, S, coordinateHeat: S,
+    heatScope: 'normalized-circle-coordinate',
+    residual: inv.residual,
     support: inv.residual < 0.5 ? 'supports' : 'tensions',
     supportScope: 'reflection-residual-only',
     claimsAssessed: ['distance from the supplied coordinate to its circle reflection'],
     claimsNotAssessed: [
       'heat/tension identity across independent subsystems',
+      'equivalence between normalized-coordinate heat and phase-time heat',
       'cone-floor and phi-zero-mode claims',
       'all listed two-cycle properties',
       'topological QGT and Chern-number claims'
