@@ -117,7 +117,9 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, rate = RATE,
     xyz: phaseXYZ(map.h, map.S),
     coherence: {
       tensionEqualsHeat: true,
-      formula: 'S = B(1-B) = heat(h)',
+      scope: 'belief-map',
+      formula: 'S_belief = B(1-B) = heat(B)',
+      phaseTimeHeat: st.S,
       coneFloor: CONE,
       phi: PHI
     }
