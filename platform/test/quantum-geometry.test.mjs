@@ -37,3 +37,21 @@ test('bridge scalar is invariant at extreme common scales and avoids determinant
  assert.ok(huge.metricEigenvalues.every(Number.isFinite)); close(huge.metricEigenvalues[0]/1e200,1); close(huge.metricEigenvalues[1]/1e200,1);
  assert.ok(huge.metricAnisotropy > 0 && Number.isFinite(huge.metricAnisotropy));
 });
+
+
+test('near-degenerate metric exposes cancellation and condition diagnostics',()=>{
+ const eps=1e-8;
+ const r=quantumGeometryToScale({g11:1,g12:1-eps,g22:1,curvature:0});
+ close(r.detG,eps*(2-eps),1e-15);
+ assert.equal(r.conditioningStatus,'ill-conditioned');
+ assert.ok(r.metricConditionNumberEstimate>=1e8);
+ assert.ok(r.metricDeterminantRelativeSeparation>64*Number.EPSILON);
+ close(r.metricEigenvalues[0],eps,1e-15);
+ close(r.metricEigenvalues[1],2-eps,1e-15);
+});
+test('metric determinant cancellation is explicitly marked numerically unresolved',()=>{
+ const r=quantumGeometryToScale({g11:1,g12:1-1e-16,g22:1,curvature:0});
+ assert.equal(r.conditioningStatus,'numerically-unresolved');
+ assert.equal(r.metricConditionNumberEstimate,null);
+ assert.ok(r.metricDeterminantRelativeSeparation<=64*Number.EPSILON);
+});
