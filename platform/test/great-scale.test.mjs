@@ -49,8 +49,13 @@ assert(st.psi >= CONE - 1e-9, 'psi above cone');
 
 const map = beliefToScale(0.55);
 assert(Math.abs(map.S - tension(0.55)) < 1e-12, 'map tension');
-const snap = snapshotFromBelief(0.55);
+const snap = snapshotFromBelief(0.55, { t: 0, rate: 0.85 });
 assert(snap.coherence.tensionEqualsHeat === true, 'coherence flag');
+assert(snap.coherence.scope === 'belief-map', 'coherence scope must be explicit');
+assert(snap.coherence.formula === 'S_belief = B(1-B) = heat(B)', 'formula must identify belief input');
+assert(Math.abs(snap.coherence.phaseTimeHeat - snap.phaseTime.S) < 1e-12, 'phase-time heat reported separately');
+assert(Math.abs(snap.belief.S - heat(snap.belief.belief)) < 1e-12, 'belief heat identity');
+assert(Math.abs(snap.belief.S - snap.phaseTime.S) > 1e-3, 'belief and phase heat must not be conflated in this regression case');
 assert(snap.xyz.length === 3, 'xyz');
 
 console.log('great-scale.test.mjs PASS');
