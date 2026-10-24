@@ -14,7 +14,7 @@ while true; do
       -H 'Accept: application/vnd.github+json' \
       -H 'X-GitHub-Api-Version: 2022-11-28' \
       "$API" | jq -er '.token')"; then
-    NAME="great-scale-$(hostname -s)-$(date +%s)"
+    NAME="That-Great-Scale-$(hostname -s)-$(date +%s)"
     log "Starting isolated ephemeral runner $NAME"
     set +e
     printf '%s' "$TOKEN" | docker run --rm -i \
