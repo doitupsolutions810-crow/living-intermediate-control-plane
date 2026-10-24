@@ -9,12 +9,20 @@ export function quantumGeometryToScale({ g11, g12, g22, curvature }, tolerance =
   if (!values.every(Number.isFinite)) throw new TypeError('Metric entries and curvature must be finite numbers.');
   if (!(tolerance >= 0) || !Number.isFinite(tolerance)) throw new TypeError('Tolerance must be finite and nonnegative.');
   if (!(g11 > 0) || !(g22 > 0)) throw new RangeError('Metric diagonal entries must be positive.');
-  const detG = g11 * g22 - g12 * g12;
-  if (!(detG > 0)) throw new RangeError('The two-direction metric must be positive and nondegenerate (detG > 0).');
-  const rawChi = Math.abs(curvature) / (2 * Math.sqrt(detG));
-  if (rawChi > 1 + tolerance) throw new RangeError('QGT positivity violated: |F_12| > 2 sqrt(detG).');
+  // Normalize the metric before determinant arithmetic. Under a common positive
+  // rescaling (g,F) -> (s g,s F), chi is invariant, but raw determinants may
+  // underflow/overflow even when normalized geometry remains representable.
+  const metricScale = Math.max(g11, Math.abs(g12), g22);
+  const a11 = g11 / metricScale, a12 = g12 / metricScale, a22 = g22 / metricScale;
+  const detScaled = a11 * a22 - a12 * a12;
+  if (!(detScaled > 0) || !Number.isFinite(detScaled)) throw new RangeError('The two-direction metric must be positive and nondegenerate (scaled detG > 0).');
+  const scaledCurvature = curvature / metricScale;
+  const rawChi = Math.abs(scaledCurvature) / (2 * Math.sqrt(detScaled));
+  if (!Number.isFinite(rawChi) || rawChi > 1 + tolerance) throw new RangeError('QGT positivity violated: |F_12| > 2 sqrt(detG).');
   const chi = Math.min(1, rawChi);
-  const detQ = Math.max(0, detG - curvature * curvature / 4);
+  const detQScaled = Math.max(0, detScaled - (scaledCurvature * scaledCurvature) / 4);
+  const detG = detScaled * metricScale * metricScale;
+  const detQ = detQScaled * metricScale * metricScale;
   const residual = Math.max(0, 1 - chi * chi);
   const h = (1 + chi) / 2;
   const S = heat(h);
