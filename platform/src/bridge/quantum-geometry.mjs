@@ -19,6 +19,10 @@ export function quantumGeometryToScale({ g11, g12, g22, curvature }, tolerance =
   const scaledCurvature = curvature / metricScale;
   const rawChi = Math.abs(scaledCurvature) / (2 * Math.sqrt(detScaled));
   if (!Number.isFinite(rawChi) || rawChi > 1 + tolerance) throw new RangeError('QGT positivity violated: |F_12| > 2 sqrt(detG).');
+  // Preserve evidence of tolerated clipping: otherwise a slightly invalid input
+  // is indistinguishable from exact geometric saturation in downstream scalars.
+  const positivityOvershoot = Math.max(0, rawChi - 1);
+  const saturationProjected = rawChi > 1;
   const chi = Math.min(1, rawChi);
   const detQScaled = Math.max(0, detScaled - (scaledCurvature * scaledCurvature) / 4);
   const detG = detScaled * metricScale * metricScale;
@@ -39,7 +43,8 @@ export function quantumGeometryToScale({ g11, g12, g22, curvature }, tolerance =
     schema: 'great-scale.quantum-geometry/v1', detG, detQ,
     signedCurvature: curvature, metricEigenvalues,
     metricAnisotropy: metricEigenvalues[0] / metricEigenvalues[1],
-    curvatureFraction: chi, normalizedResidual: residual, h, S, n,
+    curvatureFraction: chi, rawCurvatureFraction: rawChi, positivityOvershoot, saturationProjected,
+    normalizedResidual: residual, h, S, n,
     lambda: Math.pow(PHI, -n), psi: CONE + S, cone: CONE
   };
 }
