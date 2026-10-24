@@ -1,4 +1,31 @@
 /**
+// Error-free transforms recover low product bits before subtracting nearly equal terms.
+// Inputs are normalized to |x| <= 1, keeping Dekker splitting away from overflow.
+function twoProduct(a, b) {
+  const product = a * b;
+  const splitter = 134217729;
+  const ca = splitter * a, cb = splitter * b;
+  const aHi = ca - (ca - a), bHi = cb - (cb - b);
+  const aLo = a - aHi, bLo = b - bHi;
+  const error = ((aHi * bHi - product) + aHi * bLo + aLo * bHi) + aLo * bLo;
+  return [product, error];
+}
+function twoDiff(a, b) {
+  const value = a - b, bVirtual = a - value, aVirtual = value + bVirtual;
+  return [value, (a - aVirtual) + (bVirtual - b)];
+}
+function twoSum(a, b) {
+  const value = a + b, bVirtual = value - a, aVirtual = value - bVirtual;
+  return [value, (a - aVirtual) + (b - bVirtual)];
+}
+function compensatedDeterminant2x2(a11, a12, a22) {
+  const [p, pError] = twoProduct(a11, a22);
+  const [q, qError] = twoProduct(a12, a12);
+  const [difference, differenceError] = twoDiff(p, q);
+  const [productErrorDifference, productErrorDifferenceError] = twoDiff(pError, qError);
+  const [high, low] = twoSum(difference, productErrorDifference);
+  return high + (low + differenceError + productErrorDifferenceError);
+}
  * Quantum-geometric residual → Great Scale.
  * Convention: curvature F12 = 2 Im(Q12).
  * Additive: does not mutate the phase-driven scale state.
@@ -14,7 +41,7 @@ export function quantumGeometryToScale({ g11, g12, g22, curvature }, tolerance =
   // underflow/overflow even when normalized geometry remains representable.
   const metricScale = Math.max(g11, Math.abs(g12), g22);
   const a11 = g11 / metricScale, a12 = g12 / metricScale, a22 = g22 / metricScale;
-  const detScaled = a11 * a22 - a12 * a12;
+  const detScaled = compensatedDeterminant2x2(a11, a12, a22);
   if (!(detScaled > 0) || !Number.isFinite(detScaled)) throw new RangeError('The two-direction metric must be positive and nondegenerate (scaled detG > 0).');
   const scaledCurvature = curvature / metricScale;
   const rawChi = Math.abs(scaledCurvature) / (2 * Math.sqrt(detScaled));
@@ -35,14 +62,23 @@ export function quantumGeometryToScale({ g11, g12, g22, curvature }, tolerance =
   // can overflow even when the rescaled eigenvalues themselves are representable.
   const metricMeanScaled = (a11 + a22) / 2;
   const metricSpreadScaled = Math.hypot((a11 - a22) / 2, a12);
-  const metricEigenvalues = [
-    (metricMeanScaled - metricSpreadScaled) * metricScale,
-    (metricMeanScaled + metricSpreadScaled) * metricScale
-  ];
+  const lambdaMaxScaled = metricMeanScaled + metricSpreadScaled;
+  // Obtain the small eigenvalue from det/lambda_max, not mean - spread,
+  // which subtracts nearly equal values near metric degeneracy.
+  const lambdaMinScaled = detScaled / lambdaMaxScaled;
+  const metricEigenvalues = [lambdaMinScaled * metricScale, lambdaMaxScaled * metricScale];
+  const metricConditionNumber = lambdaMaxScaled / lambdaMinScaled;
+  const relativeEigenvalue = lambdaMinScaled / lambdaMaxScaled;
+  const metricConditionStatus = !Number.isFinite(metricConditionNumber) || relativeEigenvalue <= 64 * Number.EPSILON
+    ? 'numerically-unresolved'
+    : metricConditionNumber > 1 / Math.sqrt(Number.EPSILON)
+      ? 'ill-conditioned'
+      : 'well-conditioned';
   return {
     schema: 'great-scale.quantum-geometry/v1', detG, detQ,
     signedCurvature: curvature, metricEigenvalues,
     metricAnisotropy: metricEigenvalues[0] / metricEigenvalues[1],
+    metricConditionNumber, metricConditionStatus,
     curvatureFraction: chi, rawCurvatureFraction: rawChi, positivityOvershoot, saturationProjected,
     normalizedResidual: residual, h, S, n,
     lambda: Math.pow(PHI, -n), psi: CONE + S, cone: CONE
