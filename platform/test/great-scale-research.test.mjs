@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const { involution, canonicalizeCircleCoordinate, softMap, heat, convergenceSteps, cycleStability, stressInvariant, hypothesisReport, FIXED, PAIRS } = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale-research.mjs')).href);
+const { involution, canonicalizeCircleCoordinate, softMap, softContract, heat, convergenceSteps, cycleStability, stressInvariant, hypothesisReport, FIXED, PAIRS } = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale-research.mjs')).href);
 
 test('involution is an involution modulo nine and returns canonical representatives', () => {
   for (const x of [0,1,2,3,4,4.5,5,6,7,8,9,-1,19]) {
@@ -60,4 +60,31 @@ test('hypothesis heat is periodic and bounded for circle representatives', () =>
   }
   assert.ok(Math.abs(hypothesisReport(-1).S - hypothesisReport(8).S) < 1e-12);
   assert.ok(Math.abs(hypothesisReport(19).S - hypothesisReport(1).S) < 1e-12);
+});
+
+
+test('softMap is the circle reflection; applying it twice returns the coordinate', () => {
+  for (const x of [0, 1, 2, 3, 4, 4.5, 5, 6, 7, 8, 9, -1, 19]) {
+    assert.ok(Math.abs(canonicalizeCircleCoordinate(softMap(softMap(x))) - canonicalizeCircleCoordinate(x)) < 1e-12);
+  }
+  assert.equal(softMap(1), 8);
+  assert.equal(softMap(9), 0);
+});
+
+test('softContract is distinct from softMap and halves distance for k=0.5', () => {
+  assert.equal(softContract(1, 0.5), 2.75);
+  assert.equal(softContract(8, 0.5), 6.25);
+  assert.throws(() => softContract(Number.NaN), /finite/);
+  const result = convergenceSteps(1, 1e-6, 5000, 0.5);
+  assert.ok(result.converged);
+  assert.ok(result.steps > 1, 'contraction must converge iteratively rather than collapse in one step');
+});
+
+test('cycle stability checks the circle map rather than the contraction', () => {
+  const cycles = cycleStability();
+  assert.equal(cycles.length, PAIRS.length);
+  for (const cycle of cycles) {
+    assert.equal(cycle.preserved, true, 'circle reflection should exchange each listed pair');
+    assert.ok(cycle.drift < 1e-9);
+  }
 });
