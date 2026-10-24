@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-: "\${GH_RUNNER_PAT:?Set GH_RUNNER_PAT in the root-only runner environment file}"
-: "\${GH_REPOSITORY:?Set GH_REPOSITORY as owner/repository}"
-GH_RUNNER_LABELS="\${GH_RUNNER_LABELS:-great-scale,linux,x64}"
-RUNNER_IMAGE="\${RUNNER_IMAGE:-great-scale-runner:local}"
+: "${GH_RUNNER_PAT:?Set GH_RUNNER_PAT in the root-only runner environment file}"
+: "${GH_REPOSITORY:?Set GH_REPOSITORY as owner/repository}"
+GH_RUNNER_LABELS="${GH_RUNNER_LABELS:-great-scale,linux,x64}"
+RUNNER_IMAGE="${RUNNER_IMAGE:-great-scale-runner:local}"
 API="https://api.github.com/repos/$GH_REPOSITORY/actions/runners/registration-token"
 log() { printf '[great-scale-runner] %s\n' "$*" >&2; }
 while true; do
