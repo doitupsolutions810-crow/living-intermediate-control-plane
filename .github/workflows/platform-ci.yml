@@ -32,6 +32,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Validate runner bootstrap shell syntax
+        run: |
+          for script in ../.github/runner/*.sh; do
+            bash -n "$script"
+          done
       - name: Report runtime
         run: node --version
       - name: Syntax-check server and Great Scale bridges
