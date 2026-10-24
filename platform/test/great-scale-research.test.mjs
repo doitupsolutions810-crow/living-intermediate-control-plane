@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { involution, canonicalizeCircleCoordinate, softMap, softContract, heat, convergenceSteps, cycleStability, stressInvariant, hypothesisReport, FIXED, PAIRS } = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale-research.mjs')).href);
+const { stateAt } = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale.mjs')).href);
 
 test('involution is an involution modulo nine and returns canonical representatives', () => {
   for (const x of [0,1,2,3,4,4.5,5,6,7,8,9,-1,19]) {
@@ -26,7 +27,7 @@ test('heat equals tension form and rejects values outside its domain', () => {
   assert.throws(() => heat(1.1), /\[0, 1\]/);
 });
 
-test('soft map converges to fixed point 4.5', () => {
+test('soft contraction converges to fixed point 4.5', () => {
   for (const s of [1,2,3,4,5,6,7,8]) {
     const r = convergenceSteps(s, 1e-6, 5000, 0.5);
     assert.ok(r.converged, `start ${s} did not converge in ${r.steps} steps`);
@@ -45,6 +46,8 @@ test('stress invariant residual is zero at both circle fixed points', () => {
   assert.ok(stressInvariant(0).residual < 1e-9);
   assert.ok(stressInvariant(4.5).residual < 1e-9);
   assert.ok(stressInvariant(2).residual > 0.5);
+  assert.equal(stressInvariant(4.5).heatScope, 'normalized-circle-coordinate');
+  assert.equal(stressInvariant(4.5).coordinateHeat, 0.25);
 });
 
 test('hypothesis report at 4.5 supports', () => {
@@ -52,6 +55,8 @@ test('hypothesis report at 4.5 supports', () => {
   assert.equal(h.support, 'supports');
   assert.equal(h.supportScope, 'reflection-residual-only');
   assert.deepEqual(h.claimsAssessed, ['distance from the supplied coordinate to its circle reflection']);
+  assert.equal(h.heatScope, 'normalized-circle-coordinate');
+  assert.equal(h.coordinateHeat, h.S);
   assert.ok(h.claimsNotAssessed.includes('topological QGT and Chern-number claims'));
   assert.ok(h.S <= 0.25);
 });
@@ -90,4 +95,15 @@ test('cycle stability checks the circle map rather than the contraction', () => 
     assert.equal(cycle.preserved, true, 'circle reflection should exchange each listed pair');
     assert.ok(cycle.drift < 1e-9);
   }
+});
+
+
+test('coordinate heat is not silently equated with phase-time heat', () => {
+  const report = hypothesisReport(4.5);
+  const phase = stateAt(0);
+  assert.equal(report.heatScope, 'normalized-circle-coordinate');
+  assert.equal(report.coordinateHeat, 0.25);
+  assert.equal(phase.S, 0);
+  assert.notEqual(report.coordinateHeat, phase.S);
+  assert.ok(report.claimsNotAssessed.includes('equivalence between normalized-coordinate heat and phase-time heat'));
 });
