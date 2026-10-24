@@ -13,6 +13,14 @@ test('metric eigenvalues preserve anisotropy at equal determinant',()=>{const a=
 test('qutrit family has nonzero metric area at zero curvature',()=>{const x=.3,y=.4,s=1+x*x+y*y,g11=(1+y*y)/(s*s),g12=-x*y/(s*s),g22=(1+x*x)/(s*s),r=quantumGeometryToScale({g11,g12,g22,curvature:0});close(r.detG,1/(s*s*s));close(r.detQ,r.detG);close(r.normalizedResidual,1);close(r.S,.25);});
 test('pure-qubit Bloch sphere saturates QGT bound',()=>{const t=.7,r=quantumGeometryToScale({g11:.25,g12:0,g22:Math.sin(t)**2/4,curvature:Math.sin(t)/2});close(r.detG,Math.sin(t)**2/16);close(r.detQ,0,1e-12);close(r.curvatureFraction,1);close(r.S,0);close(r.psi,CONE);});
 test('rejects QGT positivity violation',()=>assert.throws(()=>quantumGeometryToScale({g11:1,g12:0,g22:1,curvature:2.01}),/QGT positivity violated/));
+test('tolerated positivity clipping is explicit rather than silently called exact saturation',()=>{
+ const r=quantumGeometryToScale({g11:1,g12:0,g22:1,curvature:2*(1+5e-11)});
+ assert.ok(r.rawCurvatureFraction > 1);
+ close(r.positivityOvershoot,5e-11,1e-15);
+ assert.equal(r.saturationProjected,true);
+ close(r.curvatureFraction,1); close(r.S,0);
+ assert.throws(()=>quantumGeometryToScale({g11:1,g12:0,g22:1,curvature:2*(1+2e-10)}),/QGT positivity violated/);
+});
 test('rejects degenerate metric',()=>assert.throws(()=>quantumGeometryToScale({g11:1,g12:1,g22:1,curvature:0}),/positive and nondegenerate/));
 test('rejects negative-definite metric',()=>assert.throws(()=>quantumGeometryToScale({g11:-1,g12:0,g22:-1,curvature:0}),/diagonal entries must be positive/));
 test('rejects zero diagonal metric',()=>assert.throws(()=>quantumGeometryToScale({g11:0,g12:0,g22:1,curvature:0}),/diagonal entries must be positive/));
