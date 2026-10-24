@@ -6,12 +6,14 @@ on:
     paths:
       - "platform/**"
       - ".github/workflows/platform-ci.yml"
+      - ".github/runner/**"
   push:
     branches:
       - "research/great-scale-api-contract"
     paths:
       - "platform/**"
       - ".github/workflows/platform-ci.yml"
+      - ".github/runner/**"
 
 permissions:
   contents: read
