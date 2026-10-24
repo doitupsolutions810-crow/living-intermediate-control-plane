@@ -2,7 +2,7 @@ export type LatticeContext = {
   systemAugment?: string;
   spectrum?: unknown;
   offline?: boolean;
-};
+);
 
 function platformBase() {
   return (process.env.CONTROL12_PLATFORM_URL || '').replace(/\/$/, '');
@@ -56,7 +56,7 @@ export type CockpitActionResult = {
   offline?: boolean;
   error?: string;
   data?: unknown;
-};
+);
 
 /**
  * Forward a cockpit action to the control plane.
@@ -150,7 +150,7 @@ export async function fetchPlatformSnapshot() {
       out.mtls = sec.mtls;
       out.dualCa = sec.dualCa;
       out.chatOpen = sec.chatOpen;
-      outRequireQuorum = secRequireQuorum;
+      out.RequireQuorum = sec.RequireQuorum;
       out.severity = sec.severity;
     } else {
       out.anomalies = null;
