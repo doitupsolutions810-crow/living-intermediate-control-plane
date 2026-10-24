@@ -9,7 +9,7 @@ WORKDIR /home/runner
 RUN set -eux; \
     VERSION="$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | jq -er '.tag_name | ltrimstr("v")')"; \
     curl -fsSL --retry 3 \
-      "https://github.com/actions/runner/releases/download/v\${VERSION}/actions-runner-linux-x64-\${VERSION}.tar.gz" \
+      "https://github.com/actions/runner/releases/download/v${VERSION}/actions-runner-linux-x64-${VERSION}.tar.gz" \
       -o /tmp/actions-runner.tar.gz; \
     tar -xzf /tmp/actions-runner.tar.gz -C /home/runner; \
     rm /tmp/actions-runner.tar.gz; \
