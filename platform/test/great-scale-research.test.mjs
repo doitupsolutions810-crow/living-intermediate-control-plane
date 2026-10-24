@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const {
-  involution, modDist, heat, convergenceSteps, stressInvariant, hypothesisReport,
+  involution, modDist, heat, canonicalHeat, convergenceSteps, stressInvariant, hypothesisReport,
   FIXED, PAIRS, softMap, softContract, cycleStability, runResearch
 } = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'bridge', 'great-scale-research.mjs')).href);
 const { PHI, PHI_INV, CONE, stateAt } =
@@ -30,6 +30,13 @@ test('heat equals tension form', () => {
   assert.equal(heat(0.5), 0.25);
   assert.equal(heat(0), 0);
   assert.equal(heat(1), 0);
+});
+
+test('canonical Great Scale coordinate uses H=(x−1)/7 on x∈[1,8]', () => {
+  assert.equal(canonicalHeat(1), 0);
+  assert.equal(canonicalHeat(8), 0);
+  assert.equal(canonicalHeat(4.5), 0.25);
+  assert.equal(canonicalHeat(4), canonicalHeat(5));
 });
 
 test('softMap is the reflection involution, not the contraction', () => {
@@ -61,19 +68,22 @@ test('two-cycles preserved by the reflection map', () => {
   assert.ok(cycleStability().every(c => c.preserved && c.drift < 1e-9));
 });
 
-test('stress residual compares contraction with involution and vanishes at fixed point', () => {
+test('map disagreement is zero at fixed point but nonzero away from it', () => {
   assert.ok(stressInvariant(4.5).residual < 1e-9);
   assert.ok(stressInvariant(2).residual > 0.5);
 });
 
-test('hypothesis report at 4.5 supports', () => {
+test('hypothesis report does not mistake a fixed-point identity for empirical support', () => {
   const h = hypothesisReport(4.5);
-  assert.equal(h.support, 'supports');
-  assert.ok(h.S <= 0.25);
+  assert.equal(h.status, 'not-established');
+  assert.equal(h.H, 0.5);
+  assert.equal(h.S, 0.25);
+  assert.match(h.evidenceBoundary, /no empirical observation/);
 });
 
 test('runResearch reports convergent trajectories and preserved cycles', () => {
   const r = runResearch(0.5);
   assert.ok(r.convergence.every(c => c.converged));
   assert.ok(r.cycles.every(c => c.preserved));
+  assert.equal(r.hypothesis.status, 'not-established');
 });
