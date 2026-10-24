@@ -1,0 +1,107 @@
+/**
+ * Structural and internal-consistency checks for the proposed Great Scale
+ * evidence envelope. This module does not authenticate signatures, establish
+ * provenance, or authorize actions; those remain separate trust gates.
+ */
+export const GREAT_SCALE_EVIDENCE_SCHEMA = 'great-scale.evidence/v1';
+export const GREAT_SCALE_CONE = (Math.sqrt(5) + 1) ** -2;
+
+const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+const finiteOrNull = value => value === null || (typeof value === 'number' && Number.isFinite(value));
+const close = (a, b, tolerance) => Math.abs(a - b) <= tolerance;
+
+export function validateGreatScaleEvidence(evidence, { tolerance = 1e-8 } = {}) {
+  const errors = [];
+  const add = message => errors.push(message);
+
+  if (!Number.isFinite(tolerance) || tolerance < 0) {
+    throw new TypeError('tolerance must be a finite nonnegative number');
+  }
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
+    return { valid: false, errors: ['evidence must be an object'] };
+  }
+
+  if (evidence.schema !== GREAT_SCALE_EVIDENCE_SCHEMA) add('unsupported schema');
+  if (typeof evidence.claim_id !== 'string' || !evidence.claim_id.trim()) add('claim_id must be a nonempty string');
+
+  const producer = evidence.producer;
+  if (!producer || typeof producer !== 'object' || Array.isArray(producer)) {
+    add('producer must be an object');
+  } else {
+    if (typeof producer.repository !== 'string' || !/^[^/]+\/[^/]+$/.test(producer.repository)) add('producer.repository must be owner/repository');
+    if (typeof producer.commit !== 'string' || !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/i.test(producer.commit)) add('producer.commit must be a full 40- or 64-character hex SHA');
+    if (typeof producer.path !== 'string' || !producer.path.trim()) add('producer.path must be a nonempty string');
+    if (!producer.runtime || typeof producer.runtime !== 'object') add('producer.runtime must be an object');
+  }
+
+  const model = evidence.model;
+  if (!model || typeof model !== 'object' || typeof model.name !== 'string' || !model.name.trim()) add('model.name must be a nonempty string');
+  if (!model || typeof model.parameters !== 'object' || model.parameters === null || Array.isArray(model.parameters)) add('model.parameters must be an object');
+  if (!model || typeof model.conventions !== 'object' || model.conventions === null || Array.isArray(model.conventions)) add('model.conventions must be an object');
+
+  const claim = evidence.claim;
+  if (!claim || typeof claim !== 'object') add('claim must be an object');
+  else {
+    if (typeof claim.class !== 'string' || !claim.class.trim()) add('claim.class must be a nonempty string');
+    if (typeof claim.formula_version !== 'string' || !claim.formula_version.trim()) add('claim.formula_version must be a nonempty string');
+    if (!Array.isArray(claim.assumptions) || claim.assumptions.some(x => typeof x !== 'string')) add('claim.assumptions must be an array of strings');
+  }
+
+  const result = evidence.result;
+  const resultKeys = ['chern_number', 'metric_area_budget', 'metric_area_excess', 'topological_saturation', 'great_scale_scalar'];
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    add('result must be an object');
+  } else {
+    for (const key of resultKeys) {
+      if (!own(result, key)) add(`result.${key} is required (use null when unknown)`);
+      else if (!finiteOrNull(result[key])) add(`result.${key} must be finite or null`);
+    }
+    const { chern_number: C, metric_area_budget: A, metric_area_excess: E,
+      topological_saturation: tau, great_scale_scalar: psi } = result;
+    if (A !== null && A !== undefined && A < 0) add('metric_area_budget must be nonnegative');
+    if (E !== null && E !== undefined && E < -tolerance) add('metric_area_excess must be nonnegative');
+    if (tau !== null && tau !== undefined && (tau < -tolerance || tau > 1 + tolerance)) add('topological_saturation must lie in [0,1]');
+    if (A != null && C != null) {
+      if (A + tolerance < Math.abs(C)) add('metric area lower bound violated: A_Q < |C|');
+      if (A > tolerance) {
+        const expectedTau = Math.abs(C) / A;
+        if (tau != null && !close(tau, expectedTau, tolerance)) add('topological_saturation inconsistent with |C| / metric_area_budget');
+        const expectedPsi = GREAT_SCALE_CONE + (1 - (C / A) ** 2) / 4;
+        if (psi != null && !close(psi, expectedPsi, tolerance)) add('great_scale_scalar inconsistent with C / metric_area_budget');
+      } else if (Math.abs(C) <= tolerance && (tau != null || psi != null)) {
+        add('zero metric area with zero Chern number has undefined polarization; saturation and scalar must be null');
+      }
+    }
+  }
+
+  const validation = evidence.validation;
+  if (!validation || typeof validation !== 'object') add('validation must be an object');
+  else {
+    for (const key of ['domain_valid', 'converged']) {
+      if (typeof validation[key] !== 'boolean') add(`validation.${key} must be boolean`);
+    }
+    for (const key of ['chern_integer_residual', 'signed_curvature_residual', 'area_refinement_residual', 'grid_origin_residual', 'cancellation_residual', 'entropy_residual']) {
+      if (!own(validation, key) || !finiteOrNull(validation[key])) add(`validation.${key} must be present and finite or null`);
+    }
+    if (!['provisional', 'accepted', 'rejected', 'indeterminate'].includes(validation.acceptance)) add('validation.acceptance is invalid');
+  }
+
+  const execution = evidence.execution;
+  if (!execution || typeof execution !== 'object') add('execution must be an object');
+  else {
+    if (typeof execution.command !== 'string' || !execution.command.trim()) add('execution.command must be a nonempty string');
+    if (!(execution.exit_code === null || Number.isInteger(execution.exit_code))) add('execution.exit_code must be an integer or null');
+  }
+
+  const integrity = evidence.integrity;
+  if (!integrity || typeof integrity !== 'object') add('integrity must be an object');
+  else {
+    if (typeof integrity.canonicalization !== 'string' || !integrity.canonicalization.trim()) add('integrity.canonicalization must be a nonempty string');
+    if (!(integrity.artifact_digest === null || typeof integrity.artifact_digest === 'string')) add('integrity.artifact_digest must be a string or null');
+    if (!(integrity.signature_ref === null || typeof integrity.signature_ref === 'string')) add('integrity.signature_ref must be a string or null');
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export default { validateGreatScaleEvidence, GREAT_SCALE_EVIDENCE_SCHEMA, GREAT_SCALE_CONE };
