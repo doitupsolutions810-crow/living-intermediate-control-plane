@@ -81,3 +81,62 @@ This is a mathematical consistency result for the stated formula and quotient, n
 2. If interval semantics are intended, update documentation and remove quotient-circle claims from the contraction contract.
 3. If quotient semantics are intended, design a circle-native update, define antipodal behavior, and test seam continuity and representative invariance.
 4. Run `python3 test_descent.py`, `npm test`, and `npm run all` on the chosen implementation and exact commit.
+
+
+## Further descent: the stress diagnostic itself is not a quotient invariant
+
+The same state-space mismatch affects `stress_residual(x)` in `great-scale/test_descent.py`:
+
+```python
+def stress_residual(x):
+    return abs(x - involution(x))
+```
+
+The involution canonicalizes its input modulo nine, but the residual subtracts that canonical representative from the original, uncanonicalized coordinate. Therefore the residual is not invariant under the equivalence relation (x\sim x+9n).
+
+### Minimal counterexample
+
+The quotient classes of 0 and 9 are equal:
+
+[
+\pi(0)=\pi(9).
+]
+
+But the current implementation yields:
+
+[
+r(0)=|0-f(0)|=0,\qquad
+r(9)=|9-f(9)|=9.
+]
+
+Thus the same quotient state receives two different stress values. Moreover, 9 exceeds the maximum geodesic distance on a circle of circumference 9, which is (9/2=4.5). The raw residual is therefore not a metric distance on the claimed circle.
+
+A quotient-consistent diagnostic would instead be:
+
+[
+r_{\mathrm{quot}}(x)=d_9(x,f(x)),
+\qquad
+d_9(a,b)=\min(|(a-b)\bmod9|,9-| (a-b)\bmod9|).
+]
+
+This is a candidate correction only if the intended semantics really are quotient-circle semantics. If the intended state space is the interval ([0,9]), the correct response is instead to define the interval metric and stop treating 0 and 9 as equivalent for all diagnostics.
+
+### Regression properties
+
+For quotient semantics, add properties that must hold for representative shifts (n\in\mathbb Z):
+
+[
+d_9(x,x+9n)=0,
+\qquad
+r_{\mathrm{quot}}(x+9n)=r_{\mathrm{quot}}(x),
+\qquad
+0\le r_{\mathrm{quot}}(x)\le4.5.
+]
+
+Concrete regression assertions should include `stress_residual(0) == stress_residual(9)` under the corrected quotient metric, and representative-shift tests over positive and negative (n). The existing implementation is expected to fail the first assertion; that failure is analytically established here, but the repository test suite has not been run.
+
+### Updated Great Scale decision
+
+This sharpens the Levels 10001–10100 conclusion: it is not only the contraction map that must descend to the quotient. **Every observable/diagnostic claimed to describe a quotient state must also be well-defined on equivalence classes.** State dynamics and diagnostics must use one coherent state-space contract.
+
+This addendum is source analysis and a proposed regression contract. No runtime code has been changed, and no repository test, build, or CI run is claimed.
