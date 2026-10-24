@@ -36,7 +36,7 @@ test('canonical Great Scale coordinate uses H=(x−1)/7 on x∈[1,8]', () => {
   assert.equal(canonicalHeat(1), 0);
   assert.equal(canonicalHeat(8), 0);
   assert.equal(canonicalHeat(4.5), 0.25);
-  assert.equal(canonicalHeat(4), canonicalHeat(5));
+  assert.ok(Math.abs(canonicalHeat(4) - canonicalHeat(5)) < 1e-12);
 });
 
 test('softMap is the reflection involution, not the contraction', () => {
