@@ -9,7 +9,15 @@ export function modDist(a, b) {
   const d = Math.abs((((a - b) % 9) + 9) % 9);
   return Math.min(d, 9 - d);
 }
-export function softMap(x, k = 0.5) { return FIXED + (x - FIXED) * Math.cos(Math.PI * k); }
+
+// GS-LVI: canonical representative in [0,9) before the affine step so
+// C(x+9n) = C(x) for every n — the quotient fiber is constant.
+export function softMap(x, k = 0.5) {
+  const m = ((x % 9) + 9) % 9;          // canonical representative
+  const y = FIXED + k * (m - FIXED);     // affine contraction on the circle
+  return ((y % 9) + 9) % 9;             // re-project to [0,9)
+}
+
 export function heat(h) { return h * (1 - h); }
 
 export function convergenceSteps(start, eps = 1e-6, max = 5000, k = 0.5) {
@@ -37,9 +45,12 @@ export function stressInvariant(x) {
 export function hypothesisReport(x) {
   const S = heat(x/9);
   const inv = stressInvariant(x);
+  // GS-LVI companion channel: fiber constancy witness
+  const fiber = { C0: softMap(0), C9: softMap(9), quotientDist: modDist(softMap(0), softMap(9)) };
   return {
-    hypothesis: 'S(h)=h(1-h) ≡ T(B)=B(1-B); f(x)=(9-(x mod 9)) mod 9; fixed point 4.5; two-cycles (1,8)(2,7)(3,6)(4,5); cone floor; phi zero-mode; stress = moment of now computationally; recursive observation: geometry generates the scale that observes it. No certainty.',
+    hypothesis: 'S(h)=h(1-h) ≡ T(B)=B(1-B); f(x)=(9-(x mod 9)) mod 9; fixed point 4.5; two-cycles (1,8)(2,7)(3,6)(4,5); cone floor; phi zero-mode; stress = moment of now computationally; recursive observation: geometry generates the scale that observes it. No certainty. GS-LVI: quotient fiber constancy — C(x+9n)=C(x).',
     x, S, residual:inv.residual,
+    fiber,
     support:inv.residual < 0.5 ? 'supports' : 'tensions'
   };
 }
