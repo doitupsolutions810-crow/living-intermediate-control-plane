@@ -16,3 +16,11 @@ test('rejects QGT positivity violation',()=>assert.throws(()=>quantumGeometryToS
 test('rejects degenerate metric',()=>assert.throws(()=>quantumGeometryToScale({g11:1,g12:1,g22:1,curvature:0}),/positive and nondegenerate/));
 test('rejects negative-definite metric',()=>assert.throws(()=>quantumGeometryToScale({g11:-1,g12:0,g22:-1,curvature:0}),/diagonal entries must be positive/));
 test('rejects zero diagonal metric',()=>assert.throws(()=>quantumGeometryToScale({g11:0,g12:0,g22:1,curvature:0}),/diagonal entries must be positive/));
+
+test('bridge scalar is invariant at extreme common scales and avoids determinant underflow',()=>{
+ const base=quantumGeometryToScale({g11:1,g12:0,g22:1,curvature:1});
+ const tiny=quantumGeometryToScale({g11:1e-200,g12:0,g22:1e-200,curvature:1e-200});
+ close(tiny.curvatureFraction,base.curvatureFraction); close(tiny.S,base.S);
+ const huge=quantumGeometryToScale({g11:1e200,g12:0,g22:1e200,curvature:1e200});
+ close(huge.curvatureFraction,base.curvatureFraction); close(huge.S,base.S);
+});
