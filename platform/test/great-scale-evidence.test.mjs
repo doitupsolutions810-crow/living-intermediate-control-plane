@@ -130,6 +130,17 @@ test('accepted evidence requires authorization, successful execution, digest, si
   assert.ok(validateGreatScaleEvidence(unsigned, { now: Date.parse('2026-01-01T00:00:00Z') }).errors.some(x => x.includes('signature reference')));
 });
 
+
+test('accepted evidence cannot hide unknown numerical outputs or convergence residuals', () => {
+  const missingResult = acceptedEnvelope();
+  missingResult.result.metric_area_budget = null;
+  assert.ok(validateGreatScaleEvidence(missingResult, { now: Date.parse('2026-01-01T00:00:00Z') }).errors.some(x => x.includes('accepted evidence requires numeric result.metric_area_budget')));
+
+  const missingResidual = acceptedEnvelope();
+  missingResidual.validation.area_refinement_residual = null;
+  assert.ok(validateGreatScaleEvidence(missingResidual, { now: Date.parse('2026-01-01T00:00:00Z') }).errors.some(x => x.includes('accepted evidence requires measured validation.area_refinement_residual')));
+});
+
 test('rejects malformed digest and invalid authorization timestamps', () => {
   const e = envelope();
   e.integrity.artifact_digest = 'not-a-digest';
