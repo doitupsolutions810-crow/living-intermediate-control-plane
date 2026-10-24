@@ -1,0 +1,48 @@
+name: Platform verification
+
+on:
+  pull_request:
+    paths:
+      - "platform/**"
+      - ".github/workflows/platform-ci.yml"
+  push:
+    branches:
+      - "research/great-scale-api-contract"
+    paths:
+      - "platform/**"
+      - ".github/workflows/platform-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  platform-test-build-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Report runtime
+        run: node --version
+      - name: Syntax-check server and Great Scale bridges
+        run: |
+          node --check src/server.mjs
+          node --check src/bridge/great-scale.mjs
+          node --check src/bridge/great-scale-research.mjs
+          node --check test/great-scale.test.mjs
+          node --check test/great-scale-research.test.mjs
+      - name: Run platform test suite
+        run: npm test
+      - name: Build check
+        run: |
+          node --check src/server.mjs
+          node --check src/bridge/great-scale.mjs
+          node --check src/bridge/great-scale-research.mjs
+      - name: Run HTTP smoke test
+        run: npm run smoke
