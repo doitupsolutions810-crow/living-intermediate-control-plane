@@ -56,6 +56,8 @@ export function validateGreatScaleEvidence(evidence, { tolerance = 1e-8 } = {}) 
     if (A != null && C != null) {
       if (A + tolerance < Math.abs(C)) add('metric area lower bound violated: A_Q < |C|');
       if (A > tolerance) {
+        const expectedExcess = A - Math.abs(C);
+        if (E != null && !close(E, expectedExcess, tolerance)) add('metric_area_excess inconsistent with A_Q - |C|');
         const expectedTau = Math.abs(C) / A;
         if (tau != null && !close(tau, expectedTau, tolerance)) add('topological_saturation inconsistent with |C| / metric_area_budget');
         const expectedPsi = GREAT_SCALE_CONE + (1 - (C / A) ** 2) / 4;
@@ -74,6 +76,9 @@ export function validateGreatScaleEvidence(evidence, { tolerance = 1e-8 } = {}) 
       if (!own(validation, key) || !finiteOrNull(validation[key])) add(`validation.${key} must be present and finite or null`);
     }
     if (!['provisional', 'accepted', 'rejected', 'indeterminate'].includes(validation.acceptance)) add('validation.acceptance is invalid');
+    if (validation.acceptance === 'accepted' && (validation.domain_valid !== true || validation.converged !== true)) {
+      add('accepted evidence requires domain_valid and converged to be true');
+    }
   }
 
   const execution = evidence.execution;
