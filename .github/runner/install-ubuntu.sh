@@ -16,12 +16,12 @@ if ! command -v apt-get >/dev/null 2>&1; then
   echo "apt-get is required; use an Ubuntu/Debian host." >&2
   exit 1
 fi
-REPOSITORY="\${GH_REPOSITORY:-doitupsolutions810-crow/living-intermediate-control-plane}"
-LABELS="\${GH_RUNNER_LABELS:-great-scale,linux,x64}"
+REPOSITORY="${GH_REPOSITORY:-doitupsolutions810-crow/living-intermediate-control-plane}"
+LABELS="${GH_RUNNER_LABELS:-great-scale,linux,x64}"
 apt-get update
 apt-get install -y ca-certificates curl docker.io jq
 systemctl enable --now docker
-if [[ -z "\${GH_RUNNER_PAT:-}" ]]; then
+if [[ -z "${GH_RUNNER_PAT:-}" ]]; then
   read -r -s -p "Fine-grained GitHub PAT with repository Administration: write for $REPOSITORY: " GH_RUNNER_PAT
   printf '\n'
 fi
