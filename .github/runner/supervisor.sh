@@ -17,11 +17,10 @@ while true; do
     NAME="great-scale-$(hostname -s)-$(date +%s)"
     log "Starting isolated ephemeral runner $NAME"
     set +e
-    docker run --rm \
+    printf '%s' "$TOKEN" | docker run --rm -i \
       --name "$NAME" \
       --label great-scale.ephemeral=true \
       --env RUNNER_URL="https://github.com/$GH_REPOSITORY" \
-      --env RUNNER_TOKEN="$TOKEN" \
       --env RUNNER_NAME="$NAME" \
       --env RUNNER_LABELS="$GH_RUNNER_LABELS" \
       "$RUNNER_IMAGE"
