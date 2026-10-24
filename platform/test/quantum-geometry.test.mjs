@@ -25,4 +25,5 @@ test('bridge scalar is invariant at extreme common scales and avoids determinant
  const huge=quantumGeometryToScale({g11:1e200,g12:0,g22:1e200,curvature:1e200});
  close(huge.curvatureFraction,base.curvatureFraction); close(huge.S,base.S);
  assert.ok(huge.metricEigenvalues.every(Number.isFinite)); close(huge.metricEigenvalues[0]/1e200,1); close(huge.metricEigenvalues[1]/1e200,1);
+ assert.ok(huge.metricAnisotropy > 0 && Number.isFinite(huge.metricAnisotropy));
 });
