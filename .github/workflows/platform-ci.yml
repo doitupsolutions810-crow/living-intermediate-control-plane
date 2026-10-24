@@ -18,7 +18,10 @@ permissions:
 
 jobs:
   platform-test-build-smoke:
-    runs-on: ubuntu-latest
+    # Fork/untrusted PR code stays on GitHub-hosted infrastructure. Trusted branch
+    # pushes and manual dispatch use the isolated ephemeral Great Scale runner.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["self-hosted", "linux", "x64", "great-scale"]') }}
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: platform
