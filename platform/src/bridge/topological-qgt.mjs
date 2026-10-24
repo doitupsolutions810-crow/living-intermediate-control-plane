@@ -17,11 +17,18 @@ export function qiWuZhangLowerBandState(kx, ky, m) {
   const dx = Math.sin(kx), dy = Math.sin(ky), dz = m + Math.cos(kx) + Math.cos(ky);
   const energy = Math.hypot(dx, dy, dz);
   if (energy < EPS) throw new RangeError('Band gap closes at (' + kx + ', ' + ky + ') for m=' + m + '.');
+  // Use dimensionless ratios so finite large |m| cannot overflow in energy ± dz.
   let a, b;
-  if (energy + dz > EPS) { a = c(-dx, dy); b = c(energy + dz); }
-  else { a = c(energy - dz); b = c(-dx, -dy); }
-  const norm = Math.hypot(absC(a), absC(b));
-  return [c(a[0] / norm, a[1] / norm), c(b[0] / norm, b[1] / norm)];
+  if (dz >= 0) {
+    const bReal = Math.sqrt((1 + dz / energy) / 2);
+    a = c((-dx / energy) / (2 * bReal), (dy / energy) / (2 * bReal));
+    b = c(bReal);
+  } else {
+    const aReal = Math.sqrt((1 - dz / energy) / 2);
+    a = c(aReal);
+    b = c((-dx / energy) / (2 * aReal), (-dy / energy) / (2 * aReal));
+  }
+  return [a, b];
 }
 function overlap(u, v) { return add(mul(conj(u[0]), v[0]), mul(conj(u[1]), v[1])); }
 function phase(z) {
