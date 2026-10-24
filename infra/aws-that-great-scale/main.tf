@@ -103,6 +103,9 @@ resource "aws_instance" "runner_host" {
     encrypted   = true
     volume_type = "gp3"
     volume_size = 30
+    tags = {
+      Name = "${var.runner_host_name}-root"
+    }
   }
 
   user_data = <<-EOF
@@ -115,9 +118,6 @@ resource "aws_instance" "runner_host" {
     printf '%s\n' 'Host prerequisites installed. Connect with AWS Systems Manager Session Manager, clone the trusted repository branch, and run .github/runner/install-ubuntu.sh as documented.' > /etc/that-great-scale-bootstrap.txt
   EOF
 
-  root_block_device_tags = {
-    Name = "${var.runner_host_name}-root"
-  }
 
   tags = {
     Name      = var.runner_host_name
