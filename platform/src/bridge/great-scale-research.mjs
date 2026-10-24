@@ -74,9 +74,17 @@ export function hypothesisReport(x) {
   const S = heat(canonical / 9);
   const inv = stressInvariant(canonical);
   return {
-    hypothesis: 'S(h)=h(1-h) ≡ T(B)=B(1-B); f(x)=9-(x mod 9); fixed point 4.5; two-cycles (1,8)(2,7)(3,6)(4,5); cone floor; phi zero-mode; stress = moment of now computationally; recursive observation: geometry generates the scale that observes it. No certainty.',
+    hypothesis: 'S(h)=h(1-h) ≡ T(B)=B(1-B); f(x)=9-(x mod 9); fixed point 4.5; two-cycles (1,8)(2,7)(3,6)(4,5); cone floor; phi zero-mode; recursive observation: geometry generates the scale that observes it. No certainty.',
     x, S, residual: inv.residual,
-    support: inv.residual < 0.5 ? 'supports' : 'tensions'
+    support: inv.residual < 0.5 ? 'supports' : 'tensions',
+    supportScope: 'reflection-residual-only',
+    claimsAssessed: ['distance from the supplied coordinate to its circle reflection'],
+    claimsNotAssessed: [
+      'heat/tension identity across independent subsystems',
+      'cone-floor and phi-zero-mode claims',
+      'all listed two-cycle properties',
+      'topological QGT and Chern-number claims'
+    ]
   };
 }
 
