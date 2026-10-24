@@ -9,11 +9,13 @@ A single `acceptance: "accepted"` field is an assertion, not proof. A numericall
 The validator now requires an accepted envelope to include all of the following:
 
 - `validation.domain_valid === true` and `validation.converged === true`;
+- all five numerical result fields to be finite numbers, not null placeholders;
+- all six configured convergence residuals to be measured finite numbers, not null placeholders;
 - `execution.exit_code === 0`;
 - a SHA-256 artifact digest and a non-empty signature reference;
 - authorization status `authorized`, a capability reference, an explicit audience and operation, a verification reference, and an expiry timestamp later than the validation clock.
 
-The clock is injectable as `{ now }` to make expiry tests deterministic. Provisional evidence may retain null values where information is unknown; null must not be converted into fabricated evidence.
+The clock is injectable as `{ now }` to make expiry tests deterministic. Provisional evidence may retain null values where information is unknown; null must not be converted into fabricated evidence or accepted as if it were a measured result.
 
 ## Great Scale invariance test
 
@@ -23,7 +25,7 @@ For `A_Q > 0`, let `e = (A_Q - |C|) / A_Q`. Then
 Psi_T = phi^(-2) + e/2 - e^2/4
 ```
 
-Since `e` is invariant under common positive scaling of `A_Q) and `C`, the scalar is invariant too. A regression test checks the tuple `(C, A_Q, E_Q, tau) = (-1, 2, 1, 1/2)` against `(-7, 14, 7, 1/2)`. The signed Chern number remains a separate field because `Psi_T` cannot distinguish `C` from `-C`.
+Since `e` is invariant under common positive scaling of `A_Q` and `C`, the scalar is invariant too. A regression test checks the tuple `(C, A_Q, E_Q, tau) = (-1, 2, 1, 1/2)` against `(-7, 14, 7, 1/2)`. The signed Chern number remains a separate field because `Psi_T` cannot distinguish `C` from `-C`.
 
 ## Trust boundary
 
@@ -33,7 +35,7 @@ Do not treat this structural validator as an authorization boundary. Fail closed
 
 ## Verification record
 
-- Added acceptance-gate checks for authorization fields, future expiry, successful execution, SHA-256 digest shape, and signature reference.
+- Added acceptance-gate checks for authorization fields, future expiry, successful execution, measured numerical outputs and residuals, SHA-256 digest shape, and signature reference.
 - Added a scale-invariance regression test and deterministic expiry-clock tests.
-- Changes are committed to the evidence-contract branch.
-- The full repository test suite and exact-head hosted workflow have **not** been verified in this note. A source-level/isolated test is not equivalent to `cd platform && npm test` or a green GitHub Actions run.
+- The focused isolated Node harness reconstructed from the current validator and focused test source passed **14/14** tests. This is not a full repository test run.
+- The full repository test suite and exact-head hosted workflow have **not** been verified. The latest hosted Plane CI run failed without recorded steps; log retrieval returned `BlobNotFound`, so the cause remains unresolved.
