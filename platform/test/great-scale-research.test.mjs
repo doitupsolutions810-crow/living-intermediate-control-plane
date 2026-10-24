@@ -50,6 +50,9 @@ test('stress invariant residual is zero at both circle fixed points', () => {
 test('hypothesis report at 4.5 supports', () => {
   const h = hypothesisReport(4.5);
   assert.equal(h.support, 'supports');
+  assert.equal(h.supportScope, 'reflection-residual-only');
+  assert.deepEqual(h.claimsAssessed, ['distance from the supplied coordinate to its circle reflection']);
+  assert.ok(h.claimsNotAssessed.includes('topological QGT and Chern-number claims'));
   assert.ok(h.S <= 0.25);
 });
 
