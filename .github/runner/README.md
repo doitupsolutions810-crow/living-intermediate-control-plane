@@ -37,5 +37,5 @@ Check the runner appears under the repository's Settings > Actions > Runners. Th
 
 - Resource not accessible by personal access token: ensure the PAT has repository Administration: write.
 - No runner appears: inspect the systemd journal, network egress, repository spelling, and PAT expiry.
-- Job remains queued: confirm the runner is online and has all labels self-hosted, linux, x64, great-scale.
+- Job remains queued: confirm the runner named That-Great-Scale is online and has all labels self-hosted, linux, x64, great-scale.
 - Runner fails immediately: inspect the job logs and rebuild the image.
