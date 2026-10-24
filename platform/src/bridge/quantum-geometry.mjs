@@ -1,4 +1,9 @@
 /**
+ * Quantum-geometric residual → Great Scale.
+ * Convention: curvature F12 = 2 Im(Q12).
+ * Additive: does not mutate the phase-driven scale state.
+ */
+import { PHI, CONE, heat } from './great-scale.mjs';
 // Error-free transforms recover low product bits before subtracting nearly equal terms.
 // Inputs are normalized to |x| <= 1, keeping Dekker splitting away from overflow.
 function twoProduct(a, b) {
@@ -26,11 +31,6 @@ function compensatedDeterminant2x2(a11, a12, a22) {
   const [high, low] = twoSum(difference, productErrorDifference);
   return high + (low + differenceError + productErrorDifferenceError);
 }
- * Quantum-geometric residual → Great Scale.
- * Convention: curvature F12 = 2 Im(Q12).
- * Additive: does not mutate the phase-driven scale state.
- */
-import { PHI, CONE, heat } from './great-scale.mjs';
 export function quantumGeometryToScale({ g11, g12, g22, curvature }, tolerance = 1e-10) {
   const values = [g11, g12, g22, curvature];
   if (!values.every(Number.isFinite)) throw new TypeError('Metric entries and curvature must be finite numbers.');
