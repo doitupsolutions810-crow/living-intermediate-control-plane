@@ -49,6 +49,65 @@ export async function fetchLatticeTurn(
   }
 }
 
+export type CockpitActionResult = {
+  status: number;
+  ok: boolean;
+  action: string;
+  offline?: boolean;
+  error?: string;
+  data?: unknown;
+};
+
+/**
+ * Forward a cockpit action to the control plane.
+ * No cockpit-action endpoint is currently deployed on the platform, so this
+ * returns a structured unavailable result rather than throwing — matching the
+ * graceful-offline contract of fetchLatticeTurn and fetchPlatformSnapshot.
+ */
+export async function postCockpitAction(
+  action: string,
+  body: Record<string, unknown> = {},
+  signal: AbortSignal = AbortSignal.timeout(8000)
+): Promise<CockpitActionResult> {
+  const platformUrl = platformBase();
+  if (!platformUrl) {
+    return {
+      status: 503,
+      ok: false,
+      action,
+      offline: true,
+      error: 'Control plane unavailable (CONTROL12_PLATFORM_URL unset) — cockpit action not forwarded.'
+    };
+  }
+
+  const endpoint = `${platformUrl}/api/v1/cockpit/action`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: platformHeaders(),
+      body: JSON.stringify({ action, ...body }),
+      signal
+    });
+    const data = await res.json().catch(() => null);
+    return {
+      status: res.status,
+      ok: res.ok,
+      action,
+      offline: false,
+      data
+    };
+  } catch (e) {
+    return {
+      status: 503,
+      ok: false,
+      action,
+      offline: true,
+      error: e instanceof Error ? e.message : String(e)
+    };
+  }
+}
+
 export async function fetchPlatformSnapshot() {
   const platformUrl = platformBase();
   const out: Record<string, unknown> = {
@@ -91,7 +150,7 @@ export async function fetchPlatformSnapshot() {
       out.mtls = sec.mtls;
       out.dualCa = sec.dualCa;
       out.chatOpen = sec.chatOpen;
-      out.requireQuorum = sec.requireQuorum;
+      outRequireQuorum = secRequireQuorum;
       out.severity = sec.severity;
     } else {
       out.anomalies = null;
