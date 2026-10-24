@@ -110,3 +110,89 @@ where (S) means artifact closure, (I) means importability under the intended env
 ### Decision
 
 The deepest actionable issue is **semantic aliasing of delivery evidence**: the implementation names a callback “JetStream” while its visible behavior is logging plus an optional mirror, and the durable state machine interprets callback return as publication. Repair the evidence contract before relying on the published state in downstream control-plane logic.
+
+## Continued descent — Levels 9701–9710: idempotency is not ownership
+
+### Profound finding
+
+A deeper source read of `capability-plane/admin/durable_outbox.py` finds two separate hazards:
+
+1. `enqueue()` enforces uniqueness on `(event_type, aggregate_id)`; when insertion conflicts, it returns the existing row without comparing the stored payload to the incoming payload.
+2. `claim_batch()` selects eligible unpublished rows without atomically claiming them, assigning a lease, or recording worker ownership. `relay_once()` then publishes every returned row and marks it published after the callback returns normally.
+
+These are source-level findings from public `main`. A concurrent race has not been reproduced against the repository implementation.
+
+### Formal contract
+
+Let an event be (e=(k,p)), with logical key (k=(event\_type,aggregate\_id)), canonical payload (p), and digest (H(p)). The safe enqueue rule is:
+
+\[
+\operatorname{Enqueue}(k,p)=
+\begin{cases}
+\operatorname{Existing}(k), & H(p)=H(p_k)\\
+\operatorname{Conflict}, & H(p)\ne H(p_k)\\
+\operatorname{Insert}(k,p), & k\text{ is new}
+\end{cases}
+\]
+
+Returning the old row without comparing payload identity collapses an exact retry and a conflicting reuse of the same key into one outcome.
+
+For a lease-based relay, the ownership invariant is:
+
+\[
+\forall e,t:\quad |\{w:Owner(e,t)=w\}|\le 1
+\]
+
+A lease prevents simultaneous valid owners; it does not guarantee exactly-once delivery. A worker can publish and crash before persisting success. Consumer idempotency and a durable receipt remain necessary.
+
+### Great Scale mapping
+
+- **9701 — Identity definition:** document the idempotency key and logical scope.
+- **9702 — Payload consistency:** store a canonical payload digest; reject same-key/different-payload conflicts.
+- **9703 — Atomic claim:** claim rows transactionally rather than selecting them.
+- **9704 — Lease expiry:** recover work abandoned by crashed workers.
+- **9705 — Fencing:** prevent stale lease holders from overwriting newer ownership state.
+- **9706 — Honest delivery semantics:** leases reduce concurrent duplicate attempts but do not prove exactly-once delivery.
+- **9707 — Consumer idempotency:** enforce durable uniqueness at the business-effect boundary.
+- **9708 — Receipt correlation:** bind effect and receipt to the same event ID and payload digest.
+- **9709 — Race regression tests:** run competing workers against a temporary SQLite database.
+- **9710 — Promotion gate:** require payload-conflict, concurrent-claim, crash/retry, and consumer-redelivery tests.
+
+### Mathematics and assurance vector
+
+The bounded Great Scale scalar remains:
+
+\[
+CONE=\phi^{-2}\approx0.381966,\qquad
+\Psi=CONE+h(1-h),\quad 0\le h\le1
+\]
+
+\[
+0.381966\lesssim\Psi\lesssim0.631966
+\]
+
+This scalar cannot certify identity consistency or exclusive ownership. Keep the assurance vector separate:
+
+\[
+\mathbf G(e)=(I,H,L,F,J,A,R)
+\]
+
+where (I) is stable identity, (H) payload-hash consistency, (L) valid lease ownership, (F) fencing freshness, (J) primary broker acknowledgement, (A) committed consumer effect, and (R) durable receipt. Promotion requires every required coordinate to be independently verified; unknown is not pass.
+
+### Verification ledger and boundary
+
+- **Source verified:** unique key `(event_type, aggregate_id)`; conflict returns existing row without payload comparison; `claim_batch()` has no atomic claim or lease; callback normal return is sufficient for `mark_published`.
+- **Not run:** repository tests, concurrent relay reproduction, import/build, live broker, consumer receipt test.
+- **Artifact boundary:** `NOTE_FULL_TREE.md` states that additional sources are in a release ZIP/overlay. That artifact was not inspected or hash-linked. The direct imports `admin/outbox.py` and `attestpipe/messages.py` are absent from the fetched public `main` paths. Runtime conclusions about an uninspected overlay remain unknown.
+
+### Remediation sequence
+
+1. Identify and hash the authoritative release artifact.
+2. Canonicalize payload serialization and persist its digest.
+3. Compare digests on key conflicts and raise a typed conflict for mismatches.
+4. Implement atomic claim/lease and stale-owner fencing for the actual production database.
+5. Test conflicting payloads, competing claimers, lease expiry, crash after publish, and consumer redelivery.
+6. Separately repair the primary transport acknowledgement contract from Levels 9601–9700.
+7. Run the exact repository suite and hosted CI before promoting the integration PR.
+
+**Decision:** deduplication, ownership, and delivery acknowledgement are three different facts. A uniqueness constraint does not prove payload equivalence; row selection does not prove exclusive ownership; callback return does not prove broker acceptance. Represent and verify each fact separately.
