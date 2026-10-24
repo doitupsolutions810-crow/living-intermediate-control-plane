@@ -9,9 +9,9 @@ log() { printf '[great-scale-runner] %s\n' "$*" >&2; }
 while true; do
   log "Requesting an ephemeral runner registration token for $GH_REPOSITORY"
   if TOKEN="$(curl -fsSL --retry 3 --retry-delay 2 \
+      --config <(printf 'header = "Authorization: Bearer %s"\n' "$GH_RUNNER_PAT") \
       -X POST \
       -H 'Accept: application/vnd.github+json' \
-      -H "Authorization: Bearer $GH_RUNNER_PAT" \
       -H 'X-GitHub-Api-Version: 2022-11-28' \
       "$API" | jq -er '.token')"; then
     NAME="great-scale-$(hostname -s)-$(date +%s)"
