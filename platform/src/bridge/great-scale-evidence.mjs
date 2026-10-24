@@ -73,6 +73,11 @@ export function validateGreatScaleEvidence(evidence, { tolerance = 1e-8, now = D
   }
 
   const validation = evidence.validation;
+  if (validation?.acceptance === 'accepted') {
+    for (const key of ['chern_number', 'metric_area_budget', 'metric_area_excess', 'topological_saturation', 'great_scale_scalar']) {
+      if (!Number.isFinite(result?.[key])) add(`accepted evidence requires numeric result.${key}`);
+    }
+  }
   if (!validation || typeof validation !== 'object' || Array.isArray(validation)) add('validation must be an object');
   else {
     for (const key of ['domain_valid', 'converged']) if (typeof validation[key] !== 'boolean') add(`validation.${key} must be boolean`);
@@ -80,6 +85,11 @@ export function validateGreatScaleEvidence(evidence, { tolerance = 1e-8, now = D
       if (!own(validation, key) || !finiteOrNull(validation[key])) add(`validation.${key} must be present and finite or null`);
     }
     if (!['provisional', 'accepted', 'rejected', 'indeterminate'].includes(validation.acceptance)) add('validation.acceptance is invalid');
+    if (validation.acceptance === 'accepted') {
+      for (const key of ['chern_integer_residual', 'signed_curvature_residual', 'area_refinement_residual', 'grid_origin_residual', 'cancellation_residual', 'entropy_residual']) {
+        if (!Number.isFinite(validation[key])) add(`accepted evidence requires measured validation.${key}`);
+      }
+    }
     if (validation.acceptance === 'accepted' && (validation.domain_valid !== true || validation.converged !== true)) {
       add('accepted evidence requires domain_valid and converged to be true');
     }
