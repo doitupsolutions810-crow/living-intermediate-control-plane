@@ -106,13 +106,30 @@ export function createSessionLinkStore(attestationDir) {
       return link;
     },
     async list(limit = 50) {
+      let text;
       try {
-        const text = await fs.readFile(file, 'utf8');
-        const lines = text.trim().split('\n').filter(Boolean);
-        return lines.slice(-limit).map((l) => JSON.parse(l));
-      } catch {
-        return [];
+        text = await fs.readFile(file, 'utf8');
+      } catch (error) {
+        // A missing log is an empty store. Permission, I/O, and other failures
+        // are unknown state and must not be reported as an empty history.
+        if (error?.code === 'ENOENT') return [];
+        throw error;
       }
+      const lines = text.split('\n');
+      const records = [];
+      for (let i = 0; i < lines.length; i += 1) {
+        if (!lines[i].trim()) continue;
+        try {
+          records.push(JSON.parse(lines[i]));
+        } catch (error) {
+          throw Object.assign(
+            new Error(`session-link log is corrupt at line ${i + 1}`),
+            { cause: error, code: 'ERR_SESSION_LINK_LOG_CORRUPT', line: i + 1 }
+          );
+        }
+      }
+      const count = Number.isFinite(Number(limit)) ? Math.max(0, Math.floor(Number(limit))) : 50;
+      return count === 0 ? [] : records.slice(-count);
     }
   };
 }
