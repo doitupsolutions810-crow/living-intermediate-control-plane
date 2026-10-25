@@ -59,15 +59,17 @@ export function validateGreatScaleEvidence(evidence, { tolerance = 1e-8, now = D
     if (tau != null && (tau < -tolerance || tau > 1 + tolerance)) add('topological_saturation must lie in [0,1]');
     if (A != null && C != null) {
       if (A + tolerance < Math.abs(C)) add('metric area lower bound violated: A_Q < |C|');
+      // Area excess is defined even at the zero-area boundary; do not skip
+      // this invariant merely because polarization is undefined there.
+      const expectedExcess = A - Math.abs(C);
+      if (E != null && !close(E, expectedExcess, tolerance)) add('metric_area_excess inconsistent with A_Q - |C|');
       if (A > tolerance) {
-        const expectedExcess = A - Math.abs(C);
-        if (E != null && !close(E, expectedExcess, tolerance)) add('metric_area_excess inconsistent with A_Q - |C|');
         const expectedTau = Math.abs(C) / A;
         if (tau != null && !close(tau, expectedTau, tolerance)) add('topological_saturation inconsistent with |C| / metric_area_budget');
         const expectedPsi = GREAT_SCALE_CONE + (1 - (C / A) ** 2) / 4;
         if (psi != null && !close(psi, expectedPsi, tolerance)) add('great_scale_scalar inconsistent with C / metric_area_budget');
-      } else if (Math.abs(C) <= tolerance && (tau != null || psi != null)) {
-        add('zero metric area with zero Chern number has undefined polarization; saturation and scalar must be null');
+      } else if (tau != null || psi != null) {
+        add('metric area at or below tolerance has undefined polarization; saturation and scalar must be null');
       }
     }
   }
