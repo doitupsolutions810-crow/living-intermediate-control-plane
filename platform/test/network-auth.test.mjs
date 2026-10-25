@@ -4,12 +4,20 @@ import { assertSecureBinding, requireAuth } from '../src/http/router.mjs';
 
 test('tokenless development binding is allowed on loopback', () => {
   assert.doesNotThrow(() => assertSecureBinding('127.0.0.1', ''));
+  assert.doesNotThrow(() => assertSecureBinding('127.0.0.2', ''));
   assert.doesNotThrow(() => assertSecureBinding('localhost', ''));
   assert.doesNotThrow(() => assertSecureBinding('::1', ''));
 });
 
 test('non-loopback binding fails closed without a bearer token', () => {
-  for (const host of ['0.0.0.0', '192.0.2.10', '::']) {
+  for (const host of [
+    '0.0.0.0',
+    '192.0.2.10',
+    '::',
+    '127.example.com',
+    '127.attacker.test',
+    '127.0.0.1.evil'
+  ]) {
     assert.throws(
       () => assertSecureBinding(host, ''),
       /CONTROL12_PLATFORM_TOKEN is required/
