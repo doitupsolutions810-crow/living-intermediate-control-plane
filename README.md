@@ -19,6 +19,7 @@ cd avrone-chat && npm install && npm run dev
 ```
 
 Set `CONTROL12_PLATFORM_URL` and optional `CONTROL12_PLATFORM_TOKEN` for the chat app.  
+The platform may run without a token on its default loopback-only listener for local development. **If `CONTROL12_PLATFORM_HOST` binds a non-loopback interface, `CONTROL12_PLATFORM_TOKEN` is required and startup fails closed without it.** Security posture, attestation, component inventory, bridge-probe, and federation-snapshot GET endpoints require the configured bearer token.  
 Optional: `EVIDENCE_CONSOLE_URL` — when unset or 404, cockpit/integrate use local plane authority.
 
 ## Operator loop
