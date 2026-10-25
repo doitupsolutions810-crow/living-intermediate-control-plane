@@ -164,3 +164,29 @@ test('tolerance and clock input must be finite and valid', () => {
   assert.throws(() => validateGreatScaleEvidence(envelope(), { tolerance: Infinity }), /tolerance/);
   assert.throws(() => validateGreatScaleEvidence(envelope(), { now: Infinity }), /now/);
 });
+
+test('checks area excess at the zero-area boundary', () => {
+  const e = envelope();
+  Object.assign(e.result, {
+    chern_number: 0,
+    metric_area_budget: 0,
+    metric_area_excess: 1,
+    topological_saturation: null,
+    great_scale_scalar: null
+  });
+  const result = validateGreatScaleEvidence(e);
+  assert.ok(result.errors.some(x => x.includes('metric_area_excess inconsistent with A_Q - |C|')));
+});
+
+test('rejects defined polarization when metric area is at or below tolerance', () => {
+  const e = envelope();
+  Object.assign(e.result, {
+    chern_number: 0,
+    metric_area_budget: 0,
+    metric_area_excess: 0,
+    topological_saturation: 0,
+    great_scale_scalar: GREAT_SCALE_CONE + 0.25
+  });
+  const result = validateGreatScaleEvidence(e);
+  assert.ok(result.errors.some(x => x.includes('undefined polarization')));
+});
