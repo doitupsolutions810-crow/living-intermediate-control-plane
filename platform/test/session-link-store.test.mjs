@@ -55,3 +55,19 @@ test('append then list round-trips a record', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('concurrent appends remain parseable and all completed writes are present', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'session-link-store-'));
+  try {
+    const store = createSessionLinkStore(path.join(root, 'attestations'));
+    const count = 64;
+    await Promise.all(Array.from({ length: count }, (_, i) =>
+      store.append({ sessionId: `s${i}`, sequence: i })
+    ));
+    const records = await store.list(count);
+    assert.equal(records.length, count);
+    assert.deepEqual(new Set(records.map((record) => record.sequence)), new Set(Array.from({ length: count }, (_, i) => i)));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
