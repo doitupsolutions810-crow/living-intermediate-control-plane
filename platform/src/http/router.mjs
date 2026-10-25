@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 
 /**
  * Permit tokenless operation only on loopback. A non-loopback listener must
@@ -6,10 +7,14 @@
  */
 export function assertSecureBinding(host, token) {
   const normalized = String(host || '').toLowerCase();
+  const ipv4Loopback = isIP(normalized) === 4
+    && Number(normalized.split('.')[0]) === 127;
+  // Keep hostname allowance narrow. Do not use a string prefix for IPv4:
+  // "127.example.com" is a hostname, not proof of a loopback address.
   const loopback = normalized === 'localhost'
     || normalized === '::1'
     || normalized === '[::1]'
-    || normalized.startsWith('127.');
+    || ipv4Loopback;
   if (!loopback && !String(token || '')) {
     throw new Error('CONTROL12_PLATFORM_TOKEN is required when binding to a non-loopback host');
   }
@@ -56,7 +61,7 @@ export async function readJson(req, maxBytes = 1_000_000) {
 export function requireAuth(req, token) {
   if (!token) return;
   const h = req.headers.authorization || '';
-  const m = h.match(/^Bearer\s+(.+)$/i);
+  const m = h.match(/^Bearer\\s+(.+)$/i);
   if (!m || m[1] !== token) {
     throw Object.assign(new Error('unauthorized'), { statusCode: 401 });
   }
