@@ -86,12 +86,22 @@ export function verifySessionLink(link = {}) {
   } else if (link.signed && !hmacKey) {
     signatureOk = false;
   }
-  const ok = digestOk && (signatureOk === null ? true : signatureOk === true);
+  // Integrity and authenticity are separate claims. A matching digest
+  // does not prove who produced the record; no trusted key means no auth.
+  const authenticated = Boolean(hmacKey && signatureOk === true);
+  const ok = digestOk && authenticated;
   return {
     ok,
     digestOk,
+    integrityOk: digestOk,
+    authenticated,
     signatureOk,
     expectedDigest,
+    reason: !digestOk
+      ? 'digest_mismatch'
+      : !authenticated
+        ? (hmacKey ? 'signature_missing_or_invalid' : 'trusted_hmac_key_unavailable')
+        : null,
     multiBeliefDigest: link.multiBeliefDigest || null,
     sessionId: link.sessionId || null
   };
