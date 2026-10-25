@@ -1,3 +1,20 @@
+
+/**
+ * Permit tokenless operation only on loopback. A non-loopback listener must
+ * have an explicit bearer token configured; otherwise auth checks would be
+ * silently disabled by requireAuth's local-development behavior.
+ */
+export function assertSecureBinding(host, token) {
+  const normalized = String(host || '').toLowerCase();
+  const loopback = normalized === 'localhost'
+    || normalized === '::1'
+    || normalized === '[::1]'
+    || normalized.startsWith('127.');
+  if (!loopback && !String(token || '')) {
+    throw new Error('CONTROL12_PLATFORM_TOKEN is required when binding to a non-loopback host');
+  }
+}
+
 export function sendJson(res, status, body) {
   const data = JSON.stringify(body);
   res.writeHead(status, {
