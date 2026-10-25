@@ -102,7 +102,15 @@ export function createSessionLinkStore(attestationDir) {
   return {
     async append(link) {
       await fs.mkdir(attestationDir, { recursive: true });
-      await fs.appendFile(file, JSON.stringify(link) + '\n', 'utf8');
+      const handle = await fs.open(file, 'a');
+      try {
+        await handle.writeFile(JSON.stringify(link) + '\n', 'utf8');
+        // Make the append's file contents durable before reporting success.
+        // If sync fails, propagate the uncertainty to the caller.
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
       return link;
     },
     async list(limit = 50) {
