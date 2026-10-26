@@ -46,10 +46,14 @@ function goodSchema(overrides = {}) {
       type: 'array',
       minItems: 7,
       maxItems: 7,
+      uniqueItems: true,
       items: {
         type: 'object',
         required: ['id', 'status'],
-        properties: { status: constraint('READY') }
+        properties: {
+          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          status: constraint('READY')
+        }
       }
     }
   };
@@ -153,4 +157,29 @@ test('public HTTP endpoints are rejected before fetching', async () => {
   assert.equal(result.trustContractVerified, false);
   assert.equal(calls, 0);
   assert.ok(result.trustFailures.includes('url_invalid'));
+});
+
+test('all seven named gates must be present exactly once', () => {
+  const status = goodStatus({
+    gates: [
+      { id: 'G0', status: 'READY' },
+      { id: 'G1', status: 'READY' },
+      { id: 'G2', status: 'READY' },
+      { id: 'G3', status: 'READY' },
+      { id: 'G4', status: 'READY' },
+      { id: 'G5', status: 'READY' },
+      { id: 'G5', status: 'READY' }
+    ]
+  });
+  const result = validateEvidenceConsoleContract(status, goodSchema());
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
+});
+
+test('gate schema must require all seven named gates', () => {
+  const schema = goodSchema();
+  schema.properties.gates.required = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
+  const result = validateEvidenceConsoleContract(goodStatus(), schema);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
