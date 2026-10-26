@@ -3,7 +3,7 @@
  * Integrated entry point
  * readiness → orchestration → LaunchDesk → procurement decision
  * Optional doctor gate when gateDoctorOnProcure or GATE_DOCTOR=1
- * Evidence-console: graceful when public domain 404s / unreachable
+ * Evidence-console fallback is diagnostic; evidence authority is policy-gated.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -17,7 +17,10 @@ import { readPlaneState, pausePlane, resumePlane } from './status/plane-state.mj
 import { writeStatusFile } from './status/write-status-file.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { probeEvidenceConsole } from './lib/evidence-console.mjs';
-import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
+import {
+  acceptsLocalEvidence,
+  authorizeProcurement
+} from './lib/evidence-authorization.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -107,20 +110,26 @@ const plan = evaluateQuorum(createOrchestrationPlan(goal));
 const launchdesk = handleLaunchDeskAction(action, goal);
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
-// Availability fallback is diagnostic only; authorization is a separate policy.
+// Availability fallback is diagnostic only. Local evidence needs explicit opt-in.
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env, config });
-
-const force = process.env.FORCE_PROCUREMENT === '1';
+const forceProcurementRequested = process.env.FORCE_PROCUREMENT === '1';
 
 const coreReady =
   readiness.overallDecision === 'READY' &&
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
+const evidenceAuthorization = authorizeProcurement({
+  coreReady,
+  evidenceStatus: evidenceConsole.status,
+  evidenceAuthority: evidenceConsole.authority,
+  localEvidenceAccepted: localEvidenceAuthority
+});
+
 let decision;
 if (planeState.paused) {
   decision = 'PAUSED';
-} else if (coreReady && (localEvidenceAuthority || force)) {
+} else if (evidenceAuthorization.authorized) {
   decision = 'READY_FOR_PROCUREMENT';
 } else if (coreReady) {
   decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
@@ -138,6 +147,8 @@ const result = {
   doctorPassed,
   paused: planeState.paused,
   pauseReason: planeState.reason,
+  forceProcurementRequested,
+  evidenceAuthorization,
   readiness: {
     overall: readiness.overallDecision,
     provider: readiness.provider,
@@ -169,11 +180,13 @@ const result = {
       : decision === 'PAUSED'
         ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
         : decision === 'READY_FOR_PROCUREMENT'
-          ? evidenceConsole.status === 'ok'
+          ? evidenceAuthorization.publicEvidenceVerified
             ? 'Integrated check passed. Public evidence-console healthy.'
-            : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
+            : 'Integrated check passed. Local evidence accepted by explicit opt-in (public console gracefully deferred).'
           : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-            ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
+            ? forceProcurementRequested
+              ? 'Core systems READY, but FORCE_PROCUREMENT cannot bypass evidence authorization. Verify public evidence or set ACCEPT_LOCAL_EVIDENCE=1.'
+              : 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
             : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
@@ -188,6 +201,9 @@ if (!dryRun) {
       orchestrationOverall: result.orchestration.overall,
       localEvidenceAccepted: result.localEvidenceAccepted,
       evidenceConsoleStatus: result.evidenceConsole.status,
+      publicEvidenceVerified: result.evidenceAuthorization.publicEvidenceVerified,
+      evidenceAuthorizationReason: result.evidenceAuthorization.reason,
+      forceProcurementRequested: result.forceProcurementRequested,
       paused: result.paused,
       doctorPassed: result.doctorPassed
     });
