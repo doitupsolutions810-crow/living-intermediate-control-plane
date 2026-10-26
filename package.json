@@ -26,8 +26,8 @@
     "operator-host": "bash scripts/install-operator-host.sh",
     "init": "node status/init.mjs",
     "checklist": "node status/checklist.mjs",
-    "procure": "ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
-    "procure:gated": "GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
+    "procure": "node integrate.mjs procure",
+    "procure:gated": "GATE_DOCTOR=1 node integrate.mjs procure",
     "doctor": "node status/doctor.mjs",
     "report": "node status/report.mjs",
     "continuous": "node status/continuous-readiness.mjs",
@@ -43,7 +43,9 @@
     "rekor": "node status/rekor-cli.mjs",
     "ci": "node status/ci-check.mjs",
     "docker:build": "docker build -t living-intermediate-control-plane:0.10.0 .",
-    "test": "node test/self-test.mjs && npm --prefix platform test"
+    "test": "node test/self-test.mjs && npm --prefix platform test",
+    "procure:local": "ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
+    "procure:gated:local": "GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure"
   },
   "engines": {
     "node": ">=18"
