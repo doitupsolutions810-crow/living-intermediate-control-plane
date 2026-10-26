@@ -181,7 +181,7 @@ const result = {
       : decision === 'PAUSED'
         ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
         : decision === 'READY_FOR_PROCUREMENT'
-          ? evidenceAuthorization.publicEvidenceVerified
+          ? evidenceAuthorization.publicEvidenceContractVerified
             ? 'Integrated check passed. Public evidence-console healthy.'
             : 'Integrated check passed. Local evidence accepted by explicit opt-in (public console gracefully deferred).'
           : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
@@ -202,7 +202,7 @@ if (!dryRun) {
       orchestrationOverall: result.orchestration.overall,
       localEvidenceAccepted: result.localEvidenceAccepted,
       evidenceConsoleStatus: result.evidenceConsole.status,
-      publicEvidenceVerified: result.evidenceAuthorization.publicEvidenceVerified,
+      publicEvidenceContractVerified: result.evidenceAuthorization.publicEvidenceContractVerified,
       evidenceAuthorizationReason: result.evidenceAuthorization.reason,
       forceProcurementRequested: result.forceProcurementRequested,
       paused: result.paused,
