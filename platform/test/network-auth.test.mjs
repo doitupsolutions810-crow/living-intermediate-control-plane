@@ -38,7 +38,18 @@ test('configured bearer token is enforced', () => {
     () => requireAuth({ headers: { authorization: 'Bearer wrong' } }, 'expected-token'),
     (error) => error.statusCode === 401
   );
+  assert.throws(
+    () => requireAuth({ headers: { authorization: 'Basic expected-token' } }, 'expected-token'),
+    (error) => error.statusCode === 401
+  );
+  assert.throws(
+    () => requireAuth({ headers: { authorization: 'Bearer ' } }, 'expected-token'),
+    (error) => error.statusCode === 401
+  );
   assert.doesNotThrow(() =>
     requireAuth({ headers: { authorization: 'Bearer expected-token' } }, 'expected-token')
+  );
+  assert.doesNotThrow(() =>
+    requireAuth({ headers: { authorization: 'bearer expected-token' } }, 'expected-token')
   );
 });
