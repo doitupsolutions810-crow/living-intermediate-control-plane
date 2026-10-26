@@ -190,3 +190,40 @@ test('gate schema must require exactly one occurrence of every G0-G6 ID', () => 
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
+
+
+test('evidence fetch refuses redirects and disables local HTTP caching', async () => {
+  const observed = [];
+  await probeEvidenceConsole({
+    url: 'https://evidence.example.invalid',
+    fetchImpl: async (url, options) => {
+      observed.push({ url: String(url), options });
+      return String(url).endsWith('/api/status')
+        ? new Response(JSON.stringify(goodStatus()), { status: 200 })
+        : new Response(JSON.stringify(goodSchema()), { status: 200 });
+    }
+  });
+  assert.equal(observed.length, 2);
+  for (const item of observed) {
+    assert.equal(item.options.redirect, 'error');
+    assert.equal(item.options.cache, 'no-store');
+    assert.equal(item.options.headers['cache-control'], 'no-cache');
+  }
+});
+
+test('cross-origin final response URL never receives public authority', async () => {
+  const result = await probeEvidenceConsole({
+    url: 'https://evidence.example.invalid',
+    acceptLocal: true,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      url: 'https://attacker.example/api/status',
+      json: async () => goodStatus()
+    })
+  });
+  assert.equal(result.status, 'unreachable');
+  assert.equal(result.authority, 'local');
+  assert.equal(result.trustContractVerified, false);
+  assert.ok(result.trustFailures.includes('status_endpoint_unreachable'));
+});
