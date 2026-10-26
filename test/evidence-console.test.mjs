@@ -176,9 +176,9 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require all seven named gates', () => {
+test('gate schema must enumerate all seven required gate IDs', () => {
   const schema = goodSchema();
-  schema.properties.gates.required = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
+  schema.properties.gates.items.properties.id.enum = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
