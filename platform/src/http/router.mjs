@@ -61,7 +61,7 @@ export async function readJson(req, maxBytes = 1_000_000) {
 export function requireAuth(req, token) {
   if (!token) return;
   const h = req.headers.authorization || '';
-  const m = h.match(/^Bearer\\s+(.+)$/i);
+  const m = h.match(/^Bearer\s+(.+)$/i);
   if (!m || m[1] !== token) {
     throw Object.assign(new Error('unauthorized'), { statusCode: 401 });
   }
