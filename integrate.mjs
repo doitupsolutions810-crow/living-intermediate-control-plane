@@ -123,6 +123,7 @@ const evidenceAuthorization = authorizeProcurement({
   coreReady,
   evidenceStatus: evidenceConsole.status,
   evidenceAuthority: evidenceConsole.authority,
+  trustContractVerified: evidenceConsole.trustContractVerified,
   localEvidenceAccepted: localEvidenceAuthority
 });
 
