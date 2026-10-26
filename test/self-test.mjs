@@ -11,6 +11,7 @@ import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration
 import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
+import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -29,6 +30,14 @@ function assert(condition, message) {
 }
 
 console.log('Self-test — Living Intermediate Control Plane\n');
+// Authority policy: local fallback is never implicit procurement authorization.
+assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
+assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'local evidence explicit env opt-in accepted');
+assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
+assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
+assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
+
+
 
 const readiness = emitReadinessEvidence({ source: 'self-test' });
 assert(readiness.provider === 'deterministic-local-evidence', 'readiness provider is deterministic-local-evidence');
