@@ -47,6 +47,11 @@ function goodSchema(overrides = {}) {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
+      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+        contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
+        minContains: 1,
+        maxContains: 1
+      })),
       items: {
         type: 'object',
         required: ['id', 'status'],
@@ -176,9 +181,11 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must enumerate all seven required gate IDs', () => {
+test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
   const schema = goodSchema();
-  schema.properties.gates.items.properties.id.enum = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
+  schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
+    rule.contains.properties.id.const !== 'G6'
+  );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
