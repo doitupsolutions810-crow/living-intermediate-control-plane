@@ -25,7 +25,8 @@ Optional: `EVIDENCE_CONSOLE_URL` — when unset or 404, cockpit/integrate use lo
 
 ```bash
 npm test
-npm run procure          # ACCEPT_LOCAL_EVIDENCE=1
+npm run procure          # public evidence required by default
+npm run procure:local    # explicit local-evidence fallback mode
 npm run report
 npm run continuous       # optional always-on readiness
 ```
