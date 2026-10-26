@@ -109,5 +109,5 @@ test('public HTTP success without explicit contract verification is denied', () 
     localEvidenceAccepted: false
   });
   assert.equal(result.authorized, false);
-  assert.equal(result.publicEvidenceVerified, false);
+  assert.equal(result.publicEvidenceContractVerified, false);
 });
