@@ -43,3 +43,9 @@ Root Directory: `avrone-chat`. Copy env from `avrone-chat/.env.example`. See `av
 
 - Public evidence-console domain still 404s
 - GitHub Actions automatic runs disabled at account level
+
+## Procurement evidence trust boundary
+
+The evidence-console URL is only a locator. HTTP 200 or a reachable page is not evidence authorization. The procurement probe checks both `/api/status` and `/api/v1/evidence/schema` against the v5.3.1 trust contract, including the required production evidence class and seven READY gates. The status document and schema must each supply their own required claims; one cannot fill missing fields in the other.
+
+A local fallback can authorize procurement only when a recognized degraded local state is observed and local evidence has been explicitly enabled with `ACCEPT_LOCAL_EVIDENCE=1` (or the matching explicit configuration setting). `FORCE_PROCUREMENT=1` is recorded as a request but does not bypass these checks. Production activation remains a separate gate.
