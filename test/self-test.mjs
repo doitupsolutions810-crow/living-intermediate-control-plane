@@ -12,6 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { evidenceAuthorizesProcurement } from '../lib/procurement-evidence-policy.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -36,6 +37,10 @@ assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} })
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
+assert(evidenceAuthorizesProcurement({ evidenceConsole: { status: 'ok', authority: 'public' }, env: {}, config: {} }) === true, 'verified public evidence authorizes procurement without local opt-in');
+assert(evidenceAuthorizesProcurement({ evidenceConsole: { status: 'unreachable', authority: 'local' }, env: {}, config: {} }) === false, 'degraded local fallback does not authorize procurement by default');
+assert(evidenceAuthorizesProcurement({ evidenceConsole: { status: 'not_found', authority: 'local' }, env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'explicit local opt-in authorizes degraded fallback');
+assert(evidenceAuthorizesProcurement({ evidenceConsole: { status: 'ok', authority: 'unknown' }, env: {}, config: {} }) === false, 'unknown evidence authority fails closed');
 const packageScripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure does not force local evidence');
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
