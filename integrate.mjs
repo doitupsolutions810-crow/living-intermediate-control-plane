@@ -106,12 +106,12 @@ const plan = evaluateQuorum(createOrchestrationPlan(goal));
 const launchdesk = handleLaunchDeskAction(action, goal);
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
+// Availability fallback is diagnostic only. Local evidence authorizes procurement
+// only when the operator explicitly opts in through env/configuration.
 const localEvidenceAuthority =
   process.env.ACCEPT_LOCAL_EVIDENCE === '1' ||
   process.env.ACCEPT_LOCAL_EVIDENCE === 'true' ||
-  config.acceptLocalEvidenceByDefault === true ||
-  // Graceful path: public console missing/404 → local temporary authority is acceptable
-  (evidenceConsole.authority === 'local' && evidenceConsole.status !== 'ok');
+  config.acceptLocalEvidenceByDefault === true;
 
 const force = process.env.FORCE_PROCUREMENT === '1';
 
