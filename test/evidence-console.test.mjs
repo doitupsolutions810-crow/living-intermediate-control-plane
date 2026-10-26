@@ -227,3 +227,35 @@ test('cross-origin final response URL never receives public authority', async ()
   assert.equal(result.trustContractVerified, false);
   assert.ok(result.trustFailures.includes('status_endpoint_unreachable'));
 });
+
+test('object-form gate map validates only the required G0-G6 properties', () => {
+  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const status = goodStatus({
+    gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
+  });
+  const schema = goodSchema();
+  schema.properties.gates = {
+    type: 'object',
+    required: gateIds,
+    additionalProperties: false,
+    properties: Object.fromEntries(gateIds.map(id => [id, constraint('READY')]))
+  };
+  assert.deepEqual(validateEvidenceConsoleContract(status, schema), { valid: true, failures: [] });
+});
+
+test('object-form gate schema must reject additional gate properties', () => {
+  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const status = goodStatus({
+    gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
+  });
+  const schema = goodSchema();
+  schema.properties.gates = {
+    type: 'object',
+    required: gateIds,
+    additionalProperties: true,
+    properties: Object.fromEntries(gateIds.map(id => [id, constraint('READY')]))
+  };
+  const result = validateEvidenceConsoleContract(status, schema);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
+});
