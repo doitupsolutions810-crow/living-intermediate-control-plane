@@ -10,7 +10,7 @@ test('verified public evidence authorizes a ready core', () => {
     localEvidenceAccepted: false
   });
   assert.equal(result.authorized, true);
-  assert.equal(result.reason, 'public-evidence-verified');
+  assert.equal(result.reason, 'public-evidence-contract-verified');
 });
 
 test('explicit local opt-in authorizes fallback evidence', () => {
@@ -61,6 +61,38 @@ test('explicit local opt-in cannot bypass core readiness', () => {
   const result = authorizeProcurement({
     coreReady: false,
     evidenceStatus: 'unreachable',
+    evidenceAuthority: 'local',
+    localEvidenceAccepted: true
+  });
+  assert.equal(result.authorized, false);
+});
+
+test('local opt-in cannot turn an unknown authority into a local fallback', () => {
+  const result = authorizeProcurement({
+    coreReady: true,
+    evidenceStatus: 'ok',
+    evidenceAuthority: 'unknown',
+    localEvidenceAccepted: true
+  });
+  assert.equal(result.authorized, false);
+  assert.equal(result.localFallbackObserved, false);
+});
+
+test('local opt-in cannot authorize a public-status response marked local', () => {
+  const result = authorizeProcurement({
+    coreReady: true,
+    evidenceStatus: 'ok',
+    evidenceAuthority: 'local',
+    localEvidenceAccepted: true
+  });
+  assert.equal(result.authorized, false);
+  assert.equal(result.reason, 'local-fallback-state-unverified');
+});
+
+test('explicit local opt-in still requires a recognized degraded status', () => {
+  const result = authorizeProcurement({
+    coreReady: true,
+    evidenceStatus: 'unknown',
     evidenceAuthority: 'local',
     localEvidenceAccepted: true
   });
