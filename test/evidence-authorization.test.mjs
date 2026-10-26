@@ -7,6 +7,7 @@ test('verified public evidence authorizes a ready core', () => {
     coreReady: true,
     evidenceStatus: 'ok',
     evidenceAuthority: 'public',
+    trustContractVerified: true,
     localEvidenceAccepted: false
   });
   assert.equal(result.authorized, true);
@@ -97,4 +98,16 @@ test('explicit local opt-in still requires a recognized degraded status', () => 
     localEvidenceAccepted: true
   });
   assert.equal(result.authorized, false);
+});
+
+test('public HTTP success without explicit contract verification is denied', () => {
+  const result = authorizeProcurement({
+    coreReady: true,
+    evidenceStatus: 'ok',
+    evidenceAuthority: 'public',
+    trustContractVerified: false,
+    localEvidenceAccepted: false
+  });
+  assert.equal(result.authorized, false);
+  assert.equal(result.publicEvidenceVerified, false);
 });
