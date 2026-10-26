@@ -138,3 +138,19 @@ test('a degraded or unavailable status endpoint stays non-public', async () => {
   assert.equal(result.authority, 'local');
   assert.equal(result.trustContractVerified, false);
 });
+
+test('public HTTP endpoints are rejected before fetching', async () => {
+  let calls = 0;
+  const result = await probeEvidenceConsole({
+    url: 'http://evidence.example.invalid',
+    acceptLocal: true,
+    fetchImpl: async () => {
+      calls++;
+      return new Response('{}', { status: 200 });
+    }
+  });
+  assert.equal(result.status, 'invalid');
+  assert.equal(result.trustContractVerified, false);
+  assert.equal(calls, 0);
+  assert.ok(result.trustFailures.includes('url_invalid'));
+});
