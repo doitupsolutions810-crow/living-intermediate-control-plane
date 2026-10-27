@@ -1,0 +1,45 @@
+name: Production Acceptance Fetch Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "lib/production-acceptance-fetch.mjs"
+      - "test/production-acceptance-fetch.test.mjs"
+      - ".github/workflows/production-acceptance-fetch.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/production-acceptance-fetch.mjs"
+      - "test/production-acceptance-fetch.test.mjs"
+      - ".github/workflows/production-acceptance-fetch.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-acceptance-fetch-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fetch-contract:
+    name: Bounded attestation transport regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check
+        run: node --check lib/production-acceptance-fetch.mjs && node --check test/production-acceptance-fetch.test.mjs
+
+      - name: Run focused transport tests
+        run: node --test test/production-acceptance-fetch.test.mjs
