@@ -121,3 +121,30 @@ test('network timeout returns no attestation', async () => {
 });
 
 console.log('production-acceptance-fetch.test.mjs: 9/9 cases defined');
+
+test('cancels rejected response bodies instead of leaving untrusted streams open', async () => {
+  let cancelled = 0;
+  const oversized = {
+    ok: true,
+    redirected: false,
+    url: URL,
+    headers: new Headers({ 'content-type': 'application/json', 'content-length': '999999' }),
+    body: { cancel: async () => { cancelled++; }, getReader: () => { throw new Error('body must not be read'); } },
+  };
+  assert.equal(await fetchProductionAcceptanceAttestation({
+    url: URL, maxBytes: 100, fetchImpl: fetchReturning(oversized),
+  }), null);
+  assert.equal(cancelled, 1, 'oversized response is cancelled');
+
+  const unavailable = {
+    ok: false,
+    redirected: false,
+    url: URL,
+    headers: new Headers({ 'content-type': 'application/json' }),
+    body: { cancel: async () => { cancelled++; } },
+  };
+  assert.equal(await fetchProductionAcceptanceAttestation({
+    url: URL, fetchImpl: fetchReturning(unavailable),
+  }), null);
+  assert.equal(cancelled, 2, 'failed HTTP response is cancelled');
+});
