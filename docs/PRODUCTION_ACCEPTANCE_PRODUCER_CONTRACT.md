@@ -36,7 +36,7 @@ The versioned policy manifest is `contracts/production-acceptance/gate-policy-v1
 | G3 | `supply-chain-attestation` | `supply-chain-attestation` | Required supply-chain provenance and SBOM attestations verify against an independent trust policy. |
 | G4 | `security-policy-pass` | `security-policy-pass` | Required vulnerability and admission checks pass; skipped or unknown results deny acceptance. |
 | G5 | `runtime-health` | `runtime-health` | A trusted live check observes the expected build/artifact in the target environment. |
-| G6 | `residual-measurement` | `residual-measurement` | A fresh source-pinned, same-build residual is finite, lies in `[0, 0.25]`, and satisfies the configured cone policy. |
+| G6 | `residual-measurement` | `residual-measurement` | Fresh source-pinned same-build residual in `[0, 0.25]`, cone-compliant, and backed by an independently verified numerical certificate; empirical Richardson estimates alone do not certify G6. |
 
 These are **proposed contract meanings**, not a claim that current repository workflows already emit these seven named suites or that each criterion has been independently demonstrated. The deployment-controlled `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES` must match this policy's exact seven-suite set. The authoritative producer must map observed job/run and external evidence into these bundles; it may not manufacture successful suite results or synthesize G0-G6 PASS values.
 
@@ -52,7 +52,7 @@ The consumer must receive independently provisioned values for:
 - `PRODUCTION_ACCEPTANCE_COMMIT_SHA`
 - `PRODUCTION_ACCEPTANCE_ARTIFACT_DIGEST`
 - `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES` (comma-separated, deployment-owned suite names)
-  The v1.0.1 gate policy currently requires exactly: `source-revision-binding,required-ci-suites-pass,immutable-artifact-provenance,supply-chain-attestation,security-policy-pass,runtime-health,residual-measurement`.
+  The v1.0.2 gate policy currently requires exactly: `source-revision-binding,required-ci-suites-pass,immutable-artifact-provenance,supply-chain-attestation,security-policy-pass,runtime-health,residual-measurement`.
 - `PRODUCTION_ACCEPTANCE_URL`
 
 Do not generate a replacement production key at runtime or accept key identifiers and public keys supplied by the artifact itself. The exact source ID, build ID and key ID must match the deployment's pinned values.
@@ -87,7 +87,7 @@ Until these criteria are proven, the contract is specified but the producer conn
 
 ## Versioned G0–G6 gate policy
 
-The contract now binds the signed attestation to `gatePolicyVersion=1.0.1` and the SHA-256 digest of the canonical `contracts/production-acceptance/gate-policy-v1.json` document. Each gate includes a fixed `policyId`; the verifier rejects a different policy version/digest, duplicate or missing gates, and evidence that cites a suite other than the one designated for that gate.
+The contract now binds the signed attestation to `gatePolicyVersion=1.0.2` and the SHA-256 digest of the canonical `contracts/production-acceptance/gate-policy-v1.json` document. Each gate includes a fixed `policyId`; the verifier rejects a different policy version/digest, duplicate or missing gates, and evidence that cites a suite other than the one designated for that gate.
 
 - **G0 — source-revision-binding:** pinned repository and full source commit match the workflow head.
 - **G1 — required-ci-suites-pass:** all deployment-required suites pass on that exact commit and workflow attempt.
@@ -95,7 +95,7 @@ The contract now binds the signed attestation to `gatePolicyVersion=1.0.1` and t
 - **G3 — supply-chain-attestation:** required provenance/SBOM attestations validate against independent trust policy.
 - **G4 — security-policy-pass:** required security/admission checks pass; missing, skipped, or unknown results deny acceptance.
 - **G5 — runtime-health:** trusted live health observes the expected build and artifact digest in production.
-- **G6 — residual-measurement:** fresh, source-pinned, same-build residual is finite, within the topology-derived domain `[0, 0.25]`, and meets the configured cone policy.
+- **G6 — residual-measurement:** fresh, source-pinned, same-build residual is finite, within `[0, 0.25]`, and cone-compliant; its Great Scale receipt must also contain an independently verified `numericalCertification` proof. Richardson estimates remain diagnostic only.
 
 These identifiers and suite names define the contract, not proof that those real-world checks have executed. In particular, G2–G5 need producer-side integrations that independently collect and verify their underlying evidence. A signed string asserting those suites passed is not a replacement for those integrations.
 
