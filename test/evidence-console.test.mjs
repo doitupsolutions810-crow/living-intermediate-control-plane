@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { verifySignedEvidenceSource } from '../lib/evidence-source-signature.mjs';
 import assert from 'node:assert/strict';
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import {
