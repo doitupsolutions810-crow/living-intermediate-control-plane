@@ -43,7 +43,7 @@
     "rekor": "node status/rekor-cli.mjs",
     "ci": "node status/ci-check.mjs",
     "docker:build": "docker build -t living-intermediate-control-plane:0.10.0 .",
-    "test": "node --test test/producer-evidence-contract.test.mjs && node test/production-acceptance-attestation.test.mjs && node test/self-test.mjs && npm --prefix platform test",
+    "test": "node --test test/producer-evidence-contract.test.mjs && node --test test/production-acceptance-fetch.test.mjs && node test/production-acceptance-attestation.test.mjs && node test/self-test.mjs && npm --prefix platform test",
     "procure:local": "ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
     "procure:gated:local": "GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
     "evidence:emit": "node status/evidence-status.mjs emit",
