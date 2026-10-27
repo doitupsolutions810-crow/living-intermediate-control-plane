@@ -11,7 +11,8 @@ import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration
 import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
-import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { acceptsLocalEvidence, isEvidenceAuthorized, authorizeProcurement } from '../lib/evidence-authorization.mjs';
+import { evaluateSupplyChainEvidence } from '../lib/supply-chain-evidence.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -36,13 +37,75 @@ assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} })
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
+assert(isEvidenceAuthorized({ status: 'ok', authority: 'public', localOptIn: false, trustContractVerified: true }) === true, 'public evidence with verified contract authorizes');
+assert(isEvidenceAuthorized({ status: 'ok', authority: 'public', localOptIn: false }) === false, 'public evidence without verified contract is denied');
+assert(isEvidenceAuthorized({ status: 'unreachable', authority: 'local', localOptIn: true }) === true, 'explicit local opt-in authorizes local fallback');
+assert(isEvidenceAuthorized({ status: 'ok', authority: 'local', localOptIn: true }) === false, 'local opt-in cannot authorize a non-degraded status');
+assert(isEvidenceAuthorized({ status: 'unreachable', authority: 'local', localOptIn: false }) === false, 'local fallback without opt-in denied');
+assert(isEvidenceAuthorized({ status: 'ok', authority: 'unknown', localOptIn: false }) === false, 'unknown authority denied');
+assert(isEvidenceAuthorized({ status: 'not_found', authority: 'local', localOptIn: false, force: true }) === false, 'force flag cannot manufacture evidence authorization');
+assert(authorizeProcurement({ coreReady: false, evidenceStatus: 'ok', evidenceAuthority: 'public', trustContractVerified: true }).authorized === false, 'core readiness remains independently necessary');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'ok', evidenceAuthority: 'public', trustContractVerified: false }).authorized === false, 'public 2xx without verified status/schema contract denied');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'ok', evidenceAuthority: 'public', trustContractVerified: true }).authorized === true, 'public evidence authorizes only with verified contract and core readiness');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'unconfigured', evidenceAuthority: 'local', localEvidenceAccepted: true }).authorized === true, 'observed local fallback authorizes only with explicit opt-in');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'unconfigured', evidenceAuthority: 'local', localEvidenceAccepted: false }).authorized === false, 'local fallback without explicit opt-in denied');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'ok', evidenceAuthority: 'local', localEvidenceAccepted: true }).authorized === false, 'local authority with non-fallback status denied');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'unknown', evidenceAuthority: 'unknown', localEvidenceAccepted: false, force: true }).authorized === false, 'force metadata cannot bypass the full authorization policy');
 const packageScripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure does not force local evidence');
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
 assert(packageScripts['procure:local'] === 'ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure', 'local evidence requires named opt-in command');
 assert(packageScripts['procure:gated:local'] === 'GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure', 'gated local mode is explicitly named');
+const bridgeSource = readFileSync(join(root, 'status/procurement-bridge.mjs'), 'utf8');
+assert(bridgeSource.includes('authorizeProcurement'), 'procurement bridge uses the full shared procurement authorization policy');
+assert(!bridgeSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'procurement bridge has no force authorization bypass');
+assert(bridgeSource.includes('loadSupplyChainEvidence'), 'procurement bridge uses the shared supply-chain evidence runtime');
+const runtimeSource = readFileSync(join(root, 'lib/supply-chain-runtime.mjs'), 'utf8');
+assert(runtimeSource.includes("'verify-blob'"), 'shared runtime independently verifies report attestation');
+assert(runtimeSource.includes('SUPPLY_CHAIN_ATTESTATION_IDENTITY'), 'report attestation is bound to configured signing identity');
+assert(runtimeSource.includes('SUPPLY_CHAIN_ATTESTATION_ISSUER'), 'report attestation is bound to configured OIDC issuer');
+const integrateSource = readFileSync(join(root, 'integrate.mjs'), 'utf8');
+assert(integrateSource.includes('loadSupplyChainEvidence'), 'integrated procurement entry point validates supply-chain evidence');
+assert(integrateSource.includes('authorizeProcurement'), 'integrated procurement uses the full shared authorization policy');
+assert(!integrateSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'integrated procurement has no force authorization bypass');
+const supplyChainSource = readFileSync(join(root, 'status/supply-chain.mjs'), 'utf8');
+assert(supplyChainSource.includes("SKIP_TRIVY: '0'"), 'supply-chain run overrides inherited Trivy skip flag');
+assert(supplyChainSource.includes("SKIP_SNYK: '0'"), 'supply-chain run overrides inherited Snyk skip flag');
+assert(supplyChainSource.includes("SKIP_SNYK_CONTAINER: '0'"), 'supply-chain run overrides inherited Snyk container skip flag');
+assert(supplyChainSource.includes("SKIP_OPA: '0'"), 'supply-chain run overrides inherited OPA skip flag');
+assert(supplyChainSource.includes("'sign-blob'"), 'supply-chain report is cryptographically attested after writing');
+assert(supplyChainSource.includes('SUPPLY_CHAIN_ATTESTATION_IDENTITY'), 'supply-chain run requires expected report signer identity');
+assert(supplyChainSource.includes('SUPPLY_CHAIN_ATTESTATION_ISSUER'), 'supply-chain run requires expected report issuer');
+const evidenceSource = readFileSync(join(root, 'lib/evidence-console.mjs'), 'utf8');
+assert(evidenceSource.includes('validateEvidenceConsoleContract') && evidenceSource.includes('if (!contract.valid)'), 'unvalidated public evidence fails closed');
 
-
+// Supply-chain authorization requires fresh, revision-bound, non-skipped scan and signature evidence.
+const fixedNow = Date.parse('2026-10-26T12:00:00.000Z');
+const validSupplyReport = {
+  timestamp: '2026-10-26T11:50:00.000Z',
+  revision: 'abc123',
+  ok: true,
+  failed: 0,
+  allowSkip: false,
+  imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+  signed: true,
+  results: [
+    { name: 'security-scan', ok: true, status: 0, imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+    { name: 'cosign-sign', ok: true, status: 0, imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+    { name: 'cosign-verify', ok: true, status: 0, imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+    { name: 'security-summary', ok: true, status: 0 }
+  ]
+};
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === true, 'fresh fully verified supply-chain report authorizes');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'unsigned or unverified report attestation denied');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'different', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'supply-chain report for another revision denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, allowSkip: true }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'soft-skip supply-chain report denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: [...validSupplyReport.results, { name: 'trivy', ok: true, skipped: true }] }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'report with skipped security tool denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, signed: false }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'unsigned image denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, imageRef: 'ghcr.io/example/app:latest' }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'mutable image tag denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: validSupplyReport.results.map(item => item.name === 'cosign-verify' ? { ...item, imageRef: 'ghcr.io/example/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' } : item) }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'signature verification for a different image digest denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, timestamp: '2026-10-26T10:00:00.000Z' }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'stale supply-chain report denied');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: '', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'unknown current revision denied');
 
 const readiness = emitReadinessEvidence({ source: 'self-test' });
 assert(readiness.provider === 'deterministic-local-evidence', 'readiness provider is deterministic-local-evidence');
@@ -101,8 +164,8 @@ const ok = await probeEvidenceConsole({
   acceptLocal: true,
   fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
 });
-assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(ok.status === 'invalid', 'evidence-console 200 without validated contract is invalid');
+assert(ok.authority === 'local', 'unvalidated 2xx cannot claim public authority');
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
