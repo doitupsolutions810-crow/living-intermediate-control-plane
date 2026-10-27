@@ -94,7 +94,10 @@ export default function Page() {
         })
       });
       const offline = res.headers.get('x-lattice-offline') === '1';
-      const agentOn = res.headers.get('x-avrone-agent') === '1';
+      const agentMarker = res.headers.get('x-avrone-agent') || '0';
+      const agentOn = agentMarker !== '0';
+      const provider = res.headers.get('x-avrone-provider');
+      const model = res.headers.get('x-avrone-model');
       const toolsHeader = res.headers.get('x-avrone-tools') || '[]';
       let toolSummaries: string[] = [];
       try {
@@ -174,7 +177,7 @@ export default function Page() {
           return copy;
         });
       }
-      setStatus('done');
+      setStatus(provider && model ? `done · ${provider} · ${model}` : 'done');
     } catch (err) {
       setMessages(m => [
         ...m,

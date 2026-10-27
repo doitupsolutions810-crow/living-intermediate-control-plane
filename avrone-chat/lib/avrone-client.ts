@@ -104,3 +104,41 @@ export async function fetchPlatformSnapshot() {
   }
   return out;
 }
+
+export async function postCockpitAction(
+  action: string,
+  payload: Record<string, unknown> = {}
+): Promise<Record<string, unknown>> {
+  const platformUrl = platformBase();
+  if (!platformUrl) {
+    return { status: 503, error: 'platform URL not configured' };
+  }
+
+  try {
+    const response = await fetch(`${platformUrl}/api/v1/cockpit/action`, {
+      method: 'POST',
+      headers: platformHeaders(),
+      body: JSON.stringify({ ...payload, action }),
+      signal: AbortSignal.timeout(8000)
+    });
+
+    let result: unknown;
+    try {
+      result = await response.json();
+    } catch {
+      return { status: 502, error: 'platform returned invalid JSON' };
+    }
+
+    return {
+      ...(result && typeof result === 'object' && !Array.isArray(result)
+        ? result
+        : { result }),
+      status: response.status
+    };
+  } catch (error) {
+    return {
+      status: 502,
+      error: `platform request failed: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
