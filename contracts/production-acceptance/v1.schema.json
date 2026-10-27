@@ -76,7 +76,8 @@
         "runUrl",
         "headSha",
         "conclusion",
-        "completedAt"
+        "completedAt",
+        "startedAt"
       ],
       "properties": {
         "runId": {
@@ -90,7 +91,7 @@
         "runUrl": {
           "type": "string",
           "format": "uri",
-          "pattern": "^https://github\\\\.com/"
+          "pattern": "^https://github\\.com/"
         },
         "headSha": {
           "type": "string",
@@ -100,6 +101,10 @@
           "const": "success"
         },
         "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "startedAt": {
           "type": "string",
           "format": "date-time"
         }
@@ -161,7 +166,7 @@
           "evidenceUrl": {
             "type": "string",
             "format": "uri",
-            "pattern": "^https://github\\\\.com/"
+            "pattern": "^https://github\\.com/"
           },
           "evidenceDigest": {
             "type": "string",
