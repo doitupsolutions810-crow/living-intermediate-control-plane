@@ -119,3 +119,18 @@ The schema/verifier contract is stronger, but its fields remain claims until an 
 
 The authoritative G0–G6 producer and deployment configuration are **not yet verified**. The schema is still a draft contract and must not be used to enable procurement or production authority until the producer performs those checks and the live signed artifact passes positive/negative end-to-end verification.
 
+
+
+
+## G6 source receipt mapping
+
+Great Scale now has a proposed schema-only G6 measurement receipt at `contracts/g6-residual-measurement/v1.schema.json` (blob SHA `a0956c825e9a8974f5855054d2c80eb4433391f9`). Its canonical downstream mapping is:
+
+- `measurement.STopological` becomes the residual scalar `S`.
+- Receipt `measuredAt` becomes `residual.measuredAt`.
+- Receipt `issuer` becomes `residual.sourceId`.
+- Receipt `buildId` becomes `residual.buildId`.
+
+This mapping is not permission to trust fields by copying them. The authoritative G0-G6 producer must verify the source receipt's Ed25519 signature under a separately pinned public key; fetch actual workflow/run/attempt metadata and check a successful result plus exact source/head binding; independently check the intended artifact digest and model-input digest; enforce timestamp freshness/ordering and expiry; and require a finite `STopological` in `[0, 0.25]`, valid topological mapping, finite rigorous bounds and converged numerical integration. The producer must not let the receipt select its own trust anchor or let a receipt claim successful execution without verifying the actual run and artifact.
+
+The Great Scale file is currently a JSON Schema, not an API or deployed producer. No live receipt, endpoint, key provisioning, or end-to-end verification has been established. Until those are proven with inspectable CI and a live positive/negative integration suite, G6 cannot pass and production remains HOLD / NO-GO.
