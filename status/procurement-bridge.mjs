@@ -40,9 +40,28 @@ function readSupplyChainReport() {
   }
 }
 
+function verifySupplyChainReportAttestation() {
+  const reportPath = join(root, 'data', 'supply-chain-last.json');
+  const bundlePath = join(root, 'data', 'supply-chain-last.bundle.json');
+  const identity = (process.env.SUPPLY_CHAIN_ATTESTATION_IDENTITY || '').trim();
+  const issuer = (process.env.SUPPLY_CHAIN_ATTESTATION_ISSUER || '').trim();
+  if (!existsSync(reportPath) || !existsSync(bundlePath) || !identity || !issuer) return false;
+
+  const verification = spawnSync('cosign', [
+    'verify-blob',
+    '--bundle', bundlePath,
+    '--certificate-identity', identity,
+    '--certificate-oidc-issuer', issuer,
+    reportPath
+  ], { cwd: root, encoding: 'utf8', stdio: 'ignore', env: process.env });
+  return verification.status === 0;
+}
+
+const reportAttestationVerified = verifySupplyChainReportAttestation();
 const supplyChainEvidence = evaluateSupplyChainEvidence({
   report: readSupplyChainReport(),
-  revision: currentRevision()
+  revision: currentRevision(),
+  attestationVerified: reportAttestationVerified
 });
 
 const criteria = {
@@ -50,6 +69,7 @@ const criteria = {
   rolesReady: plan.overallDecision === 'READY',
   supplyChainEvidenceAuthorized: supplyChainEvidence.authorized,
   supplyChainEvidenceReason: supplyChainEvidence.reason,
+  supplyChainReportAttestationVerified: reportAttestationVerified,
   localEvidenceAccepted: localEvidenceAuthority,
   evidenceStatus: evidenceConsole.status,
   evidenceAuthority: evidenceConsole.authority,
