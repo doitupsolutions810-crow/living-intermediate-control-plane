@@ -236,4 +236,40 @@ const keyId = 'unit-test-key';
   }).valid, true, 'diagnostic note remains outside the signed payload');
 }
 
-console.log('evidence-status-document.test.mjs: 11/11 groups passed');
+// 12. Strict freshness rejects impossible dates, excessive lifetime, and exact-expiry reads.
+{
+  const badDate = buildEvidenceStatusDocument({ S: 0.1 });
+  badDate.generatedAt = '2026-02-30T12:00:00.000Z';
+  const signedBadDate = sealEvidenceStatusDocument(badDate, { privateKeyPem: privPem, keyId });
+  const dateResult = verifyEvidenceStatusDocument(signedBadDate, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(dateResult.valid, false);
+  assert.ok(dateResult.failures.some(f => f.code === 'FRESHNESS'));
+
+  const excessiveLifetime = buildEvidenceStatusDocument({ S: 0.1 });
+  excessiveLifetime.expiresAt = new Date(Date.parse(excessiveLifetime.generatedAt) + 60_001).toISOString();
+  const signedLongLived = sealEvidenceStatusDocument(excessiveLifetime, { privateKeyPem: privPem, keyId });
+  const lifetimeResult = verifyEvidenceStatusDocument(signedLongLived, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(lifetimeResult.valid, false);
+  assert.ok(lifetimeResult.failures.some(f => f.code === 'FRESHNESS'));
+
+  const wellFormed = sealEvidenceStatusDocument(
+    buildEvidenceStatusDocument({ S: 0.1 }), { privateKeyPem: privPem, keyId },
+  );
+  const expiryInstant = Date.parse(wellFormed.expiresAt);
+  const expiryResult = verifyEvidenceStatusDocument(wellFormed, {
+    publicKeyPem: pubPem, keyId, now: expiryInstant, requireSignature: true,
+  });
+  assert.equal(expiryResult.valid, false, 'document is expired at its exact expiresAt time');
+
+  const badClockResult = verifyEvidenceStatusDocument(wellFormed, {
+    publicKeyPem: pubPem, keyId, now: Number.NaN, requireSignature: true,
+  });
+  assert.equal(badClockResult.valid, false);
+  assert.ok(badClockResult.failures.some(f => f.code === 'FRESHNESS'));
+}
+
+console.log('evidence-status-document.test.mjs: 12/12 groups passed');
