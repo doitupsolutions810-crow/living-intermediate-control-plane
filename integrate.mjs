@@ -17,7 +17,7 @@ import { readPlaneState, pausePlane, resumePlane } from './status/plane-state.mj
 import { writeStatusFile } from './status/write-status-file.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { probeEvidenceConsole } from './lib/evidence-console.mjs';
-import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
+import { acceptsLocalEvidence, isEvidenceAuthorized } from './lib/evidence-authorization.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -109,8 +109,7 @@ const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
 // Availability fallback is diagnostic only; authorization is a separate policy.
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env, config });
-
-const force = process.env.FORCE_PROCUREMENT === '1';
+const evidenceAuthorized = isEvidenceAuthorized({ evidenceConsole, env: process.env, config });
 
 const coreReady =
   readiness.overallDecision === 'READY' &&
@@ -120,7 +119,7 @@ const coreReady =
 let decision;
 if (planeState.paused) {
   decision = 'PAUSED';
-} else if (coreReady && (localEvidenceAuthority || force)) {
+} else if (coreReady && evidenceAuthorized) {
   decision = 'READY_FOR_PROCUREMENT';
 } else if (coreReady) {
   decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
@@ -163,6 +162,7 @@ const result = {
     note: evidenceConsole.note
   },
   localEvidenceAccepted: localEvidenceAuthority,
+  evidenceAuthorized,
   note:
     dryRun
       ? 'Dry run — decision not recorded and status file not updated.'
