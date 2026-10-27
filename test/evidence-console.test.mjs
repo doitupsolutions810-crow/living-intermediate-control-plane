@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
+import { buildEvidenceStatusDocument, sealEvidenceStatusDocument } from '../lib/evidence-status-document.mjs';
 import {
   probeEvidenceConsole,
   validateEvidenceConsoleContract,
@@ -392,4 +393,38 @@ test('missing schema required-list is rejected without throwing', () => {
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_required_fields_missing'));
   assert.ok(result.failures.includes('schema_required_sourceIdentity_missing'));
+});
+
+test('E0-E6 procurement evidence producer cannot grant G0-G6 production authority', async () => {
+  const procurementDocument = sealEvidenceStatusDocument(
+    buildEvidenceStatusDocument({ S: 0, authority: 'public' }),
+    {
+      privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+      keyId: trust.trustedKeyId
+    }
+  );
+  const schema = goodSchema();
+  const result = await probeEvidenceConsole({
+    url: 'https://evidence.example.invalid',
+    ...trust,
+    fetchImpl: async url => {
+      if (String(url).endsWith('/api/status')) {
+        return new Response(JSON.stringify(procurementDocument), {
+          status: 200, headers: { 'content-type': 'application/json' }
+        });
+      }
+      if (String(url).endsWith('/api/v1/evidence/schema')) {
+        return new Response(JSON.stringify(schema), {
+          status: 200, headers: { 'content-type': 'application/json' }
+        });
+      }
+      return new Response('missing', { status: 404 });
+    }
+  });
+  assert.equal(procurementDocument.namespaces.evidence, 'E0-E6');
+  assert.equal(procurementDocument.namespaces.production, 'G0-G6');
+  assert.equal(result.status, 'invalid');
+  assert.notEqual(result.authority, 'public');
+  assert.equal(result.trustContractVerified, false);
+  assert.ok(result.trustFailures.some(failure => failure.startsWith('status_')));
 });
