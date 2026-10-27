@@ -51,6 +51,11 @@ const bridgeSource = readFileSync(join(root, 'status/procurement-bridge.mjs'), '
 assert(bridgeSource.includes('isEvidenceAuthorized'), 'procurement bridge uses shared evidence authorization policy');
 assert(!bridgeSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'procurement bridge has no force authorization bypass');
 assert(bridgeSource.includes('evaluateSupplyChainEvidence'), 'procurement bridge validates supply-chain evidence rather than assuming it active');
+const supplyChainSource = readFileSync(join(root, 'status/supply-chain.mjs'), 'utf8');
+assert(supplyChainSource.includes("SKIP_TRIVY: '0'"), 'supply-chain run overrides inherited Trivy skip flag');
+assert(supplyChainSource.includes("SKIP_SNYK: '0'"), 'supply-chain run overrides inherited Snyk skip flag');
+assert(supplyChainSource.includes("SKIP_SNYK_CONTAINER: '0'"), 'supply-chain run overrides inherited Snyk container skip flag');
+assert(supplyChainSource.includes("SKIP_OPA: '0'"), 'supply-chain run overrides inherited OPA skip flag');
 const evidenceSource = readFileSync(join(root, 'lib/evidence-console.mjs'), 'utf8');
 assert(evidenceSource.includes('contract has not been validated'), 'unvalidated public evidence fails closed');
 
