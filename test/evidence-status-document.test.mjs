@@ -127,4 +127,28 @@ const keyId = 'unit-test-key';
   assert.equal(coneDisabledStillRejectsInvalidDomain.authorized, false);
 }
 
-console.log('evidence-status-document.test.mjs: 8/8 groups passed');
+// 9. Invalid topology saturation is not clamped into a valid evidence sample.
+{
+  for (const tau of [-0.01, 1.01, 2, Infinity, NaN, '0.5']) {
+    const snapshot = residualSnapshot({ tau });
+    assert.equal(snapshot.coneOk, false, `snapshot rejects invalid tau=${String(tau)}`);
+    assert.equal(snapshot.S, null, `invalid tau must not synthesize S=${String(tau)}`);
+    assert.equal(snapshot.tau, tau, 'retain requested tau for diagnostics');
+  }
+
+  const doc = buildEvidenceStatusDocument({ tau: 2 });
+  assert.equal(doc.residual.S, null);
+  assert.equal(doc.residual.coneOk, false);
+  assert.ok(doc.contractChecks.every(check => check.status === 'HOLD'));
+
+  const signed = sealEvidenceStatusDocument(doc, { privateKeyPem: privPem, keyId });
+  const result = verifyEvidenceStatusDocument(signed, {
+    publicKeyPem: pubPem,
+    keyId,
+    requireSignature: true,
+  });
+  assert.equal(result.valid, false, 'signature cannot legitimize an invalid topology input');
+  assert.ok(result.failures.some(f => f.code === 'RESIDUAL_DOMAIN'));
+}
+
+console.log('evidence-status-document.test.mjs: 9/9 groups passed');
