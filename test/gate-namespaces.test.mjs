@@ -102,6 +102,19 @@ test('missing status is not treated as an observed local fallback', () => {
   assert.equal(result.procurementReady, false);
 });
 
+test('degraded response with non-local authority cannot use local opt-in', () => {
+  const result = evaluateProcurementReadiness({
+    coreReady: true,
+    evidenceConsole: { status: 'unreachable', authority: 'public' },
+    env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+    config: {},
+    S: 0,
+    requireCone: false
+  });
+  assert.equal(result.evidenceAuthorized, false);
+  assert.equal(result.procurementReady, false);
+});
+
 test('force flag is observable metadata but cannot authorize or bypass core readiness', () => {
   const result = evaluateProcurementReadiness({
     coreReady: false,
