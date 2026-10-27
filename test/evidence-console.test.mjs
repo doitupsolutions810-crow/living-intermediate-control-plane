@@ -476,6 +476,43 @@ test('producer-style signature over canonical JSON bytes is not accepted as a co
 });
 
 
+test('local producer cannot elevate caller-supplied READY assertions without an attestation', () => {
+  const checks = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({ id, status: 'READY' }));
+  const status = buildEvidenceStatusDocument({ S: 0, contractChecks: checks });
+  assert.deepEqual(status.contractChecks.map(check => check.status), Array(7).fill('HOLD'));
+});
+
+test('verifier rejects signed local evidence with caller-asserted READY checks', () => {
+  const status = buildEvidenceStatusDocument({ S: 0 });
+  status.contractChecks = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({ id, status: 'READY' }));
+  const sealed = sealEvidenceStatusDocument(status, {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const result = verifyEvidenceStatusDocument(sealed, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.some(failure =>
+    failure.code === 'E_GATES' && failure.detail.includes('without an independently verified attestation')
+  ));
+});
+
+test('verifier rejects a non-finite verification clock', () => {
+  const sealed = sealEvidenceStatusDocument(buildEvidenceStatusDocument({ S: 0 }), {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const result = verifyEvidenceStatusDocument(sealed, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId,
+    now: NaN
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.some(failure => failure.code === 'VERIFIER_CLOCK'));
+});
+
 test('missing procurement check results default to HOLD even when the residual cone predicate is true', () => {
   const status = buildEvidenceStatusDocument({ S: 0 });
   assert.equal(status.residual.coneOk, true);
