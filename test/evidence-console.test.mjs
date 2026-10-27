@@ -49,7 +49,7 @@ function attachSourceSignature(status) {
   const message = [
     status.sourceIdentity, status.sourceKeyId, status.sourceGeneratedAt,
     status.sourceExpiresAt, status.sourceEvidenceDigest
-  ].join('\\n');
+  ].join('\n');
   status.sourceSignature = sign(null, Buffer.from(message), fixturePrivateKey).toString('base64');
   return status;
 }
