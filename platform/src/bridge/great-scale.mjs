@@ -1,17 +1,29 @@
 /**
  * Great Scale bridge — coherent geometry ↔ living-intermediate belief.
  *
- * Canonical invariant source: doitupsolutions810-crow/great-scale.
+ * Canonical invariant source: doitupsolutions810-crow/great-scale (observer).
  * heat(h) = h(1-h) ≡ tension(B) = B(1-B).
- * The cone is φ⁻², not φ⁻¹ − φ⁻².
+ *
+ * Dual-cone (GS-UCL v1.3):
+ *   CONE_BRIDGE = φ^{-2}  (this module; soft-map / QGT additive floor)  [legacy CONE]
+ *   CONE_ORBIT  = φ^{-3} = φ^{-1}−φ^{-2} = √5−2  (observer spindle residual)
+ *   DELTA       = CONE_BRIDGE − CONE_ORBIT = φ^{-4}  (path-invariant gap)
+ * Ψ_bridge(t) = Ψ_orbit(t) + DELTA; residual heat S is shared across embeddings.
+ * Unification identifies DELTA; does not erase either floor.
+ * Joint agreement: A* = (4+3)/9 = 7/9 on the ninefold.
  */
 import { tension, integrateBeliefStep } from '../audio/jacobian.mjs';
 
 export const PHI = (1 + Math.sqrt(5)) / 2;
 export const PHI_INV = PHI - 1;
-export const CONE = PHI_INV * PHI_INV;
+export const CONE_BRIDGE = PHI_INV * PHI_INV;           // φ^{-2}
+export const CONE_ORBIT = PHI_INV - CONE_BRIDGE;         // φ^{-3} = √5−2
+export const DELTA = CONE_BRIDGE - CONE_ORBIT;           // φ^{-4}
+/** @deprecated Use CONE_BRIDGE; retained for backward compatibility */
+export const CONE = CONE_BRIDGE;
 export const RATE = 0.85;
 export const RESIDUAL_DIMS = Object.freeze([4, 3, 1]);
+export const A_STAR = (4 + 3) / 9;                      // 7/9 structural agreement
 
 export const VIEW_PRESETS = Object.freeze({
   Watch: { az: 35, el: 25 },
@@ -25,7 +37,9 @@ export const LAWS = Object.freeze([
   'keep the mean',
   'respect residual partition 4+3+1',
   'Ψ never below cone',
-  'only add scale-generated geometry'
+  'only add scale-generated geometry',
+  'dual-cone residual δ = φ^{-4} path-invariant',
+  'joint agreement A* = (4+3)/9 = 7/9'
 ]);
 
 export function heat(h) {
@@ -42,9 +56,11 @@ export function stateAt(t, rate = RATE) {
   const lam = Math.pow(PHI, -n);
   const psi = CONE + S;
   return {
-    schema: 'great-scale.state/v1',
+    schema: 'great-scale.state/v1.3',
     phase, h, S, n, lam, psi, fold: 0.8, zero_mode: PHI,
-    residual: RESIDUAL_DIMS, cone: CONE
+    residual: RESIDUAL_DIMS, cone: CONE,
+    cone_bridge: CONE_BRIDGE, cone_orbit: CONE_ORBIT, delta: DELTA,
+    a_star: A_STAR
   };
 }
 
@@ -53,11 +69,12 @@ export function beliefToScale(belief) {
   const S = tension(B);
   const n = 8 - 4 * S;
   return {
-    schema: 'great-scale.belief-map/v1',
+    schema: 'great-scale.belief-map/v1.3',
     belief: B, h: B, S, tension: S, n,
     lam: Math.pow(PHI, -n),
     psi: Math.max(CONE, CONE + S),
-    zero_mode: PHI, cone: CONE, view: 'Observer'
+    zero_mode: PHI, cone: CONE, view: 'Observer',
+    cone_bridge: CONE_BRIDGE, cone_orbit: CONE_ORBIT, delta: DELTA
   };
 }
 
@@ -79,9 +96,9 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, view = 'Obse
   const st = stateAt(t);
   const preset = VIEW_PRESETS[view] || VIEW_PRESETS.Observer;
   return {
-    schema: 'great-scale.bridge/v1',
+    schema: 'great-scale.bridge/v1.3',
     at: new Date().toISOString(),
-    version: '0.4.1-bridge',
+    version: '0.5.0-bridge-dual-cone',
     laws: LAWS,
     belief: map,
     phaseTime: st,
@@ -91,6 +108,10 @@ export function snapshotFromBelief(belief, { t = Date.now() / 1000, view = 'Obse
       tensionEqualsHeat: true,
       formula: 'S = B(1-B) = heat(h)',
       coneFloor: CONE,
+      coneOrbit: CONE_ORBIT,
+      coneBridge: CONE_BRIDGE,
+      delta: DELTA,
+      aStar: A_STAR,
       phi: PHI
     }
   };
@@ -103,6 +124,7 @@ function clamp01(x) {
 }
 
 export default {
-  PHI, CONE, RATE, heat, stateAt, beliefToScale, scaleToBeliefStep,
-  phaseXYZ, snapshotFromBelief, VIEW_PRESETS, LAWS
+  PHI, CONE, CONE_BRIDGE, CONE_ORBIT, DELTA, A_STAR, RATE, heat, stateAt,
+  beliefToScale, scaleToBeliefStep, phaseXYZ, snapshotFromBelief,
+  VIEW_PRESETS, LAWS, RESIDUAL_DIMS
 };
