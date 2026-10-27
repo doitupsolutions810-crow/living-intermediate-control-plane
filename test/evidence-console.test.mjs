@@ -6,7 +6,7 @@ import {
 } from '../lib/evidence-console.mjs';
 
 const expected = {
-  version: '5.3.1',
+  version: '5.4.0',
   runtime: 'static',
   privacy: 'local-only',
   serverSideEvidenceStorage: false,
@@ -20,6 +20,8 @@ const expected = {
 function goodStatus(overrides = {}) {
   return {
     ...expected,
+    sourceGeneratedAt: new Date().toISOString(),
+    sourceExpiresAt: new Date(Date.now() + 60_000).toISOString(),
     overall: 'READY',
     gates: Array.from({ length: 7 }, (_, i) => ({ id: `G${i}`, status: 'READY' })),
     ...overrides
@@ -33,6 +35,8 @@ function constraint(value) {
 function goodSchema(overrides = {}) {
   const properties = {
     version: constraint(expected.version),
+    sourceGeneratedAt: { type: 'string', format: 'date-time' },
+    sourceExpiresAt: { type: 'string', format: 'date-time' },
     runtime: constraint(expected.runtime),
     privacy: constraint(expected.privacy),
     serverSideEvidenceStorage: constraint(false),
@@ -65,7 +69,7 @@ function goodSchema(overrides = {}) {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     type: 'object',
-    required: [...Object.keys(expected), 'overall', 'gates'],
+    required: [...Object.keys(expected), 'sourceGeneratedAt', 'sourceExpiresAt', 'overall', 'gates'],
     properties: { ...properties, ...overrides }
   };
 }
@@ -226,6 +230,48 @@ test('cross-origin final response URL never receives public authority', async ()
   assert.equal(result.authority, 'local');
   assert.equal(result.trustContractVerified, false);
   assert.ok(result.trustFailures.includes('status_endpoint_unreachable'));
+});
+
+test('source-generated timestamps reject stale, expired, future, and missing evidence', () => {
+  const now = Date.now();
+  const schema = goodSchema();
+
+  const stale = goodStatus({
+    sourceGeneratedAt: new Date(now - 6 * 60_000).toISOString(),
+    sourceExpiresAt: new Date(now + 60_000).toISOString()
+  });
+  const staleResult = validateEvidenceConsoleContract(stale, schema, { now });
+  assert.ok(staleResult.failures.includes('status_source_evidence_stale'));
+
+  const expired = goodStatus({
+    sourceGeneratedAt: new Date(now - 60_000).toISOString(),
+    sourceExpiresAt: new Date(now - 1).toISOString()
+  });
+  const expiredResult = validateEvidenceConsoleContract(expired, schema, { now });
+  assert.ok(expiredResult.failures.includes('status_source_evidence_expired'));
+
+  const future = goodStatus({
+    sourceGeneratedAt: new Date(now + 60_000).toISOString(),
+    sourceExpiresAt: new Date(now + 120_000).toISOString()
+  });
+  const futureResult = validateEvidenceConsoleContract(future, schema, { now });
+  assert.ok(futureResult.failures.includes('status_source_generated_at_in_future'));
+
+  const missing = goodStatus({ sourceGeneratedAt: undefined });
+  const missingResult = validateEvidenceConsoleContract(missing, schema, { now });
+  assert.ok(missingResult.failures.includes('status_source_freshness_timestamps_invalid'));
+});
+
+test('schema cannot omit or weaken source-freshness constraints', () => {
+  const missing = goodSchema();
+  missing.required = missing.required.filter(key => key !== 'sourceGeneratedAt');
+  const missingResult = validateEvidenceConsoleContract(goodStatus(), missing);
+  assert.ok(missingResult.failures.includes('schema_required_sourceGeneratedAt_missing'));
+
+  const weakened = goodSchema();
+  weakened.properties.sourceExpiresAt = { type: 'string' };
+  const weakenedResult = validateEvidenceConsoleContract(goodStatus(), weakened);
+  assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
 test('object-form gate map validates only the required G0-G6 properties', () => {
