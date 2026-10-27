@@ -65,7 +65,8 @@ function goodSchema(overrides = {}) {
     sourceExpiresAt: { type: 'string', format: 'date-time' },
     sourceIdentity: constraint('control12-evidence-console'),
     sourceKeyId: constraint('test-source-key-1'),
-    sourceSchemaDigest: { type: 'string', pattern: '^[a-f0-9]{64}
+    sourceSchemaDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
     sourceSignature: { type: 'string', pattern: '^[A-Za-z0-9+/]{86}==$' },
     runtime: constraint(expected.runtime),
     privacy: constraint(expected.privacy),
