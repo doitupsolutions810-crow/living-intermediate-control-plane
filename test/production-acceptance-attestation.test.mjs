@@ -4,7 +4,10 @@ import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
 import {
   PRODUCTION_ACCEPTANCE_ISSUER,
   PRODUCTION_ACCEPTANCE_SCHEMA,
+  PRODUCTION_GATE_POLICY,
+  PRODUCTION_GATE_POLICY_VERSION,
   canonicalAcceptanceJson,
+  productionGatePolicyDigest,
   verifyProductionAcceptanceAttestation,
 } from '../lib/production-acceptance-attestation.mjs';
 
@@ -16,7 +19,7 @@ const residualSourceId = 'trusted-live-topology-measurer';
 const repository = 'doitupsolutions810-crow/living-intermediate-control-plane';
 const commitSha = 'a'.repeat(40);
 const artifactDigest = 'sha256:' + 'b'.repeat(64);
-const requiredSuiteNames = ['focused-contract-tests', 'repository-test-suite'];
+const requiredSuiteNames = ['source-revision-binding', 'required-ci-suites-pass', 'immutable-artifact-provenance', 'supply-chain-attestation', 'security-policy-pass', 'runtime-health', 'residual-measurement'];
 const runId = 12345;
 const runAttempt = 2;
 const runUrl = 'https://github.com/' + repository + '/actions/runs/' + runId;
@@ -40,6 +43,8 @@ function fixture(overrides = {}) {
   const body = {
     schema: PRODUCTION_ACCEPTANCE_SCHEMA,
     issuer: PRODUCTION_ACCEPTANCE_ISSUER,
+    gatePolicyVersion: PRODUCTION_GATE_POLICY_VERSION,
+    gatePolicyDigest: productionGatePolicyDigest(),
     keyId,
     environment: 'production',
     buildId,
@@ -57,18 +62,16 @@ function fixture(overrides = {}) {
     },
     artifact: { name: 'control-plane-release', digest: artifactDigest },
     suiteResults,
-    gates: ['G0','G1','G2','G3','G4','G5','G6'].map((id, index) => {
-      const suiteName = requiredSuiteNames[index % requiredSuiteNames.length];
-      return {
-        id,
-        status: 'PASS',
-        evidence: [{
-          suiteName,
-          evidenceDigest: suiteByName.get(suiteName).evidenceDigest,
-          observedAt: new Date(now - 1500).toISOString(),
-        }],
-      };
-    }),
+    gates: PRODUCTION_GATE_POLICY.map(gate => ({
+      id: gate.id,
+      policyId: gate.policyId,
+      status: 'PASS',
+      evidence: [{
+        suiteName: gate.requiredSuiteName,
+        evidenceDigest: suiteByName.get(gate.requiredSuiteName).evidenceDigest,
+        observedAt: new Date(now - 1500).toISOString(),
+      }],
+    })),
     residual: {
       schema: 'great-scale.residual-attestation/v1',
       sourceId: residualSourceId,
@@ -129,6 +132,25 @@ assert.equal(verifyProductionAcceptanceAttestation(
 assert.equal(verifyProductionAcceptanceAttestation(
   good, { ...options, requiredSuiteNames: ['only-one-suite'] },
 ).valid, false, 'consumer policy cannot be weakened by the attestation suite set');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gatePolicyVersion: '0.9.0' }), options,
+).valid, false, 'older gate policy version rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gatePolicyDigest: 'c'.repeat(64) }), options,
+).valid, false, 'unrecognized gate policy digest rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: good.gates.map((gate, index) => index === 6
+    ? { ...gate, policyId: 'runtime-health' } : gate) }), options,
+).valid, false, 'gate policy ID cannot be substituted');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: good.gates.map((gate, index) => index === 0
+    ? { ...gate, evidence: [{ ...gate.evidence[0], suiteName: 'required-ci-suites-pass', evidenceDigest: good.suiteResults[1].evidenceDigest }] } : gate) }), options,
+).valid, false, 'gate evidence must use the policy-designated suite');
+
 
 assert.equal(verifyProductionAcceptanceAttestation(
   fixture({ generatedAt: new Date(now - 10 * 60_000).toISOString() }), options,
