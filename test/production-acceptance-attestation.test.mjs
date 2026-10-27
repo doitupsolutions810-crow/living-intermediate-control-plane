@@ -52,6 +52,7 @@ function fixture(overrides = {}) {
       runUrl,
       headSha: commitSha,
       conclusion: 'success',
+      startedAt: new Date(now - 3000).toISOString(),
       completedAt: new Date(now - 1000).toISOString(),
     },
     artifact: { name: 'control-plane-release', digest: artifactDigest },
@@ -245,5 +246,14 @@ const callerTrustOverride = evaluateProductionAuthorization({
 });
 assert.equal(callerTrustOverride.productionAuthorized, false,
   'caller-supplied verifier options cannot override deployment trust anchors');
+
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ execution: { ...good.execution, startedAt: new Date(now + 60_000).toISOString() } }), options,
+).valid, false, 'workflow start time in the future rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ execution: { ...good.execution, startedAt: new Date(now - 500).toISOString() } }), options,
+).valid, false, 'workflow start after completion rejected');
 
 console.log('production-acceptance-attestation: proof-carrying positive/negative assertions passed');
