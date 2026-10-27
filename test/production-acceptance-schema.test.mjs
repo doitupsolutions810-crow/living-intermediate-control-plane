@@ -38,7 +38,7 @@ test('source and execution fields bind repository revision and successful workfl
   const execution = schema.properties.execution;
   assert.equal(execution.additionalProperties, false);
   assert.deepEqual([...execution.required].sort(),
-    ['runId', 'runAttempt', 'runUrl', 'headSha', 'conclusion', 'completedAt'].sort());
+    ['runId', 'runAttempt', 'runUrl', 'headSha', 'conclusion', 'startedAt', 'completedAt'].sort());
   assert.equal(execution.properties.conclusion.const, 'success');
   assert.equal(execution.properties.headSha.pattern, '^[a-fA-F0-9]{40}$');
   assert.equal(execution.properties.completedAt.format, 'date-time');
