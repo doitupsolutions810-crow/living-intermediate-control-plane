@@ -66,7 +66,7 @@ function fixture(at = now) {
   const message = [
     status.sourceIdentity, status.sourceKeyId, status.sourceGeneratedAt,
     status.sourceExpiresAt, status.sourceEvidenceDigest,
-  ].join('\\n');
+  ].join('\n');
   status.sourceSignature = sign(null, Buffer.from(message), privateKey).toString('base64');
   return { status, schema };
 }
