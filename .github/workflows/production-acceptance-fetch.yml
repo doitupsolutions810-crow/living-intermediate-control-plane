@@ -7,6 +7,8 @@ on:
     paths:
       - "lib/production-acceptance-fetch.mjs"
       - "lib/producer-evidence-contract.mjs"
+      - "test/evidence-console-probe-security.test.mjs"
+      - "lib/evidence-console.mjs"
       - "lib/production-acceptance-attestation.mjs"
       - "lib/gate-namespaces.mjs"
       - "lib/great-scale-residual.mjs"
@@ -59,7 +61,7 @@ jobs:
           node-version: "20"
 
       - name: Syntax check
-        run: node --check lib/production-acceptance-fetch.mjs && node --check lib/producer-evidence-contract.mjs && node --check test/producer-evidence-contract.test.mjs && node --check lib/production-acceptance-attestation.mjs && node --check integrate.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs && node --check test/production-acceptance-attestation.test.mjs
+        run: node --check lib/production-acceptance-fetch.mjs && node --check lib/producer-evidence-contract.mjs && node --check test/producer-evidence-contract.test.mjs && node --check lib/evidence-console.mjs && node --check test/evidence-console-probe-security.test.mjs && node --check lib/production-acceptance-attestation.mjs && node --check integrate.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs && node --check test/production-acceptance-attestation.test.mjs
 
       - name: Run focused transport tests
         run: node --test test/producer-evidence-contract.test.mjs && node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs && node test/production-acceptance-attestation.test.mjs
