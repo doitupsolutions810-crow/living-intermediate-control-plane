@@ -6,6 +6,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "lib/production-acceptance-fetch.mjs"
+      - "contracts/production-acceptance/v1.schema.json"
+      - "test/production-acceptance-schema.test.mjs"
       - "test/production-acceptance-fetch.test.mjs"
       - ".github/workflows/production-acceptance-fetch.yml"
   push:
@@ -42,4 +44,4 @@ jobs:
         run: node --check lib/production-acceptance-fetch.mjs && node --check test/production-acceptance-fetch.test.mjs
 
       - name: Run focused transport tests
-        run: node --test test/production-acceptance-fetch.test.mjs
+        run: node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs
