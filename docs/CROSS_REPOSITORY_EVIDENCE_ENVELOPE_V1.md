@@ -59,7 +59,7 @@ The following JSON shape is normative for the proposal. Fields marked required m
 }
 ```
 
-The formal draft JSON Schema is `schemas/cross-repository-evidence-envelope-v1.schema.json`. It validates structural shape and selected conditional rules only; it does not validate cryptographic signatures, issuer authorization, canonicalization, freshness against a trusted clock, replay state, or revision/digest matching. The schema and this contract remain proposals, and current repositories are not claimed to emit these fields.
+The draft JSON Schema is `schemas/cross-repository-evidence-envelope-v1.schema.json`. A semantic verifier now exists at `lib/evidence-envelope-v1.mjs`; it uses Ed25519 and a sorted-key JSON serialization profile, validates trusted key/issuer scope, freshness, policy and subject binding, simulation/receipt rules, and an injected replay guard. It does not replace JSON Schema validation. The verifier is implemented in this repository only; current producers and other consumers are not claimed to emit or enforce this envelope.
 
 ## 3. Producer obligations
 
@@ -140,3 +140,16 @@ The contract is **not production-ready** until:
 - the E/G namespace independence tests remain green.
 
 No repository should claim end-to-end integration solely because this document exists.
+
+
+## 9. Signature and verifier profile
+
+- Signature algorithm: **Ed25519** only for v1.
+- The signature payload is the complete envelope with only `signature.value` omitted. `signature.algorithm` and `authority.key_id` remain covered by the signature.
+- Canonical serialization: recursively sort object keys lexicographically, preserve array order, serialize as compact ECMAScript JSON, encode as UTF-8, and reject undefined or non-finite numeric values. The v1 envelope intentionally uses no numeric fields.
+- The verifier resolves `authority.key_id` through an injected trusted-key registry. Each key entry must bind the key to an issuer and may restrict evidence types, repositories, and authority classes.
+- Replay protection is an injected callback because the production implementation must be durable and atomic across concurrent verifier instances. A process-local set is suitable only for unit tests, not production.
+- The verifier returns `productionAuthorized: false` by design. Evidence verification is not the final authorization decision; the receiving G-namespace gate must still apply its own policy.
+- The conformance fixtures use placeholder signature strings for structural schema testing only. They are not cryptographically signed examples and must never be accepted by the semantic verifier.
+
+The executable security tests are in `test/evidence-envelope-v1.test.mjs`; schema fixtures are checked by `scripts/validate-evidence-envelope.mjs`. CI has been configured to run both, but hosted execution remains unverified until a run returns usable step results and a successful conclusion.
