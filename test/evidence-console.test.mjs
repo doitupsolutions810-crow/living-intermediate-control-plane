@@ -425,6 +425,26 @@ test('contract-check entries cannot carry unrecognized fields', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
+test('individual fixed-value, digest, signature and timestamp schemas are closed', () => {
+  const fixed = goodSchema();
+  fixed.properties.version.not = {};
+  const fixedResult = validateEvidenceConsoleContract(goodStatus(), fixed);
+  assert.equal(fixedResult.valid, false);
+  assert.ok(fixedResult.failures.includes('schema_version_constraint_mismatch'));
+
+  const timestamp = goodSchema();
+  timestamp.properties.sourceGeneratedAt.anyOf = [{ type: 'string' }];
+  const timestampResult = validateEvidenceConsoleContract(goodStatus(), timestamp);
+  assert.equal(timestampResult.valid, false);
+  assert.ok(timestampResult.failures.includes('schema_sourceGeneratedAt_constraint_mismatch'));
+
+  const digest = goodSchema();
+  digest.properties.sourceEvidenceDigest.not = {};
+  const digestResult = validateEvidenceConsoleContract(goodStatus(), digest);
+  assert.equal(digestResult.valid, false);
+  assert.ok(digestResult.failures.includes('schema_sourceEvidenceDigest_constraint_mismatch'));
+});
+
 test('unknown JSON Schema keywords at root and nested gate levels fail closed', () => {
   const rootExtra = goodSchema();
   rootExtra.not = {};
