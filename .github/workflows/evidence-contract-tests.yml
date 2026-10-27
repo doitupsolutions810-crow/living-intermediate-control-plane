@@ -1,0 +1,50 @@
+name: Evidence Contract Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "lib/evidence-console.mjs"
+      - "lib/evidence-status-document.mjs"
+      - "lib/gate-namespaces.mjs"
+      - "test/evidence-console.test.mjs"
+      - "test/gate-namespaces.test.mjs"
+      - ".github/workflows/evidence-contract-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/evidence-console.mjs"
+      - "lib/evidence-status-document.mjs"
+      - "lib/gate-namespaces.mjs"
+      - "test/evidence-console.test.mjs"
+      - "test/gate-namespaces.test.mjs"
+      - ".github/workflows/evidence-contract-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-contract:
+    name: Focused evidence trust-boundary regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax-check trust-boundary modules
+        run: |
+          node --check lib/evidence-console.mjs
+          node --check lib/evidence-status-document.mjs
+          node --check lib/gate-namespaces.mjs
+          node --check test/evidence-console.test.mjs
+          node --check test/gate-namespaces.test.mjs
+
+      - name: Run evidence and namespace regression tests
+        run: node --test test/evidence-console.test.mjs test/gate-namespaces.test.mjs
