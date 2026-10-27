@@ -37,7 +37,8 @@ assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} })
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
-assert(isEvidenceAuthorized({ status: 'ok', authority: 'public', localOptIn: false }) === true, 'verified public evidence authorizes');
+assert(isEvidenceAuthorized({ status: 'ok', authority: 'public', localOptIn: false, trustContractVerified: true }) === true, 'public evidence with verified contract authorizes');
+assert(isEvidenceAuthorized({ status: 'ok', authority: 'public', localOptIn: false }) === false, 'public evidence without verified contract is denied');
 assert(isEvidenceAuthorized({ status: 'unreachable', authority: 'local', localOptIn: true }) === true, 'explicit local opt-in authorizes local fallback');
 assert(isEvidenceAuthorized({ status: 'unreachable', authority: 'local', localOptIn: false }) === false, 'local fallback without opt-in denied');
 assert(isEvidenceAuthorized({ status: 'ok', authority: 'unknown', localOptIn: false }) === false, 'unknown authority denied');
