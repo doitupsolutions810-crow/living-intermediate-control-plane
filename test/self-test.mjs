@@ -12,6 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { parseResidualInput } from '../lib/residual-input.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -30,6 +31,22 @@ function assert(condition, message) {
 }
 
 console.log('Self-test — Living Intermediate Control Plane\n');
+// Residual input is parsed strictly; invalid values cannot silently become S=0.
+const residualDefault = parseResidualInput(undefined);
+assert(residualDefault.valid && residualDefault.value === 0 && residualDefault.source === 'default', 'unset residual is explicitly labeled default');
+for (const raw of ['0', '0.125', '0.25', '.125', '1.25e-1']) {
+  const parsed = parseResidualInput(raw);
+  assert(parsed.valid && parsed.decision === null, 'valid residual accepted: ' + raw);
+}
+for (const raw of ['', '   ', 'NaN', 'Infinity', '-Infinity', 'bad', '0x10', '1e999', '1e-999']) {
+  const parsed = parseResidualInput(raw);
+  assert(!parsed.valid && parsed.decision === 'HOLD_INVALID_RESIDUAL', 'malformed/non-finite residual rejected: ' + raw);
+}
+for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
+  const parsed = parseResidualInput(raw);
+  assert(!parsed.valid && parsed.decision === 'HOLD_RESIDUAL_DOMAIN', 'out-of-domain residual rejected: ' + raw);
+}
+
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'local evidence explicit env opt-in accepted');
