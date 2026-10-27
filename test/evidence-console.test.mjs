@@ -23,7 +23,7 @@ function signStatus(status) {
   delete unsigned.sourceEvidenceDigest;
   delete unsigned.sourceSignature;
   status.sourceEvidenceDigest = createHash('sha256').update(canonicalJson(unsigned)).digest('hex');
-  const message = [status.sourceIdentity, status.sourceKeyId, status.sourceGeneratedAt, status.sourceExpiresAt, status.sourceEvidenceDigest].join('\\n');
+  const message = [status.sourceIdentity, status.sourceKeyId, status.sourceGeneratedAt, status.sourceExpiresAt, status.sourceEvidenceDigest].join('\n');
   status.sourceSignature = sign(null, Buffer.from(message), sourcePrivateKeyPem).toString('base64');
   return status;
 }
