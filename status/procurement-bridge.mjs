@@ -2,46 +2,61 @@
 /**
  * Procurement bridge — limited-technicality decision surface
  *
- * Emits a clear go / hold signal based on the three simple success criteria.
- * Local plane status can serve as temporary evidence authority while the
- * public evidence-console domain remains 404.
- *
- * Control704 high-priority override
+ * Emits a clear go / hold signal. Procurement readiness is independent of
+ * production authorization. Force flags never authorize.
+ * Local plane status can serve as temporary evidence authority only with
+ * explicit ACCEPT_LOCAL_EVIDENCE=1 and cone compliance.
  */
 
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
+import { evaluateGateNamespaces } from '../lib/gate-namespaces.mjs';
+import { loadConfig } from '../lib/config.mjs';
 
+const config = loadConfig();
 const readiness = emitReadinessEvidence();
 const plan = evaluateQuorum(createOrchestrationPlan('procurement-check'));
 
-const localEvidenceAuthority = process.env.ACCEPT_LOCAL_EVIDENCE === '1' || process.env.ACCEPT_LOCAL_EVIDENCE === 'true';
+const coreReady =
+  readiness.overallDecision === 'READY' &&
+  readiness.failedGates.length === 0 &&
+  plan.overallDecision === 'READY';
 
-const criteria = {
-  readinessReady: readiness.overallDecision === 'READY' && readiness.failedGates.length === 0,
-  rolesReady: plan.overallDecision === 'READY',
-  supplyChainAssumedActive: true, // PR #12 already merged on main
-  localEvidenceAccepted: localEvidenceAuthority
-};
+const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+const gates = evaluateGateNamespaces({
+  coreReady,
+  evidenceConsole: { status: process.env.ACCEPT_LOCAL_EVIDENCE ? 'unconfigured' : undefined },
+  env: process.env,
+  config,
+  S: residualS,
+  supplyChainOk: false,
+  requireCone: true,
+});
 
-const allCoreMet = criteria.readinessReady && criteria.rolesReady && criteria.supplyChainAssumedActive;
-const procurementDecision = allCoreMet && (criteria.localEvidenceAccepted || process.env.FORCE_PROCUREMENT === '1')
+const procurementDecision = gates.procurement.procurementReady
   ? 'READY_FOR_PROCUREMENT'
   : 'HOLD_EVIDENCE_CONTROL';
 
 const result = {
   timestamp: new Date().toISOString(),
   decision: procurementDecision,
-  criteria,
-  readiness,
+  residual: gates.residual,
+  gateNamespaces: {
+    procurement: gates.procurement,
+    production: gates.production,
+    invariant: gates.invariant,
+  },
+  readiness: {
+    overall: readiness.overallDecision,
+    failedGates: readiness.failedGates,
+  },
   orchestration: {
     overall: plan.overallDecision,
-    failedGates: plan.failedGates
+    failedGates: plan.failedGates,
   },
-  note: procurementDecision === 'READY_FOR_PROCUREMENT'
-    ? 'Local plane accepted as temporary evidence authority under Control704 override'
-    : 'Waiting for public evidence-console domain or explicit ACCEPT_LOCAL_EVIDENCE=1',
-  securityValue: 'High'
+  note: gates.procurement.note,
+  securityValue: 'High',
+  schema: 'great-scale.procurement-bridge/v1',
 };
 
 console.log(JSON.stringify(result, null, 2));
