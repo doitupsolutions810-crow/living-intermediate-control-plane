@@ -6,6 +6,8 @@ import {
   sealEvidenceStatusDocument,
   verifyEvidenceStatusDocument,
 } from '../lib/evidence-status-document.mjs';
+import { authorizeWithCone } from '../lib/evidence-authorization.mjs';
+import { residualSnapshot } from '../lib/great-scale-residual.mjs';
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');
 const privPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
@@ -97,4 +99,32 @@ const keyId = 'unit-test-key';
   assert.ok(result.failures.some(f => f.code === 'RESIDUAL_DOMAIN'));
 }
 
-console.log('evidence-status-document.test.mjs: 7/7 passed');
+// 8. Raw residual snapshots and local authorization must enforce the full domain.
+{
+  for (const S of [-1e-6, 0.250001, 100, Infinity, -Infinity, NaN, '0.1']) {
+    const snapshot = residualSnapshot({ S });
+    assert.equal(snapshot.coneOk, false, `snapshot rejects invalid S=${String(S)}`);
+    const result = authorizeWithCone({
+      S,
+      env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+      config: {},
+      requireCone: true,
+    });
+    assert.equal(result.authorized, false, `authorization rejects invalid S=${String(S)}`);
+    assert.equal(result.residualCoordinateValid, false);
+  }
+
+  const lower = authorizeWithCone({ S: 0, env: { ACCEPT_LOCAL_EVIDENCE: '1' }, requireCone: true });
+  const upper = authorizeWithCone({ S: 0.25, env: { ACCEPT_LOCAL_EVIDENCE: '1' }, requireCone: true });
+  assert.equal(lower.authorized, true);
+  assert.equal(upper.authorized, true);
+
+  const coneDisabledStillRejectsInvalidDomain = authorizeWithCone({
+    S: 100,
+    env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+    requireCone: false,
+  });
+  assert.equal(coneDisabledStillRejectsInvalidDomain.authorized, false);
+}
+
+console.log('evidence-status-document.test.mjs: 8/8 groups passed');
