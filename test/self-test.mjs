@@ -58,11 +58,17 @@ const bridgeSource = readFileSync(join(root, 'status/procurement-bridge.mjs'), '
 assert(bridgeSource.includes('isEvidenceAuthorized'), 'procurement bridge uses shared evidence authorization policy');
 assert(!bridgeSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'procurement bridge has no force authorization bypass');
 assert(bridgeSource.includes('evaluateSupplyChainEvidence'), 'procurement bridge validates supply-chain evidence rather than assuming it active');
+assert(bridgeSource.includes("'verify-blob'"), 'procurement bridge independently verifies report attestation');
+assert(bridgeSource.includes('SUPPLY_CHAIN_ATTESTATION_IDENTITY'), 'report attestation is bound to configured signing identity');
+assert(bridgeSource.includes('SUPPLY_CHAIN_ATTESTATION_ISSUER'), 'report attestation is bound to configured OIDC issuer');
 const supplyChainSource = readFileSync(join(root, 'status/supply-chain.mjs'), 'utf8');
 assert(supplyChainSource.includes("SKIP_TRIVY: '0'"), 'supply-chain run overrides inherited Trivy skip flag');
 assert(supplyChainSource.includes("SKIP_SNYK: '0'"), 'supply-chain run overrides inherited Snyk skip flag');
 assert(supplyChainSource.includes("SKIP_SNYK_CONTAINER: '0'"), 'supply-chain run overrides inherited Snyk container skip flag');
 assert(supplyChainSource.includes("SKIP_OPA: '0'"), 'supply-chain run overrides inherited OPA skip flag');
+assert(supplyChainSource.includes("'sign-blob'"), 'supply-chain report is cryptographically attested after writing');
+assert(supplyChainSource.includes('SUPPLY_CHAIN_ATTESTATION_IDENTITY'), 'supply-chain run requires expected report signer identity');
+assert(supplyChainSource.includes('SUPPLY_CHAIN_ATTESTATION_ISSUER'), 'supply-chain run requires expected report issuer');
 const evidenceSource = readFileSync(join(root, 'lib/evidence-console.mjs'), 'utf8');
 assert(evidenceSource.includes('contract has not been validated'), 'unvalidated public evidence fails closed');
 
@@ -83,15 +89,16 @@ const validSupplyReport = {
     { name: 'security-summary', ok: true, status: 0 }
   ]
 };
-assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'abc123', nowMs: fixedNow }).authorized === true, 'fresh fully verified supply-chain report authorizes');
-assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'different', nowMs: fixedNow }).authorized === false, 'supply-chain report for another revision denied');
-assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, allowSkip: true }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'soft-skip supply-chain report denied');
-assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: [...validSupplyReport.results, { name: 'trivy', ok: true, skipped: true }] }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'report with skipped security tool denied');
-assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, signed: false }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'unsigned image denied');
-assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, imageRef: 'ghcr.io/example/app:latest' }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'mutable image tag denied');
-assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: validSupplyReport.results.map(item => item.name === 'cosign-verify' ? { ...item, imageRef: 'ghcr.io/example/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' } : item) }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'signature verification for a different image digest denied');
-assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, timestamp: '2026-10-26T10:00:00.000Z' }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'stale supply-chain report denied');
-assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: '', nowMs: fixedNow }).authorized === false, 'unknown current revision denied');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === true, 'fresh fully verified supply-chain report authorizes');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'unsigned or unverified report attestation denied');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'different', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'supply-chain report for another revision denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, allowSkip: true }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'soft-skip supply-chain report denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: [...validSupplyReport.results, { name: 'trivy', ok: true, skipped: true }] }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'report with skipped security tool denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, signed: false }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'unsigned image denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, imageRef: 'ghcr.io/example/app:latest' }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'mutable image tag denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: validSupplyReport.results.map(item => item.name === 'cosign-verify' ? { ...item, imageRef: 'ghcr.io/example/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' } : item) }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'signature verification for a different image digest denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, timestamp: '2026-10-26T10:00:00.000Z' }, revision: 'abc123', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'stale supply-chain report denied');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: '', nowMs: fixedNow, attestationVerified: true }).authorized === false, 'unknown current revision denied');
 
 const readiness = emitReadinessEvidence({ source: 'self-test' });
 assert(readiness.provider === 'deterministic-local-evidence', 'readiness provider is deterministic-local-evidence');
