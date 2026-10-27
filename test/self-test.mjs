@@ -62,6 +62,7 @@ assert(integrationSource.includes('coreReady: coreReady && residualInputGateElig
 // Production authorization is a distinct namespace and fails closed without each prerequisite.
 assert(evaluateProductionAuthorization().productionAuthorized === false, 'production authorization denied by default');
 assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true }).productionAuthorized === false, 'production authorization denied without verified measurement attestation');
+assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === false, 'legacy caller-supplied verification boolean cannot authorize production');
 assert(evaluateProductionAuthorization({ coreReady: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without supply-chain authorization');
 assert(evaluateProductionAuthorization({ supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without core readiness');
 const attestationKeys = generateKeyPairSync('ed25519');
@@ -97,6 +98,9 @@ assert(evaluateProductionAuthorization(productionAuthorizationOptions).productio
 const tamperedAttestation = { ...signedMeasurementAttestation, residualS: 0.2 };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: tamperedAttestation }).productionAuthorized === false, 'production gate rejects a tampered measurement payload');
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestationExpected: { ...expectedMeasurementIdentity, commitSha: 'ffffffffffffffffffffffffffffffffffffffff' } }).productionAuthorized === false, 'production gate rejects an attestation bound to a different commit');
+const expiredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() - 120_000).toISOString(), expiresAt: new Date(Date.now() - 60_000).toISOString() };
+const expiredAttestation = { ...expiredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(expiredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: expiredAttestation }).productionAuthorized === false, 'production gate rejects an expired signed measurement attestation');
 
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
