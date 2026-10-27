@@ -41,7 +41,7 @@ const expected = {
 };
 
 function goodStatus(overrides = {}) {
-  return {
+  const status = {
     ...expected,
     sourceGeneratedAt: new Date().toISOString(),
     sourceExpiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -65,7 +65,8 @@ function goodSchema(overrides = {}) {
     sourceExpiresAt: { type: 'string', format: 'date-time' },
     sourceIdentity: constraint('control12-evidence-console'),
     sourceKeyId: constraint('test-source-key-1'),
-    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}
+    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+    sourceSignature: { type: 'string', pattern: '^[A-Za-z0-9+/]{86}==$' },
     runtime: constraint(expected.runtime),
     privacy: constraint(expected.privacy),
     serverSideEvidenceStorage: constraint(false),
