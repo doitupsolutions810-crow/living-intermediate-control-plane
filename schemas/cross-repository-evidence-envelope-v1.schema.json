@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.doitupsolutions810-crow.dev/control-plane/evidence-envelope/v1",
+  "$id": "urn:doitupsolutions810-crow:control-plane:evidence-envelope:v1",
   "title": "Cross-Repository Evidence Envelope v1",
   "description": "Proposed envelope contract. Signature verification, issuer authorization, freshness, replay checks, and subject matching must be enforced by code; JSON Schema alone is insufficient.",
   "type": "object",
@@ -155,16 +155,9 @@
           "maxLength": 256
         },
         "key_id": {
-          "oneOf": [
-            {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
         }
       }
     },
@@ -210,9 +203,7 @@
       ],
       "properties": {
         "algorithm": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64
+          "const": "Ed25519"
         },
         "value": {
           "type": "string",
