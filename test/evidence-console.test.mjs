@@ -329,45 +329,6 @@ test('object-form gate schema must reject additional gate properties', () => {
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
- },
-    sourceSignature: { type: 'string', minLength: 1 },
-    runtime: constraint(expected.runtime),
-    privacy: constraint(expected.privacy),
-    serverSideEvidenceStorage: constraint(false),
-    syntheticEvidenceRejected: constraint(true),
-    productionEvidenceClassRequired: constraint(true),
-    requiredEvidenceClass: constraint(expected.requiredEvidenceClass),
-    requiredEnvironment: constraint(expected.requiredEnvironment),
-    mandatoryGates: constraint(7),
-    overall: { enum: ['READY', 'HOLD'] },
-    gates: {
-      type: 'array',
-      minItems: 7,
-      maxItems: 7,
-      uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
-        contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
-        minContains: 1,
-        maxContains: 1
-      })),
-      items: {
-        type: 'object',
-        required: ['id', 'status'],
-        properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
-          status: constraint('READY')
-        }
-      }
-    }
-  };
-  return {
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    type: 'object',
-    required: [...Object.keys(expected), 'sourceGeneratedAt', 'sourceExpiresAt', 'overall', 'gates'],
-    properties: { ...properties, ...overrides }
-  };
-}
-
 test('signed evidence verifies with the pinned Ed25519 key', () => {
   const status = goodStatus();
   assert.deepEqual(verifySignedEvidence(status, trust), { valid: true, failures: [] });
