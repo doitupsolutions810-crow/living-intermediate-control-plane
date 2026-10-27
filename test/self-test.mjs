@@ -56,7 +56,7 @@ assert(evaluateProcurementReadiness({
     status: 'ok', authority: 'public', trustContractVerified: true,
     procurementEvidenceVerified: true
   }
-}).evidenceAuthorized === true, 'public contract plus separately verified production-acceptance evidence is accepted by gate namespace');
+}).evidenceAuthorized === false, 'caller-supplied acceptance boolean cannot authorize procurement without a verifier');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
@@ -76,7 +76,7 @@ assert(evaluateProcurementReadiness({
     status: 'unreachable', authority: 'local',
     procurementEvidenceVerified: true
   }
-}).evidenceAuthorized === true, 'local fallback requires explicit opt-in and separately verified production-acceptance evidence');
+}).evidenceAuthorized === false, 'caller-supplied acceptance boolean cannot bypass the verifier on local fallback');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
