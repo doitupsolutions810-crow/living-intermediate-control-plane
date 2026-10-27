@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/doitupsolutions810-crow/living-intermediate-control-plane/blob/main/contracts/production-acceptance/v1.schema.json",
-  "title": "Great Scale Production Acceptance Attestation v1",
-  "description": "Separate G0-G6 production acceptance proof. An E0-E6 evidence-console contract document is not a substitute.",
+  "title": "Great Scale Proof-Carrying Production Acceptance Attestation v1",
+  "description": "G0-G6 production acceptance proof bound to exact source revision, executed workflow, required suite outcomes, immutable artifact digest, and per-gate evidence. E0-E6 procurement evidence is not a substitute.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,6 +13,10 @@
     "buildId",
     "generatedAt",
     "expiresAt",
+    "source",
+    "execution",
+    "artifact",
+    "suiteResults",
     "gates",
     "residual",
     "digest",
@@ -44,6 +48,128 @@
       "type": "string",
       "format": "date-time"
     },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commitSha"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "commitSha": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40}$"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runId",
+        "runAttempt",
+        "runUrl",
+        "headSha",
+        "conclusion",
+        "completedAt"
+      ],
+      "properties": {
+        "runId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "runAttempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "runUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://github\\\\.com/"
+        },
+        "headSha": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40}$"
+        },
+        "conclusion": {
+          "const": "success"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "digest"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "suiteResults": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "conclusion",
+          "headSha",
+          "runId",
+          "runAttempt",
+          "evidenceUrl",
+          "evidenceDigest"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "conclusion": {
+            "const": "success"
+          },
+          "headSha": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{40}$"
+          },
+          "runId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "runAttempt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "evidenceUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://github\\\\.com/"
+          },
+          "evidenceDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
     "gates": {
       "type": "array",
       "minItems": 7,
@@ -53,7 +179,8 @@
         "additionalProperties": false,
         "required": [
           "id",
-          "status"
+          "status",
+          "evidence"
         ],
         "properties": {
           "id": {
@@ -69,6 +196,33 @@
           },
           "status": {
             "const": "PASS"
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "suiteName",
+                "evidenceDigest",
+                "observedAt"
+              ],
+              "properties": {
+                "suiteName": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidenceDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "observedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
           }
         }
       },
