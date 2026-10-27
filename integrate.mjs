@@ -22,6 +22,7 @@ import { probeEvidenceConsole } from './lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
 import { evaluateGateNamespaces } from './lib/gate-namespaces.mjs';
 import { residualSnapshot } from './lib/great-scale-residual.mjs';
+import { parseResidualInput } from './lib/residual-input.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -120,10 +121,12 @@ const coreReady =
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
-// Residual coordinate for this evaluation (default S=0 until live QGT/topology feed)
-const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+// An unset value is explicitly labeled as a default; malformed or out-of-domain
+// environment input must not be coerced to S=0 and pass the residual gate.
+const residualInput = parseResidualInput(process.env.GREAT_SCALE_S);
+const residualS = residualInput.valid ? residualInput.value : 0;
 const gates = evaluateGateNamespaces({
-  coreReady,
+  coreReady: coreReady && residualInput.valid,
   evidenceConsole,
   env: process.env,
   config,
@@ -178,6 +181,7 @@ const result = {
     note: evidenceConsole.note
   },
   localEvidenceAccepted: localEvidenceAuthority,
+  residualInput,
   residual: gates.residual,
   gateNamespaces: {
     procurement: gates.procurement,
@@ -195,7 +199,9 @@ const result = {
             : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
           : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
             ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-            : 'Core readiness or orchestration not yet READY.',
+            : !residualInput.valid
+              ? `${residualInput.decision}: GREAT_SCALE_S must be a finite decimal in [0, 0.25].`
+              : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 
