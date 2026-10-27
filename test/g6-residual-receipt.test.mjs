@@ -8,6 +8,7 @@ import {
   GREAT_SCALE_G6_RECEIPT_SCHEMA_BLOB_SHA,
   GREAT_SCALE_REPOSITORY,
   canonicalG6ReceiptJson,
+  fetchNumericalCertificateProof,
   verifyGreatScaleG6ResidualReceipt,
 } from '../lib/g6-residual-receipt.mjs';
 
@@ -61,6 +62,38 @@ const proofBytes = Buffer.from(JSON.stringify({
   modelInputDigest,
   method: 'interval-enclosure-v1',
 }), 'utf8');
+
+function fakeFetchResponse(url, body, {
+  status = 200,
+  redirected = false,
+  finalUrl = url,
+  contentType = 'application/json; charset=utf-8',
+  contentLength = null,
+} = {}) {
+  const bytes = Buffer.isBuffer(body) ? body : Buffer.from(body, 'utf8');
+  const headers = {
+    get(name) {
+      const key = name.toLowerCase();
+      if (key === 'content-type') return contentType;
+      if (key === 'content-length') return contentLength === null ? null : String(contentLength);
+      return null;
+    },
+  };
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    redirected,
+    url: finalUrl,
+    headers,
+    body: stream,
+  };
+}
 
 function signCertificate(certificate) {
   const unsigned = { ...certificate };
@@ -275,6 +308,82 @@ function makeFixture({
     },
   };
 }
+
+test('fetch helper accepts only bounded JSON from the pinned origin with no redirect', async () => {
+  const bytes = Buffer.from(JSON.stringify({ proof: 'fixture' }), 'utf8');
+  const calls = [];
+  const result = await fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    timeoutMs: 1000,
+    maxBytes: 1024,
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return fakeFetchResponse(url, bytes);
+    },
+  });
+  assert.ok(result);
+  assert.equal(result.url, proofUrl);
+  assert.equal(result.finalUrl, proofUrl);
+  assert.equal(result.status, 200);
+  assert.equal(result.redirected, false);
+  assert.equal(result.contentType, 'application/json; charset=utf-8');
+  assert.equal(sha256(result.bytes), sha256(bytes));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.redirect, 'error');
+  assert.equal(calls[0].options.cache, 'no-store');
+});
+
+test('fetch helper rejects cross-origin URLs, redirects, final URL drift, and non-JSON responses', async () => {
+  let calls = 0;
+  const fetchImpl = async url => {
+    calls += 1;
+    return fakeFetchResponse(url, JSON.stringify({ proof: true }), {
+      finalUrl: 'https://cdn.example/redirected-proof.json',
+      redirected: true,
+    });
+  };
+  assert.equal(await fetchNumericalCertificateProof('https://other.example/proof.json', {
+    expectedOrigin: new URL(proofUrl).origin,
+    fetchImpl,
+  }), null);
+  assert.equal(calls, 0);
+
+  assert.equal(await fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    fetchImpl,
+  }), null);
+  assert.equal(calls, 1);
+
+  assert.equal(await fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    fetchImpl: async url => fakeFetchResponse(url, JSON.stringify({ proof: true }), {
+      finalUrl: 'https://evidence.example/alternate.json',
+      redirected: false,
+    }),
+  }), null);
+
+  assert.equal(await fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    fetchImpl: async url => fakeFetchResponse(url, 'not JSON', {
+      contentType: 'text/plain',
+    }),
+  }), null);
+});
+
+test('fetch helper rejects oversized proof responses and invalid byte limits', async () => {
+  const oversized = Buffer.alloc(80, 65);
+  assert.equal(await fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    maxBytes: 32,
+    fetchImpl: async url => fakeFetchResponse(url, oversized, { contentLength: oversized.length }),
+  }), null);
+
+  assert.equal(await fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    maxBytes: 0,
+    fetchImpl: async url => fakeFetchResponse(url, '{}'),
+  }), null);
+});
 
 test('valid, dual-signed G6 receipt maps to the compact build-bound residual', () => {
   const fixture = makeFixture();
