@@ -25,6 +25,7 @@ on:
       - "lib/great-scale-residual.mjs"
       - "integrate.mjs"
       - "contracts/production-acceptance/v1.schema.json"
+      - "contracts/production-acceptance/gate-policy-v1.json"
       - "test/production-acceptance-fetch.test.mjs"
       - "test/production-acceptance-schema.test.mjs"
       - "test/production-acceptance-attestation.test.mjs"
