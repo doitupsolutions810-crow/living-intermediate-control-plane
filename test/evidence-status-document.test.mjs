@@ -151,4 +151,32 @@ const keyId = 'unit-test-key';
   assert.ok(result.failures.some(f => f.code === 'RESIDUAL_DOMAIN'));
 }
 
-console.log('evidence-status-document.test.mjs: 9/9 groups passed');
+// 10. The closed signed v5.4.0 document rejects caller-supplied top-level overrides.
+{
+  const overrides = [
+    { authority: 'public' },
+    { schema: 'attacker-controlled-schema' },
+    { version: '999.0.0' },
+    { residual: { S: 0, coneOk: true, sourceId: 'untrusted' } },
+    { contractChecks: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({ id, status: 'READY' })) },
+    { namespaces: { evidence: 'E0-E6', production: 'AUTHORIZED', independent: true } },
+    { productionAuthorized: true },
+  ];
+  for (const extra of overrides) {
+    assert.throws(
+      () => buildEvidenceStatusDocument({ S: 0.1, extra }),
+      /extra is not supported by the closed v5\.4\.0 evidence-status contract/,
+      `rejects top-level extension/override: ${Object.keys(extra).join(',')}`,
+    );
+  }
+
+  const noOverride = buildEvidenceStatusDocument({ S: 0.1, extra: {} });
+  assert.equal(noOverride.schema, 'great-scale.evidence-status/v5.4.0');
+  assert.equal(noOverride.authority, 'local');
+  assert.equal(noOverride.residual.S, 0.1);
+  assert.deepEqual(noOverride.namespaces, {
+    evidence: 'E0-E6', production: 'G0-G6', independent: true,
+  });
+}
+
+console.log('evidence-status-document.test.mjs: 10/10 groups passed');
