@@ -12,7 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
-import { evaluateProcurementReadiness, evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
+import { evaluateGateNamespaces, evaluateProcurementReadiness, evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -52,6 +52,14 @@ const productionBooleanBypass = evaluateProductionAuthorization({
 });
 assert(productionBooleanBypass.productionAuthorized === false, 'production remains held when attestation is absent even with permissive-looking verifier options');
 assert(productionBooleanBypass.productionAcceptanceVerified === false, 'production gate exposes failed acceptance verification');
+const noMeasurement = evaluateGateNamespaces({
+  ...gateOptions,
+  supplyChainOk: true,
+  productionAcceptanceAttestation: null,
+});
+assert(noMeasurement.residual.observed === false, 'default S=0 is not reported as a measured residual');
+assert(noMeasurement.residual.provenanceVerified === false, 'unverified residual provenance is visible in diagnostics');
+assert(noMeasurement.procurement.procurementReady === false && noMeasurement.production.productionAuthorized === false, 'both authorization namespaces fail closed without signed acceptance and residual evidence');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: false }
