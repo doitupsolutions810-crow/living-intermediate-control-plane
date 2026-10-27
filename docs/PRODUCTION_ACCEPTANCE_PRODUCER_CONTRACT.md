@@ -124,19 +124,27 @@ The authoritative G0–G6 producer and deployment configuration are **not yet ve
 
 ## G6 source receipt mapping
 
-Great Scale now has a proposed schema-only G6 measurement receipt at `contracts/g6-residual-measurement/v1.schema.json` (blob SHA `a0956c825e9a8974f5855054d2c80eb4433391f9`). Its canonical downstream mapping is:
+Great Scale's proposed schema-only G6 measurement receipt is `contracts/g6-residual-measurement/v1.schema.json` in the Great Scale repository. Its two build identities and two artifact identities are intentionally distinct:
 
-- `measurement.STopological` becomes the residual scalar `S`.
-- Receipt `measuredAt` becomes `residual.measuredAt`.
-- Receipt `issuer` becomes `residual.sourceId`.
-- Receipt `buildId` becomes `residual.buildId`.
+- Great Scale `source.commitSha` must equal the receipt's successful workflow `execution.headSha`.
+- Great Scale `measurementBuildId` identifies the source model/measurement build. It is **not** the Control Plane production build ID.
+- Great Scale `artifact.digest` identifies the immutable Great Scale model/measurement artifact.
+- Great Scale `target.commitSha` identifies the exact Control Plane source revision, and must equal the final G0-G6 attestation's `source.commitSha`.
+- Great Scale `targetBuildId` identifies the intended Control Plane release. It must equal the final G0-G6 attestation's top-level `buildId`.
+- Great Scale `targetArtifact.digest` identifies the intended Control Plane production artifact. It must equal the final G0-G6 attestation's `artifact.digest`.
 
-This mapping is not permission to trust fields by copying them. The authoritative G0-G6 producer must verify the source receipt's Ed25519 signature under a separately pinned public key; fetch actual workflow/run/attempt metadata and check a successful result plus exact source/head binding; independently check the intended artifact digest and model-input digest; enforce timestamp freshness/ordering and expiry; and require a finite `STopological` in `[0, 0.25]`, valid topological mapping, finite rigorous bounds and converged numerical integration. The producer must not let the receipt select its own trust anchor or let a receipt claim successful execution without verifying the actual run and artifact.
+Only after independently validating the receipt may the authoritative producer create the compact residual block used inside the signed G0-G6 attestation:
 
-The Great Scale file is currently a JSON Schema, not an API or deployed producer. No live receipt, endpoint, key provisioning, or end-to-end verification has been established. Until those are proven with inspectable CI and a live positive/negative integration suite, G6 cannot pass and production remains HOLD / NO-GO.
+| G6 receipt field | Compact G0-G6 residual field | Binding rule |
+|---|---|---|
+| `measurement.STopological` | `residual.S` | Must equal the schema's bounded, finite topological residual value in `[0, 0.25]`; model diagnostics and mapping must pass |
+| `measuredAt` | `residual.measuredAt` | Strict timestamp, valid ordering, not stale or in the future |
+| pinned `issuer` | `residual.sourceId` | Must equal the deployment-configured residual source identity |
+| `targetBuildId` | `residual.buildId` | Must equal the final G0-G6 attestation's top-level `buildId` |
+| fixed downstream schema identity | `residual.schema` | Emit `great-scale.residual-attestation/v1`; do not copy the G6 receipt schema string |
 
-### Cross-repository G6 receipt build-ID mapping
+The trusted producer must verify the receipt's Ed25519 signature under a separately pinned public key; fetch actual workflow/run/attempt metadata; verify successful result, exact source/head binding and run URL; check model parameters, input digest, model artifact digest and deployed pins; enforce timestamp freshness and expiry; and validate all required numerical diagnostics, including `topologicalMappingValid`, `quadratureConverged`, `rigorousBoundFinite`, finite error bounds, and configured tolerance. It must not let the receipt choose its own trust anchor or synthesize success from a declared field.
 
-When the G6 receipt comes from Great Scale, `source.commitSha` identifies the Great Scale model code and equals that receipt's successful measurement workflow `execution.headSha`; it is not the Control Plane source revision. The receipt's `artifact.digest` identifies the Great Scale model artifact, whereas the top-level G0-G6 `artifact.digest` identifies the target Control Plane production artifact. Both are independently pinned and verified.
+The receipt's Great Scale `artifact.digest` and the Control Plane `targetArtifact.digest` are never interchangeable. Likewise, `measurementBuildId` and `targetBuildId` are never interchangeable. Do not invent a shared composite build ID or copy one service's auto-generated ID into the other service's identity field. The schema provides distinct fields to keep those trust domains separate.
 
-Because this verifier requires `residual.buildId` to equal the top-level G0-G6 `buildId`, schema v1's receipt `buildId` must be a shared composite release ID spanning the source model receipt and the target build. It must not be copied from an unrelated per-repository build number. If a common release ID cannot be guaranteed, create a new versioned contract with distinct `sourceBuildId` and `acceptanceBuildId` fields and update the verifier/schema together. The current G6 receipt remains schema-only and does not satisfy G6 until a trusted producer verifies the receipt's signature, model math, run head/attempt, source/artifact digest, freshness, and this build-ID relationship before signing the final acceptance attestation.
+The Great Scale file is currently a JSON Schema, not an API or deployed producer. No live receipt, endpoint, key provisioning, or end-to-end verification has been established. The registry edge remains `proposed-not-verified`; until a trusted producer verifies the real receipt and the live positive/negative integration suite executes on exact pinned SHAs, G6 cannot pass and production remains HOLD / NO-GO.
