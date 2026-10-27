@@ -123,6 +123,9 @@ assert(existsSync(join(root, 'avrone-chat/app/api/cockpit/route.ts')), 'avrone-c
 const unset = await probeEvidenceConsole({ url: '', acceptLocal: true });
 assert(unset.status === 'unconfigured', 'evidence-console unconfigured when URL empty');
 assert(unset.authority === 'local', 'unconfigured console uses local authority');
+const unsetDenied = await probeEvidenceConsole({ url: '', acceptLocal: false });
+assert(unsetDenied.authority === 'public', 'unconfigured console does not claim local authority when fallback is disabled');
+assert(unsetDenied.note.includes('local authority is disabled'), 'unconfigured diagnostic states fallback is disabled');
 
 const notFound = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
@@ -132,6 +135,13 @@ const notFound = await probeEvidenceConsole({
 assert(notFound.status === 'not_found', 'evidence-console 404 maps to not_found');
 assert(notFound.authority === 'local', '404 console falls back to local authority');
 assert(notFound.httpStatus === 404, '404 httpStatus preserved');
+const notFoundDenied = await probeEvidenceConsole({
+  url: 'https://evidence.example.invalid/console',
+  acceptLocal: false,
+  fetchImpl: async () => new Response('missing', { status: 404 })
+});
+assert(notFoundDenied.authority === 'public', '404 does not claim local authority when fallback is disabled');
+assert(notFoundDenied.note.includes('local fallback is disabled'), '404 diagnostic states fallback is disabled');
 
 const reachableUnverified = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
@@ -142,6 +152,7 @@ const reachableUnverified = await probeEvidenceConsole({
 assert(reachableUnverified.status === 'invalid', 'HTTP 200 without verified evidence contract is invalid');
 assert(reachableUnverified.authority === 'public', 'reachable but unverified endpoint is not downgraded to local authority');
 assert(reachableUnverified.trustContractVerified === false, 'unverified response explicitly denies trust contract');
+assert(reachableUnverified.note.includes('trust failure'), 'invalid evidence diagnostic identifies a trust failure, not fallback');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
