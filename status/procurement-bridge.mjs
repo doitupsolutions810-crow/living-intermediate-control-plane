@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
-import { acceptsLocalEvidence, isEvidenceAuthorized } from '../lib/evidence-authorization.mjs';
+import { acceptsLocalEvidence, authorizeProcurement } from '../lib/evidence-authorization.mjs';
 import { evaluateSupplyChainEvidence } from '../lib/supply-chain-evidence.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,11 +20,8 @@ const plan = evaluateQuorum(createOrchestrationPlan('procurement-check'));
 
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env });
-const evidenceAuthorized = isEvidenceAuthorized({
-  status: evidenceConsole.status,
-  authority: evidenceConsole.authority,
-  localOptIn: localEvidenceAuthority
-});
+// Public trust additionally requires the independently validated v5.3.1
+// status/schema contract; the full core decision is computed below.
 
 function currentRevision() {
   const supplied = (process.env.GITHUB_SHA || '').trim();
@@ -54,13 +51,22 @@ const criteria = {
   supplyChainEvidenceAuthorized: supplyChainEvidence.authorized,
   supplyChainEvidenceReason: supplyChainEvidence.reason,
   localEvidenceAccepted: localEvidenceAuthority,
-  evidenceAuthorized,
   evidenceStatus: evidenceConsole.status,
-  evidenceAuthority: evidenceConsole.authority
+  evidenceAuthority: evidenceConsole.authority,
+  trustContractVerified: evidenceConsole.trustContractVerified === true
 };
 
 const allCoreMet = criteria.readinessReady && criteria.rolesReady && criteria.supplyChainEvidenceAuthorized;
-const procurementDecision = allCoreMet && evidenceAuthorized
+const evidenceAuthorization = authorizeProcurement({
+  coreReady: allCoreMet,
+  evidenceStatus: evidenceConsole.status,
+  evidenceAuthority: evidenceConsole.authority,
+  trustContractVerified: evidenceConsole.trustContractVerified === true,
+  localEvidenceAccepted: localEvidenceAuthority
+});
+criteria.evidenceAuthorized = evidenceAuthorization.evidenceAuthorized;
+criteria.authorizationReason = evidenceAuthorization.reason;
+const procurementDecision = evidenceAuthorization.authorized
   ? 'READY_FOR_PROCUREMENT'
   : 'HOLD_EVIDENCE_CONTROL';
 
