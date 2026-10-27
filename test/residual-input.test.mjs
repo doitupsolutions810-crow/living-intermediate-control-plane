@@ -109,3 +109,22 @@ test('residual command-line entry points reject malformed coordinates instead of
     assert.match(result.stderr, expected);
   }
 });
+
+
+test('residual CLI rejects simultaneous S and tau instead of silently preferring tau', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, resolve } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const root = resolve(here, '..');
+  for (const [script, args] of [
+    ['status/residual-snapshot.mjs', ['--S', '0.1', '--tau', '0.5']],
+    ['status/evidence-status.mjs', ['emit', '--S', '0.1', '--tau', '0.5']]
+  ]) {
+    const result = spawnSync(process.execPath, [resolve(root, script), ...args], {
+      cwd: root, encoding: 'utf8'
+    });
+    assert.equal(result.status, 2, script + ' ' + args.join(' '));
+    assert.match(result.stderr, /mutually exclusive/);
+  }
+});

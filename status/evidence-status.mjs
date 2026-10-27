@@ -26,8 +26,14 @@ function flag(name) {
 }
 
 if (cmd === 'emit') {
-  const residualInput = parseResidualCoordinate(flag('--S') ?? undefined);
-  const tauInput = parseTopologySaturation(flag('--tau') ?? undefined);
+  const rawS = flag('--S');
+  const rawTau = flag('--tau');
+  if (rawS !== undefined && rawTau !== undefined) {
+    console.error('--S and --tau are mutually exclusive; supply one coordinate source.');
+    process.exit(2);
+  }
+  const residualInput = parseResidualCoordinate(rawS);
+  const tauInput = parseTopologySaturation(rawTau);
   if (!residualInput.valid || !tauInput.valid) {
     console.error(!residualInput.valid ? residualInput.error : tauInput.error);
     process.exit(2);
