@@ -56,7 +56,7 @@ for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
 
 // Invalid residual input must not be mislabeled as merely awaiting public evidence.
 const integrationSource = readFileSync(join(root, 'integrate.mjs'), 'utf8');
-assert(integrationSource.includes('coreReady && residualInput.valid && residualInput.provided && !gates.procurement.evidenceAuthorized'), 'invalid or unset residual cannot produce local-evidence readiness label');
+assert(integrationSource.includes('coreReady && residualInputGateEligible(residualInput) && !gates.procurement.evidenceAuthorized'), 'invalid or unset residual cannot produce local-evidence readiness label');
 assert(integrationSource.includes('coreReady: coreReady && residualInputGateEligible(residualInput)'), 'integration delegates residual gate eligibility to tested helper');
 
 // Production authorization is a distinct namespace and fails closed without each prerequisite.
