@@ -157,3 +157,8 @@ A source comparison found that the current Great Scale candidate schema blob is 
 The Control Plane candidate now pins the current Great Scale schema blob and requires the model field to be present and exactly `false`; `true` fails with `g6_model_must_not_self_certify`. The fixture now mirrors the cross-repository schema and includes regression cases for valid false and forbidden true.
 
 **Dependency constraint:** this hash belongs to the open draft Great Scale PR #129 candidate, not its merged default branch. Merge order must therefore be Great Scale #129 first, followed by a fresh schema-blob SHA comparison; if the schema blob changes before merge, update the Control Plane pin and tests to the final merged blob. This fixes the source-contract mismatch but does not create the live measurement producer or authorize production.
+
+
+## Exact-head Actions observability retry — 2026-10-27 06:01 UTC
+
+The failed focused job for run `40458420098` was retried once as job `122037553653` (attempt 2) on the unchanged candidate SHA `66ee31850b6fa9f7bee33567b557b943e8f90589`. It again completed in roughly three seconds with `runner_id=0`, blank runner name, and `steps=[]`. The full Plane CI job on the same SHA has the same no-runner/no-step signature. This retry therefore did not establish test results; it confirms the current blocker occurs before any declared test step is visible. Job log retrieval returns no log blob. Stop retrying unchanged jobs and have the repository owner inspect the Actions failure annotation/UI and repository/org Actions settings or escalate to GitHub Support with the run/job IDs.
