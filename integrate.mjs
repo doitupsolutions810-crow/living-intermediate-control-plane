@@ -137,8 +137,10 @@ if (planeState.paused) {
   decision = 'PAUSED';
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
+} else if (coreReady && gates.procurement.publicContractOk) {
+  decision = 'HOLD_PRODUCTION_ACCEPTANCE_EVIDENCE';
 } else if (coreReady && !gates.procurement.evidenceAuthorized) {
-  decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
+  decision = 'HOLD_EVIDENCE_AUTHORIZATION';
 } else {
   decision = 'HOLD';
 }
@@ -193,9 +195,11 @@ const result = {
           ? evidenceConsole.status === 'ok'
             ? 'Integrated check passed. Public evidence-console healthy.'
             : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
-          : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-            ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-            : 'Core readiness or orchestration not yet READY.',
+          : decision === 'HOLD_PRODUCTION_ACCEPTANCE_EVIDENCE'
+            ? 'Core systems READY and source contract verified, but procurement is held because the authoritative production-acceptance artifact and verifier are not connected.'
+            : decision === 'HOLD_EVIDENCE_AUTHORIZATION'
+              ? 'Core systems READY, but evidence authorization is not established; procurement remains held.'
+              : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 
