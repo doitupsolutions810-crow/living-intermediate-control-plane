@@ -425,6 +425,26 @@ test('contract-check entries cannot carry unrecognized fields', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
+test('unknown JSON Schema keywords at root and nested gate levels fail closed', () => {
+  const rootExtra = goodSchema();
+  rootExtra.not = {};
+  const rootResult = validateEvidenceConsoleContract(goodStatus(), rootExtra);
+  assert.equal(rootResult.valid, false);
+  assert.ok(rootResult.failures.includes('schema_root_keys_not_exact'));
+
+  const gateExtra = goodSchema();
+  gateExtra.properties.gates.not = {};
+  const gateResult = validateEvidenceConsoleContract(goodStatus(), gateExtra);
+  assert.equal(gateResult.valid, false);
+  assert.ok(gateResult.failures.includes('schema_gate_shape_mismatch'));
+
+  const ruleExtra = goodSchema();
+  ruleExtra.properties.gates.allOf[0].contains.not = {};
+  const ruleResult = validateEvidenceConsoleContract(goodStatus(), ruleExtra);
+  assert.equal(ruleResult.valid, false);
+  assert.ok(ruleResult.failures.includes('schema_gate_shape_mismatch'));
+});
+
 test('gate aliases cannot substitute for the canonical gates field', () => {
   const aliased = { ...goodStatus() };
   aliased.results = aliased.gates;
