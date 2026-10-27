@@ -1,5 +1,6 @@
 import { generateKeyPairSync, createHash, sign } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
 import {
   PRODUCTION_ACCEPTANCE_ISSUER,
   PRODUCTION_ACCEPTANCE_SCHEMA,
@@ -74,4 +75,16 @@ assert.equal(verifyProductionAcceptanceAttestation(wrongResidualSource, options)
 const outOfCone = fixture({ residual: { schema: 'great-scale.residual-attestation/v1', sourceId: residualSourceId, buildId, measuredAt: new Date(now - 1000).toISOString(), S: -1 } });
 assert.equal(verifyProductionAcceptanceAttestation(outOfCone, options).valid, false, 'residual outside cone rejected');
 
-console.log('production-acceptance-attestation.test.mjs: 13/13 passed');
+const callerTrustOverride = evaluateProductionAuthorization({
+  coreReady: true,
+  supplyChainOk: true,
+  productionAcceptanceAttestation: good,
+  acceptanceVerificationOptions: options,
+  env: {},
+  config: {},
+  S: 0,
+  requireCone: true,
+});
+assert.equal(callerTrustOverride.productionAuthorized, false, 'caller-supplied verifier key and build options cannot override deployment trust anchors');
+
+console.log('production-acceptance-attestation.test.mjs: 14/14 passed');
