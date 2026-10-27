@@ -148,3 +148,11 @@ test('cancels rejected response bodies instead of leaving untrusted streams open
   }), null);
   assert.equal(cancelled, 2, 'failed HTTP response is cancelled');
 });
+
+test('rejects partial-content responses even though HTTP 206 is in the success range', async () => {
+  const response = makeResponse(payload, { status: 206 });
+  assert.equal(response.ok, true, 'fixture demonstrates why ok alone is insufficient');
+  assert.equal(await fetchProductionAcceptanceAttestation({
+    url: URL, fetchImpl: fetchReturning(response),
+  }), null);
+});
