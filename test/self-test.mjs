@@ -12,6 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { evaluateProcurementReadiness } from '../lib/gate-namespaces.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -36,6 +37,32 @@ assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} })
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
+
+// Gate namespace must not infer contract validity from a status label.
+const gateOptions = { coreReady: true, env: {}, config: {}, S: 0, requireCone: false };
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: false }
+}).evidenceAuthorized === false, 'public status without verified contract is denied by gate namespace');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: true }
+}).evidenceAuthorized === true, 'public status with verified contract is accepted by gate namespace');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { authority: 'local' }
+}).evidenceAuthorized === false, 'local opt-in without observed degraded status is denied');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'unreachable', authority: 'local' }
+}).evidenceAuthorized === true, 'explicit local opt-in plus recognized degraded status is accepted');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: { status: 'unreachable', authority: 'local' }
+}).evidenceAuthorized === false, 'recognized local fallback without opt-in is denied');
+
 const packageScripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure does not force local evidence');
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
