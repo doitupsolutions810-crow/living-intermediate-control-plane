@@ -89,6 +89,8 @@ test('residual measurement is a separate exact, build-bound object', () => {
   assert.deepEqual(Object.keys(residual.properties).sort(), [...fields].sort());
   assert.equal(residual.properties.schema.const, 'great-scale.residual-attestation/v1');
   assert.equal(residual.properties.S.type, 'number');
+  assert.equal(residual.properties.S.minimum, 0);
+  assert.equal(residual.properties.S.maximum, 0.25);
   assert.equal(residual.properties.measuredAt.format, 'date-time');
 });
 
