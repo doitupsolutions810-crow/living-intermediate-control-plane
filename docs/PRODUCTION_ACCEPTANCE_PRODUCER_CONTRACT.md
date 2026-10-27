@@ -1,0 +1,65 @@
+# Production Acceptance Producer Contract — v1
+
+Status: **consumer contract published; authoritative producer not yet verified**.
+
+## Why this contract exists
+
+The evidence-console trust contract (E0–E6) and production acceptance (G0–G6) are separate authorities. The E0–E6 producer's signed status can show that its own contract is internally valid; it cannot be relabeled as G0–G6 production acceptance.
+
+Great Scale's repository audit describes the existing mismatch in `research/DESCENT_CLXXXVI_PRODUCER_CONSUMER_PROTOCOL_MISMATCH.md` and the missing production producer in `research/DESCENT_CXCVII_SIGNED_RESIDUAL_PROVENANCE.md` on the Great Scale evidence branch. That research states that the producer side remains unconfirmed. This file makes the consumer's required G0–G6 shape available to a future independent producer; it does not itself create a trusted producer.
+
+## Machine-readable contract
+
+Schema: `contracts/production-acceptance/v1.schema.json`
+
+An attestation must contain exactly these fields:
+
+- `schema`: `great-scale.production-acceptance/v1`
+- `issuer`: `living-intermediate-control-plane-production-acceptance`
+- `keyId`, `environment=production`, and the exact `buildId`
+- `generatedAt`, `expiresAt`
+- exactly one `PASS` entry for each `G0` through `G6`
+- `residual`: a build-bound, source-bound, time-stamped measurement with schema `great-scale.residual-attestation/v1` and finite numeric `S`
+- `digest` and `signature`
+
+The canonical payload is produced by recursively sorting object keys and preserving array order. The digest is SHA-256 over the UTF-8 canonical payload. The Ed25519 signature is over those same canonical payload bytes, excluding the outer `digest` and `signature` properties. The verifier is authoritative for signature validation; JSON Schema alone cannot establish authenticity or authority.
+
+## Deployment trust requirements
+
+The consumer must receive independently provisioned values for:
+
+- `PRODUCTION_ACCEPTANCE_PUBLIC_KEY_PEM`
+- `PRODUCTION_ACCEPTANCE_KEY_ID`
+- `PRODUCTION_ACCEPTANCE_BUILD_ID`
+- `PRODUCTION_ACCEPTANCE_RESIDUAL_SOURCE_ID`
+- `PRODUCTION_ACCEPTANCE_URL`
+
+Do not generate a replacement production key at runtime or accept key identifiers and public keys supplied by the artifact itself. The exact source ID, build ID and key ID must match the deployment's pinned values.
+
+The verifier rejects missing or extra fields, an incomplete/duplicated gate set, failed gates, schema mismatch, stale/future/expired timestamps, wrong key/build/source identity, digest/signature mismatch, non-finite residuals and out-of-cone residuals. The transport helper additionally requires HTTPS, exact final URL, no redirects, HTTP 200, JSON content type, no-cache, bounded size and bounded time.
+
+## Required producer behavior
+
+A producer must derive every G gate from authoritative checks and durable evidence, not caller-supplied Booleans or copied E0–E6 status. It must bind the attestation and residual to the same exact build, record what each G gate evaluated, and sign only after its evidence references have been verified.
+
+The following must not authorize production:
+- a healthy HTTP endpoint by itself;
+- a valid E0–E6 procurement signature;
+- a test fixture signed with an ephemeral key;
+- a default/environment-derived `S=0` without an observed measurement;
+- a `supplyChainOk: true` flag supplied by a caller;
+- an unexecuted, runnerless, or uninspectable CI job.
+
+## Promotion criteria
+
+The production producer is considered connected only after all of the following are independently demonstrated:
+
+1. A repository/deployment-owned emitter produces the v1 schema from authoritative G0–G6 results.
+2. The residual measurement comes from the pinned source and matches the same build ID.
+3. The producer's signing key lifecycle is safe and its public key is independently provisioned in the consumer.
+4. Consumer tests accept a valid fixture and reject tampering, wrong source/key/build, expiry, missing gates, failed gates, an E0–E6 replay, and invalid residuals.
+5. Executable hosted CI runs on the exact candidate SHA and produces inspectable passing steps.
+6. The live deployed endpoint's status and signed attestation are verified against the independently pinned configuration.
+7. Procurement and production remain separate decisions, with production **NO-GO** until every criterion passes.
+
+Until these criteria are proven, the contract is specified but the producer connection remains **OPEN / HOLD**.
