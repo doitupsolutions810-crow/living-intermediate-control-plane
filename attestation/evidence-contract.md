@@ -20,7 +20,7 @@
 - Source freshness fields required in the status document and its schema:
   - `sourceGeneratedAt`: source-generated ISO 8601 date-time, no more than five minutes old at decision time, allowing at most 30 seconds of future clock skew
   - `sourceExpiresAt`: source-generated ISO 8601 date-time, strictly later than the current time and `sourceGeneratedAt`, with a validity span no longer than five minutes
-- The client-side `checkedAt` timestamp is diagnostic only and must not be used as evidence-source freshness.
+- The client-side `checkedAt` timestamp is diagnostic only and must not be used as evidence-source freshness. Because the contract identifies the runtime as `static`, the producer must still renew the source timestamp from a real readiness observation at least within this five-minute window. A timestamp baked into a static artifact once at build/deploy time will become stale and must not keep authorizing procurement. If the producer cannot renew the observation, the correct result is a public-evidence hold.
 - Missing or invalid timestamps, expired evidence, stale evidence, excessive lifetime, or a future generation time beyond clock-skew tolerance invalidate public authority. Until the public producer publishes the v5.4.0 contract, the probe fails closed; operators must not silently re-label the old v5.3.1 response as fresh.
 
 ## Action taken
