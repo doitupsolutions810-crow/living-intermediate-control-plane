@@ -14,6 +14,8 @@ on:
     branches: [main]
     paths:
       - "lib/production-acceptance-fetch.mjs"
+      - "contracts/production-acceptance/v1.schema.json"
+      - "test/production-acceptance-schema.test.mjs"
       - "test/production-acceptance-fetch.test.mjs"
       - ".github/workflows/production-acceptance-fetch.yml"
 
@@ -41,7 +43,7 @@ jobs:
           node-version: "20"
 
       - name: Syntax check
-        run: node --check lib/production-acceptance-fetch.mjs && node --check test/production-acceptance-fetch.test.mjs
+        run: node --check lib/production-acceptance-fetch.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs
 
       - name: Run focused transport tests
         run: node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs
