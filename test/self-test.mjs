@@ -60,6 +60,11 @@ assert(evaluateProcurementReadiness({
 }).evidenceAuthorized === true, 'explicit local opt-in plus recognized degraded status is accepted');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'invalid', authority: 'public', trustContractVerified: false }
+}).evidenceAuthorized === false, 'public-labeled invalid response cannot be reclassified as local fallback');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
   evidenceConsole: { status: 'unreachable', authority: 'local' }
 }).evidenceAuthorized === false, 'recognized local fallback without opt-in is denied');
 
