@@ -13,6 +13,7 @@ import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration
 import { evaluateGateNamespaces } from '../lib/gate-namespaces.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { loadConfig } from '../lib/config.mjs';
+import { parseResidualCoordinate } from '../lib/residual-input.mjs';
 
 const config = loadConfig();
 const readiness = emitReadinessEvidence();
@@ -23,7 +24,8 @@ const coreReady =
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
-const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+const residualInput = parseResidualCoordinate(process.env.GREAT_SCALE_S);
+const residualS = residualInput.valid ? residualInput.value : -1; // sentinel only to force cone HOLD
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
 const gates = evaluateGateNamespaces({
@@ -36,14 +38,22 @@ const gates = evaluateGateNamespaces({
   requireCone: true,
 });
 
-const procurementDecision = gates.procurement.procurementReady
-  ? 'READY_FOR_PROCUREMENT'
-  : 'HOLD_EVIDENCE_CONTROL';
+const procurementDecision = !residualInput.valid
+  ? 'HOLD_INVALID_RESIDUAL'
+  : gates.procurement.procurementReady
+    ? 'READY_FOR_PROCUREMENT'
+    : 'HOLD_EVIDENCE_CONTROL';
 
 const result = {
   timestamp: new Date().toISOString(),
   decision: procurementDecision,
-  residual: gates.residual,
+  residualInput: {
+    valid: residualInput.valid,
+    source: residualInput.source,
+    supplied: process.env.GREAT_SCALE_S !== undefined,
+    error: residualInput.error
+  },
+  residual: residualInput.valid ? gates.residual : null,
   evidenceConsole: {
     status: evidenceConsole.status,
     authority: evidenceConsole.authority,
@@ -63,7 +73,7 @@ const result = {
     overall: plan.overallDecision,
     failedGates: plan.failedGates,
   },
-  note: gates.procurement.note,
+  note: residualInput.valid ? gates.procurement.note : residualInput.error,
   securityValue: 'High',
   schema: 'great-scale.procurement-bridge/v1',
 };
