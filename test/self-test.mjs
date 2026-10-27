@@ -55,7 +55,7 @@ assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs pro
 assert(packageScripts['procure:local'] === 'ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure', 'local evidence requires named opt-in command');
 assert(packageScripts['procure:gated:local'] === 'GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure', 'gated local mode is explicitly named');
 const bridgeSource = readFileSync(join(root, 'status/procurement-bridge.mjs'), 'utf8');
-assert(bridgeSource.includes('isEvidenceAuthorized'), 'procurement bridge uses shared evidence authorization policy');
+assert(bridgeSource.includes('authorizeProcurement'), 'procurement bridge uses the full shared procurement authorization policy');
 assert(!bridgeSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'procurement bridge has no force authorization bypass');
 assert(bridgeSource.includes('evaluateSupplyChainEvidence'), 'procurement bridge validates supply-chain evidence rather than assuming it active');
 assert(bridgeSource.includes("'verify-blob'"), 'procurement bridge independently verifies report attestation');
