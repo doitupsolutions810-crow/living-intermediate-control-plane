@@ -47,6 +47,10 @@ for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
   assert(!parsed.valid && parsed.decision === 'HOLD_RESIDUAL_DOMAIN', 'out-of-domain residual rejected: ' + raw);
 }
 
+// Invalid residual input must not be mislabeled as merely awaiting public evidence.
+const integrationSource = readFileSync(join(root, 'integrate.mjs'), 'utf8');
+assert(integrationSource.includes('coreReady && residualInput.valid && !gates.procurement.evidenceAuthorized'), 'invalid residual cannot produce local-evidence readiness label');
+
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'local evidence explicit env opt-in accepted');
