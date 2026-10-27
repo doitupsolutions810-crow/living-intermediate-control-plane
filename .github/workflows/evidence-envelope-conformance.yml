@@ -5,6 +5,8 @@ on:
     paths:
       - "schemas/**"
       - "scripts/validate-evidence-envelope.mjs"
+      - "lib/evidence-envelope-v1.mjs"
+      - "test/evidence-envelope-v1.test.mjs"
       - ".github/workflows/evidence-envelope-conformance.yml"
   push:
     branches:
@@ -30,3 +32,5 @@ jobs:
         run: npm install --no-save --package-lock=false ajv@8 ajv-formats@3
       - name: Validate valid and invalid golden fixtures
         run: node scripts/validate-evidence-envelope.mjs
+      - name: Run semantic verifier security tests
+        run: node --test test/evidence-envelope-v1.test.mjs
