@@ -268,13 +268,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -285,7 +285,7 @@ test('all seven named gates must be present exactly once', () => {
 test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
