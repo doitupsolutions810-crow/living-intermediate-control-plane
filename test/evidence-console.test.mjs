@@ -524,6 +524,38 @@ test('producer verifier rejects signed documents with invalid check status value
 });
 
 
+test('producer verifier rejects signed evidence with an excessive or inverted freshness window', () => {
+  const tooLong = buildEvidenceStatusDocument({ S: 0 });
+  tooLong.expiresAt = new Date(Date.parse(tooLong.generatedAt) + 24 * 60 * 60 * 1000).toISOString();
+  const sealedTooLong = sealEvidenceStatusDocument(tooLong, {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const longResult = verifyEvidenceStatusDocument(sealedTooLong, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId
+  });
+  assert.equal(longResult.valid, false);
+  assert.ok(longResult.failures.some(failure =>
+    failure.code === 'FRESHNESS' && failure.detail.includes('five-minute maximum')
+  ));
+
+  const inverted = buildEvidenceStatusDocument({ S: 0 });
+  inverted.expiresAt = new Date(Date.parse(inverted.generatedAt) - 1).toISOString();
+  const sealedInverted = sealEvidenceStatusDocument(inverted, {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const invertedResult = verifyEvidenceStatusDocument(sealedInverted, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId
+  });
+  assert.equal(invertedResult.valid, false);
+  assert.ok(invertedResult.failures.some(failure =>
+    failure.code === 'FRESHNESS' && failure.detail.includes('after generatedAt')
+  ));
+});
+
 test('producer verifier rejects signed residuals outside the topology-derived domain', () => {
   const status = buildEvidenceStatusDocument({ S: 0 });
   status.residual.S = 0.5;
