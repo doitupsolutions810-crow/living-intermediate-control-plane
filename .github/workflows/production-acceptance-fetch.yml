@@ -1,4 +1,4 @@
-name: Production Acceptance Fetch Tests
+name: Production Acceptance Contract Tests
 
 on:
   workflow_dispatch:
@@ -6,6 +6,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "lib/production-acceptance-fetch.mjs"
+      - "lib/production-acceptance-attestation.mjs"
+      - "lib/gate-namespaces.mjs"
+      - "lib/great-scale-residual.mjs"
+      - "integrate.mjs"
+      - "test/production-acceptance-attestation.test.mjs"
       - "contracts/production-acceptance/v1.schema.json"
       - "test/production-acceptance-schema.test.mjs"
       - "test/production-acceptance-fetch.test.mjs"
@@ -43,7 +48,7 @@ jobs:
           node-version: "20"
 
       - name: Syntax check
-        run: node --check lib/production-acceptance-fetch.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs
+        run: node --check lib/production-acceptance-fetch.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs && node --check test/production-acceptance-attestation.test.mjs
 
       - name: Run focused transport tests
-        run: node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs
+        run: node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs && node test/production-acceptance-attestation.test.mjs
