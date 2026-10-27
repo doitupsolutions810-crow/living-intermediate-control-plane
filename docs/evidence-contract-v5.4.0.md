@@ -19,6 +19,12 @@ Freshness does not authenticate the producer and does not prove that the produce
 
 Local evidence may authorize only when the probe observed a recognized degraded state and explicit local-evidence opt-in is enabled. `FORCE_PROCUREMENT` must never bypass evidence, freshness, provenance, or core-readiness checks.
 
+## Executable live-producer gate
+
+Run `npm run verify:evidence-console:live` from a trusted checkout with `EVIDENCE_CONSOLE_URL` (or `PUBLIC_EVIDENCE_CONSOLE_URL`) configured to the intended production console. The command exits nonzero unless the live status payload and independently fetched schema satisfy v5.4.0 and the result is explicitly public with `trustContractVerified=true`. It never counts a local fallback as a pass.
+
+This command verifies the consumer-visible contract only. It does not authenticate the producer cryptographically or prove the producer's underlying observations are complete; those remain separate assurance requirements.
+
 ## Deployment and acceptance checklist
 
 The v5.4.0 validator is fail-closed. Before public procurement authorization is enabled, an operator must verify all of the following against the actual production endpoint:
