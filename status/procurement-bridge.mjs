@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 /**
- * Procurement bridge — limited-technicality decision surface
- *
- * Emits a clear go / hold signal based on the three simple success criteria.
- * Local plane status can serve as temporary evidence authority while the
- * public evidence-console domain remains 404.
- *
- * Control704 high-priority override
+ * Procurement bridge — fail-closed decision surface.
+ * Procurement requires core readiness, authorized evidence, and current
+ * revision-bound supply-chain evidence. Operator force flags cannot bypass any gate.
  */
-
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence, isEvidenceAuthorized } from '../lib/evidence-authorization.mjs';
+import { evaluateSupplyChainEvidence } from '../lib/supply-chain-evidence.mjs';
 
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readiness = emitReadinessEvidence();
 const plan = evaluateQuorum(createOrchestrationPlan('procurement-check'));
 
@@ -25,17 +26,40 @@ const evidenceAuthorized = isEvidenceAuthorized({
   localOptIn: localEvidenceAuthority
 });
 
+function currentRevision() {
+  const supplied = (process.env.GITHUB_SHA || '').trim();
+  if (supplied) return supplied;
+  const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+  return result.status === 0 ? result.stdout.trim() : '';
+}
+
+function readSupplyChainReport() {
+  const reportPath = join(root, 'data', 'supply-chain-last.json');
+  if (!existsSync(reportPath)) return null;
+  try {
+    return JSON.parse(readFileSync(reportPath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+const supplyChainEvidence = evaluateSupplyChainEvidence({
+  report: readSupplyChainReport(),
+  revision: currentRevision()
+});
+
 const criteria = {
   readinessReady: readiness.overallDecision === 'READY' && readiness.failedGates.length === 0,
   rolesReady: plan.overallDecision === 'READY',
-  supplyChainAssumedActive: true, // PR #12 already merged on main
+  supplyChainEvidenceAuthorized: supplyChainEvidence.authorized,
+  supplyChainEvidenceReason: supplyChainEvidence.reason,
   localEvidenceAccepted: localEvidenceAuthority,
   evidenceAuthorized,
   evidenceStatus: evidenceConsole.status,
   evidenceAuthority: evidenceConsole.authority
 };
 
-const allCoreMet = criteria.readinessReady && criteria.rolesReady && criteria.supplyChainAssumedActive;
+const allCoreMet = criteria.readinessReady && criteria.rolesReady && criteria.supplyChainEvidenceAuthorized;
 const procurementDecision = allCoreMet && evidenceAuthorized
   ? 'READY_FOR_PROCUREMENT'
   : 'HOLD_EVIDENCE_CONTROL';
@@ -50,8 +74,8 @@ const result = {
     failedGates: plan.failedGates
   },
   note: procurementDecision === 'READY_FOR_PROCUREMENT'
-    ? 'Local plane accepted as temporary evidence authority under Control704 override'
-    : 'HOLD: valid public evidence or explicit ACCEPT_LOCAL_EVIDENCE=1 is required; FORCE_PROCUREMENT cannot bypass evidence authorization',
+    ? 'Core readiness, explicitly authorized evidence, and fresh revision-bound supply-chain evidence passed.'
+    : 'HOLD: core readiness, authorized evidence, and fresh revision-bound supply-chain evidence are all required; FORCE_PROCUREMENT cannot bypass these gates.',
   securityValue: 'High'
 };
 
