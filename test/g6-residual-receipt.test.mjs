@@ -98,7 +98,7 @@ function makeFixture({
   corruptReceiptSignature = false,
   corruptCertificateSignature = false,
 } = {}) {
-  const saturation = 0.6;
+  const saturation = 0.2;
   const STopological = (1 - saturation * saturation) / 4;
   const phi = (1 + Math.sqrt(5)) / 2;
   const cone = (phi - 1) * (phi - 1);
@@ -107,25 +107,25 @@ function makeFixture({
   const measurement = {
     chernNumber: -1,
     rawChernNumber: -1,
-    chernIntegerResidual: 0.001,
-    integratedCurvature: -2 * Math.PI,
+    chernIntegerResidual: 0,
+    integratedCurvature: -1,
     absoluteCurvatureBudget: 5,
-    positiveCurvatureBudget: 3,
-    negativeCurvatureBudget: 2,
-    curvatureCancellationBudget: 1,
-    metricAreaBudget: 4,
+    positiveCurvatureBudget: 2,
+    negativeCurvatureBudget: 3,
+    curvatureCancellationBudget: 4,
+    metricAreaBudget: 5,
     topologicalFloor: 1,
-    metricAreaExcess: 3,
+    metricAreaExcess: 4,
     topologicalSaturationRaw: saturation,
     topologicalSaturation: saturation,
     signedTopologicalPolarization: -saturation,
     STopological,
     psiTopological: cone + STopological,
     acceptedPsiTopological: cone + STopological,
-    curvatureOrientationEntropyResidual: 0.001,
-    curvatureChernResidual: 0.001,
-    curvatureCancellationIdentityResidual: 0.001,
-    curvatureOrientationVarianceResidual: 0.001,
+    curvatureOrientationEntropyResidual: 0,
+    curvatureChernResidual: 0,
+    curvatureCancellationIdentityResidual: 0,
+    curvatureOrientationVarianceResidual: 0,
     gridAlignmentCurvatureDiscrepancy: 0.001,
     gridAlignmentAreaDiscrepancy: 0.001,
     quadratureTolerance: tolerance,
