@@ -96,13 +96,14 @@ assert(notFound.status === 'not_found', 'evidence-console 404 maps to not_found'
 assert(notFound.authority === 'local', '404 console falls back to local authority');
 assert(notFound.httpStatus === 404, '404 httpStatus preserved');
 
-const ok = await probeEvidenceConsole({
+const unsigned = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
   fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
 });
-assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(unsigned.status === 'invalid', 'HTTP 200 with invalid/unsigned evidence maps to invalid');
+assert(unsigned.authority === 'local', 'unsigned evidence never receives public authority');
+assert(unsigned.trustContractVerified === false, 'unsigned evidence has no verified trust contract');
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',

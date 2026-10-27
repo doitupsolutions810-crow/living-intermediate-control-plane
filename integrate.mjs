@@ -22,6 +22,7 @@ import { probeEvidenceConsole } from './lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
 import { evaluateGateNamespaces } from './lib/gate-namespaces.mjs';
 import { residualSnapshot } from './lib/great-scale-residual.mjs';
+import { parseResidualCoordinate } from './lib/residual-input.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -120,8 +121,9 @@ const coreReady =
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
-// Residual coordinate for this evaluation (default S=0 until live QGT/topology feed)
-const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+// An unset coordinate uses the documented default. Supplied malformed values fail closed.
+const residualInput = parseResidualCoordinate(process.env.GREAT_SCALE_S);
+const residualS = residualInput.gateValue;
 const gates = evaluateGateNamespaces({
   coreReady,
   evidenceConsole,
@@ -135,6 +137,8 @@ const gates = evaluateGateNamespaces({
 let decision;
 if (planeState.paused) {
   decision = 'PAUSED';
+} else if (residualInput.decision) {
+  decision = residualInput.decision;
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
 } else if (coreReady && !gates.procurement.evidenceAuthorized) {
@@ -178,7 +182,15 @@ const result = {
     note: evidenceConsole.note
   },
   localEvidenceAccepted: localEvidenceAuthority,
-  residual: gates.residual,
+  residualInput: {
+    valid: residualInput.valid,
+    source: residualInput.source,
+    supplied: process.env.GREAT_SCALE_S !== undefined,
+    coneCompliant: residualInput.coneCompliant,
+    decision: residualInput.decision,
+    error: residualInput.error
+  },
+  residual: residualInput.valid ? gates.residual : null,
   gateNamespaces: {
     procurement: gates.procurement,
     production: gates.production,
@@ -189,13 +201,19 @@ const result = {
       ? 'Dry run — decision not recorded and status file not updated.'
       : decision === 'PAUSED'
         ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
-        : decision === 'READY_FOR_PROCUREMENT'
-          ? evidenceConsole.status === 'ok'
-            ? 'Integrated check passed. Public evidence-console healthy.'
-            : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
-          : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-            ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-            : 'Core readiness or orchestration not yet READY.',
+        : decision === 'HOLD_INVALID_RESIDUAL'
+          ? 'GREAT_SCALE_S is invalid; residual and authorization checks failed closed.'
+          : decision === 'HOLD_RESIDUAL_CONE'
+            ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
+            : decision === 'HOLD_RESIDUAL_DOMAIN'
+              ? 'Residual coordinate is outside the topology-derived domain [0, 0.25]; procurement held.'
+              : decision === 'READY_FOR_PROCUREMENT'
+              ? evidenceConsole.status === 'ok'
+                ? 'Integrated check passed. Public evidence-console healthy.'
+                : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
+              : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
+                ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
+                : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 

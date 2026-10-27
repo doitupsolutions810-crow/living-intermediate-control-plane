@@ -11,7 +11,9 @@
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { evaluateGateNamespaces } from '../lib/gate-namespaces.mjs';
+import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { loadConfig } from '../lib/config.mjs';
+import { parseResidualCoordinate } from '../lib/residual-input.mjs';
 
 const config = loadConfig();
 const readiness = emitReadinessEvidence();
@@ -22,10 +24,13 @@ const coreReady =
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
-const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+const residualInput = parseResidualCoordinate(process.env.GREAT_SCALE_S);
+const residualS = residualInput.gateValue;
+const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
+
 const gates = evaluateGateNamespaces({
   coreReady,
-  evidenceConsole: { status: process.env.ACCEPT_LOCAL_EVIDENCE ? 'unconfigured' : undefined },
+  evidenceConsole,
   env: process.env,
   config,
   S: residualS,
@@ -33,14 +38,27 @@ const gates = evaluateGateNamespaces({
   requireCone: true,
 });
 
-const procurementDecision = gates.procurement.procurementReady
-  ? 'READY_FOR_PROCUREMENT'
-  : 'HOLD_EVIDENCE_CONTROL';
+const procurementDecision = residualInput.decision
+  || (gates.procurement.procurementReady ? 'READY_FOR_PROCUREMENT' : 'HOLD_EVIDENCE_CONTROL');
 
 const result = {
   timestamp: new Date().toISOString(),
   decision: procurementDecision,
-  residual: gates.residual,
+  residualInput: {
+    valid: residualInput.valid,
+    source: residualInput.source,
+    supplied: process.env.GREAT_SCALE_S !== undefined,
+    coneCompliant: residualInput.coneCompliant,
+    decision: residualInput.decision,
+    error: residualInput.error
+  },
+  residual: residualInput.valid ? gates.residual : null,
+  evidenceConsole: {
+    status: evidenceConsole.status,
+    authority: evidenceConsole.authority,
+    trustContractVerified: evidenceConsole.trustContractVerified === true,
+    trustFailures: evidenceConsole.trustFailures || []
+  },
   gateNamespaces: {
     procurement: gates.procurement,
     production: gates.production,
@@ -54,7 +72,13 @@ const result = {
     overall: plan.overallDecision,
     failedGates: plan.failedGates,
   },
-  note: gates.procurement.note,
+  note: residualInput.decision === 'HOLD_INVALID_RESIDUAL'
+    ? residualInput.error
+    : residualInput.decision === 'HOLD_RESIDUAL_DOMAIN'
+      ? 'Residual coordinate is outside the topology-derived domain [0, 0.25]; procurement held.'
+      : residualInput.decision === 'HOLD_RESIDUAL_CONE'
+        ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
+        : gates.procurement.note,
   securityValue: 'High',
   schema: 'great-scale.procurement-bridge/v1',
 };
