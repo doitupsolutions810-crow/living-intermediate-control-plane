@@ -1,6 +1,7 @@
 import { generateKeyPairSync, createHash, sign } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
+import { coneCompliant } from '../lib/great-scale-residual.mjs';
 import {
   PRODUCTION_ACCEPTANCE_ISSUER,
   PRODUCTION_ACCEPTANCE_SCHEMA,
@@ -330,5 +331,8 @@ const extremeSignedResidual = verifyProductionAcceptanceAttestation(
 );
 assert.equal(extremeSignedResidual.valid, false, 'a correctly signed but impossible residual cannot pass G6');
 assert.ok(extremeSignedResidual.failures.includes('residual_value_out_of_domain'));
+
+assert.equal(coneCompliant(100), true,
+  'coneCompliant is only a lower-bound predicate; G6 must independently enforce the [0, 0.25] model domain');
 
 console.log('production-acceptance-attestation: proof-carrying positive/negative assertions passed');
