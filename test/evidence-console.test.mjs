@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
-import { buildEvidenceStatusDocument, sealEvidenceStatusDocument, canonicalJson } from '../lib/evidence-status-document.mjs';
+import { buildEvidenceStatusDocument, sealEvidenceStatusDocument, canonicalJson, verifyEvidenceStatusDocument } from '../lib/evidence-status-document.mjs';
 import {
   probeEvidenceConsole,
   validateEvidenceConsoleContract,
@@ -473,4 +473,52 @@ test('producer-style signature over canonical JSON bytes is not accepted as a co
   const result = verifySignedEvidence(status, trust);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('signature_verification_failed'));
+});
+
+
+test('missing procurement check results default to HOLD even when the residual cone predicate is true', () => {
+  const status = buildEvidenceStatusDocument({ S: 0 });
+  assert.equal(status.residual.coneOk, true);
+  assert.deepEqual(status.contractChecks.map(check => check.status), Array(7).fill('HOLD'));
+  assert.equal(status.authority, 'local');
+});
+
+test('residual status producer rejects non-finite and out-of-domain coordinates', () => {
+  for (const S of [Infinity, -Infinity, NaN, -0.01, 0.250001]) {
+    assert.throws(() => buildEvidenceStatusDocument({ S }), /Residual coordinate S must be finite and within/);
+  }
+  for (const tau of [Infinity, -Infinity, NaN, -0.01, 1.00001]) {
+    assert.throws(() => buildEvidenceStatusDocument({ tau }), /Topology saturation tau must be finite and within/);
+  }
+  assert.throws(() => buildEvidenceStatusDocument({ ttlMs: Infinity }), /Evidence TTL must be positive/);
+});
+
+test('metadata cannot override producer authority, gate namespace, or production claims', () => {
+  for (const extra of [
+    { authority: 'public' },
+    { contractChecks: Array.from({ length: 7 }, (_, i) => ({ id: `E${i}`, status: 'READY' })) },
+    { namespaces: { evidence: 'E0-E6', production: 'G0-G6', independent: true } },
+    { productionClaimed: true },
+    { gates: Array.from({ length: 7 }, (_, i) => ({ id: `G${i}`, status: 'READY' })) }
+  ]) {
+    assert.throws(() => buildEvidenceStatusDocument({ extra }), /extra cannot override protected evidence field/);
+  }
+});
+
+test('producer verifier rejects signed documents with invalid check status values', () => {
+  const status = buildEvidenceStatusDocument({
+    S: 0,
+    contractChecks: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({ id, status: 'READY' }))
+  });
+  status.contractChecks[0].status = 'MAYBE';
+  const sealed = sealEvidenceStatusDocument(status, {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const result = verifyEvidenceStatusDocument(sealed, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.some(failure => failure.code === 'E_GATES' && failure.detail.includes('invalid status')));
 });
