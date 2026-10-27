@@ -15,6 +15,7 @@ import {
   sealEvidenceStatusDocument,
   verifyEvidenceStatusDocument,
 } from '../lib/evidence-status-document.mjs';
+import { parseResidualCoordinate, parseTopologySaturation } from '../lib/residual-input.mjs';
 
 const [,, cmd, ...rest] = process.argv;
 
@@ -24,10 +25,21 @@ function flag(name, fallback = null) {
 }
 
 if (cmd === 'emit') {
-  const S = Number(flag('--S', 0)) || 0;
-  const tau = flag('--tau') != null ? Number(flag('--tau')) : null;
-  const roleBlock = flag('--role') != null ? Number(flag('--role')) : 4;
-  const doc = buildEvidenceStatusDocument({ S, tau, roleBlock, authority: 'local' });
+  const residualInput = parseResidualCoordinate(flag('--S') ?? undefined);
+  const tauInput = parseTopologySaturation(flag('--tau') ?? undefined);
+  if (!residualInput.valid || !tauInput.valid) {
+    console.error(!residualInput.valid ? residualInput.error : tauInput.error);
+    process.exit(2);
+  }
+  const roleRaw = flag('--role');
+  const roleBlock = roleRaw != null ? Number(roleRaw) : 4;
+  if (!Number.isInteger(roleBlock)) {
+    console.error('--role must be an integer atlas block.');
+    process.exit(2);
+  }
+  const doc = buildEvidenceStatusDocument({
+    S: residualInput.value, tau: tauInput.value, roleBlock, authority: 'local'
+  });
   const sealed = sealEvidenceStatusDocument(doc);
   console.log(JSON.stringify(sealed, null, 2));
   process.exit(0);

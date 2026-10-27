@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseResidualCoordinate } from '../lib/residual-input.mjs';
+import { parseResidualCoordinate, parseTopologySaturation } from '../lib/residual-input.mjs';
 import { coneCompliant } from '../lib/great-scale-residual.mjs';
 
 test('unset residual coordinate uses the documented default', () => {
@@ -68,4 +68,40 @@ test('cone floor is not treated as an independent domain or finiteness validator
   assert.equal(coneCompliant(1e100), true);
   assert.equal(parseResidualCoordinate('Infinity').decision, 'HOLD_INVALID_RESIDUAL');
   assert.equal(parseResidualCoordinate('1e100').decision, 'HOLD_RESIDUAL_DOMAIN');
+});
+
+
+test('topology saturation parser accepts only faithful finite decimal values in [0, 1]', () => {
+  for (const raw of ['0', '0.5', '1', '.25', '2.5e-1']) {
+    const result = parseTopologySaturation(raw);
+    assert.equal(result.valid, true, raw);
+    assert.equal(result.value, Number(raw), raw);
+  }
+  for (const raw of ['', ' ', 'NaN', 'Infinity', '-Infinity', 'nope', '1e999', '1e-999', '-0.01', '1.01']) {
+    const result = parseTopologySaturation(raw);
+    assert.equal(result.valid, false, JSON.stringify(raw));
+    assert.equal(result.value, null, JSON.stringify(raw));
+    assert.match(result.error, /tau/);
+  }
+  assert.deepEqual(parseTopologySaturation(undefined), { valid: true, value: null, error: null });
+});
+
+test('residual command-line entry points reject malformed coordinates instead of coercing or clamping', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, resolve } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const root = resolve(here, '..');
+  for (const [script, args, expected] of [
+    ['status/residual-snapshot.mjs', ['--tau', 'Infinity'], /tau must be finite/],
+    ['status/residual-snapshot.mjs', ['--S', 'nonsense'], /GREAT_SCALE_S/],
+    ['status/evidence-status.mjs', ['emit', '--S', 'nonsense'], /GREAT_SCALE_S/],
+    ['status/evidence-status.mjs', ['emit', '--tau', '1.01'], /tau must be within/]
+  ]) {
+    const result = spawnSync(process.execPath, [resolve(root, script), ...args], {
+      cwd: root, encoding: 'utf8'
+    });
+    assert.notEqual(result.status, 0, script + ' ' + args.join(' '));
+    assert.match(result.stderr, expected);
+  }
 });
