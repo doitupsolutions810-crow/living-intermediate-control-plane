@@ -140,7 +140,7 @@ if (planeState.paused) {
   decision = 'PAUSED';
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
-} else if (coreReady && !gates.procurement.evidenceAuthorized) {
+} else if (coreReady && residualInput.valid && !gates.procurement.evidenceAuthorized) {
   decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
 } else {
   decision = 'HOLD';
