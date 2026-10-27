@@ -203,12 +203,15 @@ const result = {
         ? `Plane is paused (${planeState.reason || 'no reason'}). Use: npm run resume`
         : decision === 'HOLD_INVALID_RESIDUAL'
           ? 'GREAT_SCALE_S is invalid; residual and authorization checks failed closed.'
-          : decision === 'READY_FOR_PROCUREMENT'
-              ? 'Integrated check passed. Public evidence-console healthy.'
-              : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
-            : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-              ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-              : 'Core readiness or orchestration not yet READY.',
+          : decision === 'HOLD_RESIDUAL_CONE'
+            ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
+            : decision === 'READY_FOR_PROCUREMENT'
+              ? evidenceConsole.status === 'ok'
+                ? 'Integrated check passed. Public evidence-console healthy.'
+                : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
+              : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
+                ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
+                : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 
