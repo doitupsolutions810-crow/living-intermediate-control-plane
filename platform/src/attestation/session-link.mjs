@@ -86,12 +86,22 @@ export function verifySessionLink(link = {}) {
   } else if (link.signed && !hmacKey) {
     signatureOk = false;
   }
-  const ok = digestOk && (signatureOk === null ? true : signatureOk === true);
+  // Integrity and authenticity are separate claims. A matching digest
+  // does not prove who produced the record; no trusted key means no auth.
+  const authenticated = Boolean(hmacKey && signatureOk === true);
+  const ok = digestOk && authenticated;
   return {
     ok,
     digestOk,
+    integrityOk: digestOk,
+    authenticated,
     signatureOk,
     expectedDigest,
+    reason: !digestOk
+      ? 'digest_mismatch'
+      : !authenticated
+        ? (hmacKey ? 'signature_missing_or_invalid' : 'trusted_hmac_key_unavailable')
+        : null,
     multiBeliefDigest: link.multiBeliefDigest || null,
     sessionId: link.sessionId || null
   };
@@ -102,17 +112,42 @@ export function createSessionLinkStore(attestationDir) {
   return {
     async append(link) {
       await fs.mkdir(attestationDir, { recursive: true });
-      await fs.appendFile(file, JSON.stringify(link) + '\n', 'utf8');
+      const handle = await fs.open(file, 'a');
+      try {
+        await handle.writeFile(JSON.stringify(link) + '\n', 'utf8');
+        // Make the append's file contents durable before reporting success.
+        // If sync fails, propagate the uncertainty to the caller.
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
       return link;
     },
     async list(limit = 50) {
+      let text;
       try {
-        const text = await fs.readFile(file, 'utf8');
-        const lines = text.trim().split('\n').filter(Boolean);
-        return lines.slice(-limit).map((l) => JSON.parse(l));
-      } catch {
-        return [];
+        text = await fs.readFile(file, 'utf8');
+      } catch (error) {
+        // A missing log is an empty store. Permission, I/O, and other failures
+        // are unknown state and must not be reported as an empty history.
+        if (error?.code === 'ENOENT') return [];
+        throw error;
       }
+      const lines = text.split('\n');
+      const records = [];
+      for (let i = 0; i < lines.length; i += 1) {
+        if (!lines[i].trim()) continue;
+        try {
+          records.push(JSON.parse(lines[i]));
+        } catch (error) {
+          throw Object.assign(
+            new Error(`session-link log is corrupt at line ${i + 1}`),
+            { cause: error, code: 'ERR_SESSION_LINK_LOG_CORRUPT', line: i + 1 }
+          );
+        }
+      }
+      const count = Number.isFinite(Number(limit)) ? Math.max(0, Math.floor(Number(limit))) : 50;
+      return count === 0 ? [] : records.slice(-count);
     }
   };
 }
