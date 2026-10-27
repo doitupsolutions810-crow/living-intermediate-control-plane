@@ -62,11 +62,21 @@ assert(evaluateProcurementReadiness({
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
   evidenceConsole: { authority: 'local' }
 }).evidenceAuthorized === false, 'local opt-in without observed degraded status is denied');
-assert(evaluateProcurementReadiness({
+const localFallbackWithoutAcceptance = evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
   evidenceConsole: { status: 'unreachable', authority: 'local' }
-}).evidenceAuthorized === true, 'explicit local opt-in plus recognized degraded status is accepted');
+});
+assert(localFallbackWithoutAcceptance.evidenceAuthorized === false, 'local fallback cannot bypass missing production-acceptance evidence');
+assert(localFallbackWithoutAcceptance.note.includes('production-acceptance evidence is absent'), 'local fallback hold explains missing acceptance evidence');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: {
+    status: 'unreachable', authority: 'local',
+    procurementEvidenceVerified: true
+  }
+}).evidenceAuthorized === true, 'local fallback requires explicit opt-in and separately verified production-acceptance evidence');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
