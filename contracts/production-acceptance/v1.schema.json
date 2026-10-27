@@ -395,7 +395,7 @@
       "pattern": "^[A-Za-z0-9+/]{86}==$"
     },
     "gatePolicyVersion": {
-      "const": "1.0.2"
+      "const": "1.0.3"
     },
     "gatePolicyDigest": {
       "type": "string",
