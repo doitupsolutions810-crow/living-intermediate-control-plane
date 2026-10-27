@@ -12,6 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence, isEvidenceAuthorized } from '../lib/evidence-authorization.mjs';
+import { evaluateSupplyChainEvidence } from '../lib/supply-chain-evidence.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -49,10 +50,34 @@ assert(packageScripts['procure:gated:local'] === 'GATE_DOCTOR=1 ACCEPT_LOCAL_EVI
 const bridgeSource = readFileSync(join(root, 'status/procurement-bridge.mjs'), 'utf8');
 assert(bridgeSource.includes('isEvidenceAuthorized'), 'procurement bridge uses shared evidence authorization policy');
 assert(!bridgeSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'procurement bridge has no force authorization bypass');
+assert(bridgeSource.includes('evaluateSupplyChainEvidence'), 'procurement bridge validates supply-chain evidence rather than assuming it active');
 const evidenceSource = readFileSync(join(root, 'lib/evidence-console.mjs'), 'utf8');
 assert(evidenceSource.includes('contract has not been validated'), 'unvalidated public evidence fails closed');
 
-
+// Supply-chain authorization requires fresh, revision-bound, non-skipped scan and signature evidence.
+const fixedNow = Date.parse('2026-10-26T12:00:00.000Z');
+const validSupplyReport = {
+  timestamp: '2026-10-26T11:50:00.000Z',
+  revision: 'abc123',
+  ok: true,
+  failed: 0,
+  allowSkip: false,
+  imageRef: 'ghcr.io/example/app@sha256:1234',
+  signed: true,
+  results: [
+    { name: 'security-scan', ok: true, status: 0 },
+    { name: 'cosign-sign', ok: true, status: 0 },
+    { name: 'cosign-verify', ok: true, status: 0 },
+    { name: 'security-summary', ok: true, status: 0 }
+  ]
+};
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'abc123', nowMs: fixedNow }).authorized === true, 'fresh fully verified supply-chain report authorizes');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'different', nowMs: fixedNow }).authorized === false, 'supply-chain report for another revision denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, allowSkip: true }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'soft-skip supply-chain report denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: [...validSupplyReport.results, { name: 'trivy', ok: true, skipped: true }] }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'report with skipped security tool denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, signed: false }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'unsigned image denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, timestamp: '2026-10-26T10:00:00.000Z' }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'stale supply-chain report denied');
+assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: '', nowMs: fixedNow }).authorized === false, 'unknown current revision denied');
 
 const readiness = emitReadinessEvidence({ source: 'self-test' });
 assert(readiness.provider === 'deterministic-local-evidence', 'readiness provider is deterministic-local-evidence');
