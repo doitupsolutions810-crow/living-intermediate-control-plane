@@ -74,9 +74,11 @@ const result = {
   },
   note: residualInput.decision === 'HOLD_INVALID_RESIDUAL'
     ? residualInput.error
-    : residualInput.decision === 'HOLD_RESIDUAL_CONE'
-      ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
-      : gates.procurement.note,
+    : residualInput.decision === 'HOLD_RESIDUAL_DOMAIN'
+      ? 'Residual coordinate is outside the topology-derived domain [0, 0.25]; procurement held.'
+      : residualInput.decision === 'HOLD_RESIDUAL_CONE'
+        ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
+        : gates.procurement.note,
   securityValue: 'High',
   schema: 'great-scale.procurement-bridge/v1',
 };
