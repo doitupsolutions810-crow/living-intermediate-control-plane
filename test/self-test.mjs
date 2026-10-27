@@ -11,7 +11,7 @@ import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration
 import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
-import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { acceptsLocalEvidence, isEvidenceAuthorized } from '../lib/evidence-authorization.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -36,6 +36,13 @@ assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} })
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
+assert(isEvidenceAuthorized({ evidenceConsole: { status: 'ok', authority: 'public' }, env: {}, config: {} }) === true, 'healthy public evidence is authorized without local opt-in');
+assert(isEvidenceAuthorized({ evidenceConsole: { status: 'not_found', authority: 'local' }, env: {}, config: {} }) === false, 'local fallback is not authorized by availability alone');
+assert(isEvidenceAuthorized({ evidenceConsole: { status: 'unreachable', authority: 'local' }, env: { FORCE_PROCUREMENT: '1' }, config: {} }) === false, 'FORCE_PROCUREMENT cannot authorize local evidence');
+assert(isEvidenceAuthorized({ evidenceConsole: { status: 'unreachable', authority: 'local' }, env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'explicit local evidence opt-in authorizes fallback');
+assert(isEvidenceAuthorized({ evidenceConsole: { status: 'ok', authority: 'local' }, env: {}, config: {} }) === false, 'status ok with non-public authority is not accepted');
+assert(isEvidenceAuthorized({ evidenceConsole: { status: 'invalid', authority: 'public' }, env: {}, config: {} }) === false, 'invalid public evidence is not accepted');
+
 const packageScripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure does not force local evidence');
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
