@@ -123,13 +123,29 @@ assert(notFound.status === 'not_found', 'evidence-console 404 maps to not_found'
 assert(notFound.authority === 'local', '404 console falls back to local authority');
 assert(notFound.httpStatus === 404, '404 httpStatus preserved');
 
+const reachableUnverified = await probeEvidenceConsole({
+  url: 'https://evidence.example.invalid/console',
+  acceptLocal: true,
+  fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
+  verifyDocument: async () => ({ valid: false, failures: [{ code: 'SCHEMA' }] })
+});
+assert(reachableUnverified.status === 'invalid', 'HTTP 200 without verified evidence contract is invalid');
+assert(reachableUnverified.authority === 'local', 'reachable but unverified endpoint does not gain public authority');
+assert(reachableUnverified.trustContractVerified === false, 'unverified response explicitly denies trust contract');
+
 const ok = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
-  fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
+  fetchImpl: async () => new Response(JSON.stringify({ schema: 'test-fixture' }), { status: 200 }),
+  verifyDocument: async doc => ({
+    valid: doc.schema === 'test-fixture',
+    failures: doc.schema === 'test-fixture' ? [] : [{ code: 'SCHEMA' }]
+  })
 });
-assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(ok.status === 'ok', 'verified evidence document maps to ok');
+assert(ok.authority === 'public', 'verified evidence document uses public authority');
+assert(ok.trustContractVerified === true, 'verified response exposes explicit trust-contract proof');
+assert(Array.isArray(ok.verificationFailures) && ok.verificationFailures.length === 0, 'verified response has no contract failures');
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
