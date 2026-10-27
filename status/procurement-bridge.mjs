@@ -4,17 +4,12 @@
  * Procurement requires core readiness, authorized evidence, and current
  * revision-bound supply-chain evidence. Operator force flags cannot bypass any gate.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence, authorizeProcurement } from '../lib/evidence-authorization.mjs';
-import { evaluateSupplyChainEvidence } from '../lib/supply-chain-evidence.mjs';
+import { loadSupplyChainEvidence } from '../lib/supply-chain-runtime.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readiness = emitReadinessEvidence();
 const plan = evaluateQuorum(createOrchestrationPlan('procurement-check'));
 
@@ -23,46 +18,8 @@ const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env });
 // Public trust additionally requires the independently validated v5.3.1
 // status/schema contract; the full core decision is computed below.
 
-function currentRevision() {
-  const supplied = (process.env.GITHUB_SHA || '').trim();
-  if (supplied) return supplied;
-  const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
-  return result.status === 0 ? result.stdout.trim() : '';
-}
-
-function readSupplyChainReport() {
-  const reportPath = join(root, 'data', 'supply-chain-last.json');
-  if (!existsSync(reportPath)) return null;
-  try {
-    return JSON.parse(readFileSync(reportPath, 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-function verifySupplyChainReportAttestation() {
-  const reportPath = join(root, 'data', 'supply-chain-last.json');
-  const bundlePath = join(root, 'data', 'supply-chain-last.bundle.json');
-  const identity = (process.env.SUPPLY_CHAIN_ATTESTATION_IDENTITY || '').trim();
-  const issuer = (process.env.SUPPLY_CHAIN_ATTESTATION_ISSUER || '').trim();
-  if (!existsSync(reportPath) || !existsSync(bundlePath) || !identity || !issuer) return false;
-
-  const verification = spawnSync('cosign', [
-    'verify-blob',
-    '--bundle', bundlePath,
-    '--certificate-identity', identity,
-    '--certificate-oidc-issuer', issuer,
-    reportPath
-  ], { cwd: root, encoding: 'utf8', stdio: 'ignore', env: process.env });
-  return verification.status === 0;
-}
-
-const reportAttestationVerified = verifySupplyChainReportAttestation();
-const supplyChainEvidence = evaluateSupplyChainEvidence({
-  report: readSupplyChainReport(),
-  revision: currentRevision(),
-  attestationVerified: reportAttestationVerified
-});
+const supplyChainEvidence = loadSupplyChainEvidence();
+const reportAttestationVerified = supplyChainEvidence.reportAttestationVerified;
 
 const criteria = {
   readinessReady: readiness.overallDecision === 'READY' && readiness.failedGates.length === 0,
