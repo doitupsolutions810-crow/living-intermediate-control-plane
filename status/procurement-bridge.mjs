@@ -40,9 +40,11 @@ const gates = evaluateGateNamespaces({
 
 const procurementDecision = !residualInput.valid
   ? 'HOLD_INVALID_RESIDUAL'
-  : gates.procurement.procurementReady
-    ? 'READY_FOR_PROCUREMENT'
-    : 'HOLD_EVIDENCE_CONTROL';
+  : !gates.procurement.coneCompliant
+    ? 'HOLD_RESIDUAL_CONE'
+    : gates.procurement.procurementReady
+      ? 'READY_FOR_PROCUREMENT'
+      : 'HOLD_EVIDENCE_CONTROL';
 
 const result = {
   timestamp: new Date().toISOString(),
@@ -73,7 +75,11 @@ const result = {
     overall: plan.overallDecision,
     failedGates: plan.failedGates,
   },
-  note: residualInput.valid ? gates.procurement.note : residualInput.error,
+  note: !residualInput.valid
+    ? residualInput.error
+    : !gates.procurement.coneCompliant
+      ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
+      : gates.procurement.note,
   securityValue: 'High',
   schema: 'great-scale.procurement-bridge/v1',
 };
