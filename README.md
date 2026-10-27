@@ -7,7 +7,7 @@ platform/          Node control plane (lattice, policy, TLS, federation, attesta
 avrone-chat/       Next.js Avrone UI + API proxies (Vercel-ready)
 scripts/           tunnel / mTLS / renew operators
 cloudflared/       tunnel config example
-lib/evidence-console.mjs   graceful public evidence probe (404 → local authority)
+lib/evidence-console.mjs   public evidence probe (degraded fallback is diagnostic; authorization is policy-gated)
 ```
 
 ## Quick start
@@ -19,7 +19,7 @@ cd avrone-chat && npm install && npm run dev
 ```
 
 Set `CONTROL12_PLATFORM_URL` and optional `CONTROL12_PLATFORM_TOKEN` for the chat app.  
-Optional: `EVIDENCE_CONSOLE_URL` — when unset or 404, cockpit/integrate use local plane authority.
+Optional: `EVIDENCE_CONSOLE_URL` — when unset or 404, the probe reports a local diagnostic fallback; procurement does **not** accept that fallback unless `ACCEPT_LOCAL_EVIDENCE=1` (or explicit application configuration) is set.
 
 ## Operator loop
 
