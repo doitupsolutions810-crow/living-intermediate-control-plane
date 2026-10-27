@@ -63,3 +63,18 @@ The production producer is considered connected only after all of the following 
 7. Procurement and production remain separate decisions, with production **NO-GO** until every criterion passes.
 
 Until these criteria are proven, the contract is specified but the producer connection remains **OPEN / HOLD**.
+
+## Additional proof-carrying release gap — not yet closed
+
+The current JSON Schema v1 is an **attestation-envelope baseline**, not yet a complete proof-carrying release artifact. It contains gate IDs/statuses and a build-bound residual, but does not yet carry the exact source commit SHA, workflow run ID/attempt, tested suite names and outcomes, immutable artifact digest, or per-gate evidence references described by Great Scale's proof-carrying release criteria.
+
+Before an authoritative producer is implemented or this schema is frozen, extend the contract and verifier to bind:
+- repository and exact 40-character source revision;
+- workflow/run ID, attempt, run URL, and observable successful conclusion;
+- required suite names and each suite's outcome bound to that same source revision;
+- immutable artifact digest for the candidate being promoted;
+- per-gate evidence reference/digest and observation time.
+
+These are not optional display fields. The verifier must reject missing, stale, skipped, unknown, or mismatched evidence. The trusted producer must resolve the required suite list from deployment-controlled policy; it must not declare its own reduced set of required checks. A signed statement that only says `G0–G6 = PASS` still does not independently show which checks ran or which revision they covered.
+
+Until this proof-carrying extension and the authoritative producer exist, `contracts/production-acceptance/v1.schema.json` is a design baseline only and must not be used to enable procurement or production authority.
