@@ -75,7 +75,7 @@ assert(supplyChainSource.includes("'sign-blob'"), 'supply-chain report is crypto
 assert(supplyChainSource.includes('SUPPLY_CHAIN_ATTESTATION_IDENTITY'), 'supply-chain run requires expected report signer identity');
 assert(supplyChainSource.includes('SUPPLY_CHAIN_ATTESTATION_ISSUER'), 'supply-chain run requires expected report issuer');
 const evidenceSource = readFileSync(join(root, 'lib/evidence-console.mjs'), 'utf8');
-assert(evidenceSource.includes('contract has not been validated'), 'unvalidated public evidence fails closed');
+assert(evidenceSource.includes('validateEvidenceConsoleContract') && evidenceSource.includes('if (!contract.valid)'), 'unvalidated public evidence fails closed');
 
 // Supply-chain authorization requires fresh, revision-bound, non-skipped scan and signature evidence.
 const fixedNow = Date.parse('2026-10-26T12:00:00.000Z');
