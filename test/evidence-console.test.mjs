@@ -416,6 +416,15 @@ test('array item schema must reject unrecognized contract-check fields', () => {
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
 
+test('contract-check entries cannot carry unrecognized fields', () => {
+  const status = goodStatus();
+  status.gates[0].unexpected = 'not allowed';
+  attachSourceSignature(status);
+  const result = validateEvidenceConsoleContract(status, goodSchema());
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
+});
+
 test('gate aliases cannot substitute for the canonical gates field', () => {
   const aliased = { ...goodStatus() };
   aliased.results = aliased.gates;
