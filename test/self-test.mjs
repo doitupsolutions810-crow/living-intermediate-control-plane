@@ -112,6 +112,17 @@ const nonRfc3339Payload = { ...measurementPayload, measuredAt: '2026-10-27 12:00
 const nonRfc3339Attestation = { ...nonRfc3339Payload, signature: sign(null, Buffer.from(canonicalAttestationJson(nonRfc3339Payload), 'utf8'), attestationKeys.privateKey).toString('base64') };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: nonRfc3339Attestation }).productionAuthorized === false, 'production gate rejects parseable but non-RFC3339 measurement timestamps');
 
+for (const [label, timestamp] of [
+  ['out-of-range UTC offset hour', '2026-10-27T12:00:00+24:00'],
+  ['out-of-range UTC offset minute', '2026-10-27T12:00:00+01:60'],
+  ['leap second unsupported by parser contract', '2026-10-27T12:00:60Z'],
+]) {
+  const invalidTimestampPayload = { ...measurementPayload, measuredAt: timestamp };
+  const invalidTimestampAttestation = { ...invalidTimestampPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(invalidTimestampPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+  assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: invalidTimestampAttestation }).productionAuthorized === false, 'production gate rejects ' + label);
+}
+
+
 const futureMeasuredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() + 60_000).toISOString(), expiresAt: new Date(Date.now() + 120_000).toISOString() };
 const futureMeasuredAttestation = { ...futureMeasuredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(futureMeasuredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: futureMeasuredAttestation }).productionAuthorized === false, 'production gate rejects measurement timestamps too far in the future');
