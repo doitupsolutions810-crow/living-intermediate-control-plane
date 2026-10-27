@@ -44,6 +44,10 @@ A local fallback remains a separate authority mode: it requires an observed degr
 A successful contract test establishes only that the validator accepts its test fixture. It does not establish that the deployed public endpoints currently conform; that requires a live status/schema check and successful CI for the exact candidate.
 
 
+## Exact signed-document shape
+
+The v5.4.0 consumer also enforces an exact document shape, not merely required-field presence. A status payload and its schema may contain only the declared contract fields. The schema's root `additionalProperties` must be `false`; its `properties` keys and `required` list must equal the expected field set, with no duplicates or extras. Fixed trust properties must use `const` or a singleton enum. The canonical gate field is `gates`; `results` and `gateStatuses` are rejected aliases. Array gate entries must have exactly `id` and `status`, and their item schema must be closed with `additionalProperties: false`. Object-form maps, where used, must reject unknown gate keys and require exactly the seven E0–E6 contract checks. This E-check family is separate from production G0–G6.
+
 ## Freshness and residual trust limits
 
 The v5.4.0 freshness fields prevent a previously valid status payload from being accepted indefinitely merely because it can still be fetched. They do **not** authenticate the producer or prove that every underlying event has been included. Source signature verification and a monotonic sequence/checkpoint remain distinct controls. A source that can forge its own timestamps can still make stale content appear fresh; freshness therefore counts only when the complete source status is digest-bound and the digest is signed by the independently pinned producer key. The source's `sourceIdentity`, key ID, times and digest are signed; a consumer-local `checkedAt` is never part of that trust claim.
