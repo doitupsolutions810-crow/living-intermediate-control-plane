@@ -9,6 +9,7 @@ import {
   GREAT_SCALE_REPOSITORY,
   canonicalG6ReceiptJson,
   fetchNumericalCertificateProof,
+  fetchAndVerifyGreatScaleG6ResidualReceipt,
   verifyGreatScaleG6ResidualReceipt,
 } from '../lib/g6-residual-receipt.mjs';
 
@@ -397,6 +398,60 @@ test('fetch helper rejects oversized proof responses and invalid byte limits', a
     maxBytes: 0,
     fetchImpl: async url => fakeFetchResponse(url, '{}'),
   }), null);
+});
+
+test('fetch-and-verify helper connects the pinned proof fetch to the full G6 receipt verifier', async () => {
+  const fixture = makeFixture();
+  const calls = [];
+  const result = await fetchAndVerifyGreatScaleG6ResidualReceipt(fixture.receipt, {
+    ...fixture.options,
+    fetchImpl: async (url, requestOptions) => {
+      calls.push({ url, requestOptions });
+      return fakeFetchResponse(url, proofBytes, { contentLength: proofBytes.byteLength });
+    },
+  });
+
+  assert.equal(result.valid, true, result.failures.join(','));
+  assert.equal(result.residual.S, fixture.receipt.measurement.STopological);
+  assert.equal(result.verified.sourceCommitSha, expected.sourceCommitSha);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, proofUrl);
+  assert.equal(calls[0].requestOptions.redirect, 'error');
+  assert.equal(calls[0].requestOptions.cache, 'no-store');
+});
+
+test('fetch-and-verify helper rejects an unpinned proof URL before network access', async () => {
+  const fixture = makeFixture({
+    certificateChanges: {
+      evidenceUrl: 'https://untrusted.example/numerical-certificate/proof.json',
+    },
+  });
+  let calls = 0;
+  const result = await fetchAndVerifyGreatScaleG6ResidualReceipt(fixture.receipt, {
+    ...fixture.options,
+    fetchImpl: async url => {
+      calls += 1;
+      return fakeFetchResponse(url, proofBytes);
+    },
+  });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_numerical_certificate_proof_fetch_failed'));
+  assert.equal(calls, 0, 'an origin mismatch must fail before any network request');
+});
+
+test('fetch-and-verify helper rejects a redirected proof response', async () => {
+  const fixture = makeFixture();
+  const result = await fetchAndVerifyGreatScaleG6ResidualReceipt(fixture.receipt, {
+    ...fixture.options,
+    fetchImpl: async url => fakeFetchResponse(url, proofBytes, {
+      redirected: true,
+      finalUrl: 'https://cdn.example/redirected-proof.json',
+    }),
+  });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_numerical_certificate_proof_fetch_failed'));
 });
 
 test('valid, dual-signed G6 receipt maps to the compact build-bound residual', () => {
