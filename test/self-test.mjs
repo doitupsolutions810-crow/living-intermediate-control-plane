@@ -65,6 +65,11 @@ assert(evaluateProcurementReadiness({
 }).evidenceAuthorized === false, 'public-labeled invalid response cannot be reclassified as local fallback');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'invalid', authority: 'local', trustContractVerified: false }
+}).evidenceAuthorized === false, 'invalid evidence cannot authorize local fallback even when mislabeled local');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
   evidenceConsole: { status: 'unreachable', authority: 'local' }
 }).evidenceAuthorized === false, 'recognized local fallback without opt-in is denied');
 
