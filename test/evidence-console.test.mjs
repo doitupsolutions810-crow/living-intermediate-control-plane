@@ -19,11 +19,18 @@ function canonicalJson(value) {
 }
 
 function signStatus(status) {
+  status.sourceSchemaDigest = createHash('sha256').update(canonicalJson(goodSchema())).digest('hex');
   const unsigned = { ...status };
   delete unsigned.sourceEvidenceDigest;
   delete unsigned.sourceSignature;
-  status.sourceSchemaDigest = createHash('sha256').update(canonicalJson(goodSchema())).digest('hex');\n  const unsignedWithSchema = { ...status };\n  delete unsignedWithSchema.sourceEvidenceDigest;\n  delete unsignedWithSchema.sourceSignature;\n  status.sourceEvidenceDigest = createHash('sha256').update(canonicalJson(unsignedWithSchema)).digest('hex');
-  const message = [status.sourceIdentity, status.sourceKeyId, status.sourceGeneratedAt, status.sourceExpiresAt, status.sourceEvidenceDigest].join('\n');
+  status.sourceEvidenceDigest = createHash('sha256').update(canonicalJson(unsigned)).digest('hex');
+  const message = [
+    status.sourceIdentity,
+    status.sourceKeyId,
+    status.sourceGeneratedAt,
+    status.sourceExpiresAt,
+    status.sourceEvidenceDigest
+  ].join('\\n');
   status.sourceSignature = sign(null, Buffer.from(message), sourcePrivateKeyPem).toString('base64');
   return status;
 }
@@ -2660,4 +2667,23 @@ test('signed status requires sourceSchemaDigest in the schema contract', () => {
   const result = verifySignedEvidenceSource(status, schema);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_source_schema_digest_constraint_mismatch'));
+});
+
+
+test('signed source rejects a changed schema', () => {
+  const status = goodStatus();
+  const schema = goodSchema();
+  assert.equal(verifySignedEvidenceSource(status, schema).valid, true);
+  const changedSchema = structuredClone(schema);
+  changedSchema.properties.version = constraint('changed');
+  const result = verifySignedEvidenceSource(status, changedSchema);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('source_schema_digest_mismatch'));
+});
+
+test('signed source rejects missing independent trust anchor', () => {
+  const status = goodStatus();
+  const result = verifySignedEvidenceSource(status, goodSchema(), { env: {} });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('source_trust_anchor_unconfigured'));
 });
