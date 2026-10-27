@@ -46,6 +46,11 @@ assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
 assert(packageScripts['procure:local'] === 'ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure', 'local evidence requires named opt-in command');
 assert(packageScripts['procure:gated:local'] === 'GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure', 'gated local mode is explicitly named');
+const bridgeSource = readFileSync(join(root, 'status/procurement-bridge.mjs'), 'utf8');
+assert(bridgeSource.includes('isEvidenceAuthorized'), 'procurement bridge uses shared evidence authorization policy');
+assert(!bridgeSource.includes("process.env.FORCE_PROCUREMENT === '1'"), 'procurement bridge has no force authorization bypass');
+const evidenceSource = readFileSync(join(root, 'lib/evidence-console.mjs'), 'utf8');
+assert(evidenceSource.includes('contract has not been validated'), 'unvalidated public evidence fails closed');
 
 
 
@@ -106,8 +111,8 @@ const ok = await probeEvidenceConsole({
   acceptLocal: true,
   fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
 });
-assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(ok.status === 'invalid', 'evidence-console 200 without validated contract is invalid');
+assert(ok.authority === 'local', 'unvalidated 2xx cannot claim public authority');
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
