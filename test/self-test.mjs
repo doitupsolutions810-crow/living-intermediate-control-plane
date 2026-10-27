@@ -102,6 +102,10 @@ const expiredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() 
 const expiredAttestation = { ...expiredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(expiredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: expiredAttestation }).productionAuthorized === false, 'production gate rejects an expired signed measurement attestation');
 
+const longLivedPayload = { ...measurementPayload, measuredAt: new Date(Date.now() - 1000).toISOString(), expiresAt: new Date(Date.now() + 11 * 60_000).toISOString() };
+const longLivedAttestation = { ...longLivedPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(longLivedPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: longLivedAttestation }).productionAuthorized === false, 'production gate rejects attestations with a lifetime over ten minutes');
+
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'local evidence explicit env opt-in accepted');
