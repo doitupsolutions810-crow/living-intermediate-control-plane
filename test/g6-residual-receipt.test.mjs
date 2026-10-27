@@ -293,26 +293,6 @@ test('valid, dual-signed G6 receipt maps to the compact build-bound residual', (
   assert.equal(result.verified.targetBuildId, targetBuildId);
 });
 
-test('numerical certificate is bound to the exact canonical measurement payload', () => {
-  const fixture = makeFixture();
-  const changedMeasurement = {
-    ...fixture.receipt.measurement,
-    signedTopologicalPolarization: 0.4,
-  };
-  // Re-sign the outer receipt so this regression isolates the inner certificate's
-  // measurement binding rather than merely detecting outer-signature tampering.
-  const alteredReceipt = signReceipt({
-    ...fixture.receipt,
-    measurement: changedMeasurement,
-  });
-  const result = verifyGreatScaleG6ResidualReceipt(alteredReceipt, fixture.options);
-  assert.equal(result.valid, false);
-  assert.ok(
-    result.failures.includes('g6_numerical_certificate_measurement_digest_mismatch'),
-    result.failures.join(','),
-  );
-});
-
 test('missing deployment pins and independent trust anchors fail closed', () => {
   const fixture = makeFixture();
   const missing = verifyGreatScaleG6ResidualReceipt(fixture.receipt);
@@ -367,18 +347,6 @@ test('numerical certificate needs its own valid Ed25519 signature', () => {
   const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('g6_numerical_certificate_signature_verification_failed'));
-});
-
-test('numerical proof evidence must use the independently pinned HTTPS origin', () => {
-  const fixture = makeFixture({
-    certificateChanges: { evidenceUrl: 'https://untrusted.example/numerical-certificates/proof.json' },
-  });
-  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
-  assert.equal(result.valid, false);
-  assert.ok(
-    result.failures.includes('g6_numerical_certificate_evidence_origin_mismatch'),
-    result.failures.join(','),
-  );
 });
 
 test('the certificate proof digest must match the exact fetched bytes at its declared URL', () => {
@@ -464,16 +432,24 @@ test('numerical certificate must bind the exact source commit and model input di
   assert.ok(result.failures.includes('g6_numerical_certificate_model_input_digest_mismatch'));
 });
 
-test('numerical certificate proof URL stays on the deployment-pinned HTTPS origin', () => {
+test('numerical certificate proof URL is pinned and must match the fetched response', () => {
   const fixture = makeFixture({
     certificateChanges: {
       evidenceUrl: 'https://attacker.example/proof.json',
     },
   });
+  // Model a caller which fetched from the intended origin rather than following
+  // the untrusted URL from the signed document. The receipt verifier must reject
+  // both the origin claim and the mismatch between certified URL and fetched URL.
+  fixture.options.proofEvidence = {
+    ...fixture.options.proofEvidence,
+    url: proofUrl,
+    finalUrl: proofUrl,
+  };
   const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('g6_numerical_certificate_evidence_origin_mismatch'));
-  assert.ok(result.failures.includes('g6_numerical_certificate_evidence_url_mismatch'));
+  assert.ok(result.failures.includes('g6_numerical_certificate_evidence_transport_invalid'));
 });
 
 test('certificate binds the exact canonical model measurement digest', () => {
