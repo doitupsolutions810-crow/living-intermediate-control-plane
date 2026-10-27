@@ -38,7 +38,7 @@ function run(name, script, env = {}) {
     env: { ...process.env, ...env },
     stdio: 'inherit'
   });
-  return { name, ok: r.status === 0, status: r.status };
+  return { name, ok: r.status === 0, status: r.status, imageRef: env.IMAGE_REF || null };
 }
 
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
