@@ -259,8 +259,8 @@ jobs:
         if: steps.meta.outputs.do_push == 'true'
         run: |
           cosign verify \
-            --certificate-identity-regexp ".*" \
-            --certificate-oidc-issuer-regexp ".*" \
+            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/plane-ci.yml@refs/heads/main" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             "${{ steps.digest.outputs.sign_ref }}"
 
       - name: Cosign local note
