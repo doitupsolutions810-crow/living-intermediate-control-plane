@@ -7,9 +7,10 @@ import { residualSnapshot } from '../lib/great-scale-residual.mjs';
 import { parseResidualCoordinate, parseTopologySaturation } from '../lib/residual-input.mjs';
 
 const args = process.argv.slice(2);
-function flag(name, fallback = null) {
+function flag(name) {
   const i = args.indexOf(name);
-  return i >= 0 && args[i + 1] != null ? args[i + 1] : fallback;
+  if (i < 0) return undefined;
+  return args[i + 1] != null && !args[i + 1].startsWith('--') ? args[i + 1] : '';
 }
 
 const residualInput = parseResidualCoordinate(flag('--S') ?? undefined);
@@ -20,7 +21,7 @@ if (!residualInput.valid || !tauInput.valid) {
 }
 const roleRaw = flag('--role');
 const roleBlock = roleRaw != null ? Number(roleRaw) : null;
-if (roleRaw != null && !Number.isInteger(roleBlock)) {
+if (roleRaw !== undefined && (roleRaw.trim() === '' || !Number.isInteger(roleBlock))) {
   console.error('--role must be an integer atlas block.');
   process.exit(2);
 }

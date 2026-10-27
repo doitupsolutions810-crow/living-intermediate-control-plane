@@ -33,7 +33,7 @@ if (cmd === 'emit') {
   }
   const roleRaw = flag('--role');
   const roleBlock = roleRaw != null ? Number(roleRaw) : 4;
-  if (!Number.isInteger(roleBlock)) {
+  if (roleRaw !== undefined && (roleRaw.trim() === '' || !Number.isInteger(roleBlock))) {
     console.error('--role must be an integer atlas block.');
     process.exit(2);
   }

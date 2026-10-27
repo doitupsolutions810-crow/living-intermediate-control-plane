@@ -95,7 +95,11 @@ test('residual command-line entry points reject malformed coordinates instead of
   for (const [script, args, expected] of [
     ['status/residual-snapshot.mjs', ['--tau', 'Infinity'], /tau/],
     ['status/residual-snapshot.mjs', ['--S', 'nonsense'], /GREAT_SCALE_S/],
+    ['status/residual-snapshot.mjs', ['--S'], /GREAT_SCALE_S/],
+    ['status/residual-snapshot.mjs', ['--tau'], /tau/],
     ['status/evidence-status.mjs', ['emit', '--S', 'nonsense'], /GREAT_SCALE_S/],
+    ['status/evidence-status.mjs', ['emit', '--S'], /GREAT_SCALE_S/],
+    ['status/evidence-status.mjs', ['emit', '--tau'], /tau/],
     ['status/evidence-status.mjs', ['emit', '--tau', '1.01'], /tau must be within/]
   ]) {
     const result = spawnSync(process.execPath, [resolve(root, script), ...args], {
