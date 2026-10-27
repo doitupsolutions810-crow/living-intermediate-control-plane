@@ -31,7 +31,7 @@ test('empty, non-decimal, non-numeric, NaN, and infinite values fail closed', ()
 });
 
 test('overflow and underflow outside representable model intent are not accepted as valid coordinates', () => {
-  for (const raw of ['1e999', '-1e999']) {
+  for (const raw of ['1e999', '-1e999', '1e-999', '1e-324']) {
     assert.equal(parseResidualCoordinate(raw).decision, 'HOLD_INVALID_RESIDUAL');
   }
 });
