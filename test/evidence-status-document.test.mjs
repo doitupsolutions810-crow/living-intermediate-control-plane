@@ -74,4 +74,27 @@ const keyId = 'unit-test-key';
   assert.ok(r.failures.some(f => f.code === 'SIGNATURE'));
 }
 
-console.log('evidence-status-document.test.mjs: 5/5 passed');
+// 6. Out-of-domain residual cannot be upgraded by caller-asserted READY checks.
+{
+  const contractChecks = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
+    id, status: 'READY',
+  }));
+  const doc = buildEvidenceStatusDocument({ S: 100, contractChecks });
+  assert.equal(doc.residual.coneOk, false);
+  assert.ok(doc.contractChecks.every(check => check.status === 'HOLD'));
+}
+
+// 7. A valid signature does not make an out-of-domain residual acceptable.
+{
+  const doc = buildEvidenceStatusDocument({ S: 100 });
+  // Simulate a signer incorrectly claiming the lower-bound cone check passed.
+  doc.residual.coneOk = true;
+  const signed = sealEvidenceStatusDocument(doc, { privateKeyPem: privPem, keyId });
+  const result = verifyEvidenceStatusDocument(signed, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.some(f => f.code === 'RESIDUAL_DOMAIN'));
+}
+
+console.log('evidence-status-document.test.mjs: 7/7 passed');
