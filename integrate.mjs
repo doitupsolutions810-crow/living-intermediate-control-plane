@@ -126,7 +126,7 @@ const coreReady =
 const residualInput = parseResidualInput(process.env.GREAT_SCALE_S);
 const residualS = residualInput.valid ? residualInput.value : 0;
 const gates = evaluateGateNamespaces({
-  coreReady: coreReady && residualInput.valid,
+  coreReady: coreReady && residualInput.valid && residualInput.provided,
   evidenceConsole,
   env: process.env,
   config,
@@ -140,7 +140,7 @@ if (planeState.paused) {
   decision = 'PAUSED';
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
-} else if (coreReady && residualInput.valid && !gates.procurement.evidenceAuthorized) {
+} else if (coreReady && residualInput.valid && residualInput.provided && !gates.procurement.evidenceAuthorized) {
   decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
 } else {
   decision = 'HOLD';
@@ -199,9 +199,11 @@ const result = {
             : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
           : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
             ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-            : !residualInput.valid
-              ? `${residualInput.decision}: GREAT_SCALE_S must be a finite decimal in [0, 0.25].`
-              : 'Core readiness or orchestration not yet READY.',
+            : !residualInput.provided
+              ? 'HOLD_RESIDUAL_UNSET: GREAT_SCALE_S is only a default, not an observed input.'
+              : !residualInput.valid
+                ? `${residualInput.decision}: GREAT_SCALE_S must be a finite decimal in [0, 0.25].`
+                : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 
