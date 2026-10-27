@@ -25,7 +25,7 @@ const coreReady =
   plan.overallDecision === 'READY';
 
 const residualInput = parseResidualCoordinate(process.env.GREAT_SCALE_S);
-const residualS = residualInput.valid ? residualInput.value : -1; // sentinel only to force cone HOLD
+const residualS = residualInput.gateValue;
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
 const gates = evaluateGateNamespaces({
@@ -38,13 +38,8 @@ const gates = evaluateGateNamespaces({
   requireCone: true,
 });
 
-const procurementDecision = !residualInput.valid
-  ? 'HOLD_INVALID_RESIDUAL'
-  : !gates.procurement.coneCompliant
-    ? 'HOLD_RESIDUAL_CONE'
-    : gates.procurement.procurementReady
-      ? 'READY_FOR_PROCUREMENT'
-      : 'HOLD_EVIDENCE_CONTROL';
+const procurementDecision = residualInput.decision
+  || (gates.procurement.procurementReady ? 'READY_FOR_PROCUREMENT' : 'HOLD_EVIDENCE_CONTROL');
 
 const result = {
   timestamp: new Date().toISOString(),
@@ -53,6 +48,8 @@ const result = {
     valid: residualInput.valid,
     source: residualInput.source,
     supplied: process.env.GREAT_SCALE_S !== undefined,
+    coneCompliant: residualInput.coneCompliant,
+    decision: residualInput.decision,
     error: residualInput.error
   },
   residual: residualInput.valid ? gates.residual : null,
@@ -75,9 +72,9 @@ const result = {
     overall: plan.overallDecision,
     failedGates: plan.failedGates,
   },
-  note: !residualInput.valid
+  note: residualInput.decision === 'HOLD_INVALID_RESIDUAL'
     ? residualInput.error
-    : !gates.procurement.coneCompliant
+    : residualInput.decision === 'HOLD_RESIDUAL_CONE'
       ? 'Residual coordinate violates the Great Scale cone floor; procurement held.'
       : gates.procurement.note,
   securityValue: 'High',
