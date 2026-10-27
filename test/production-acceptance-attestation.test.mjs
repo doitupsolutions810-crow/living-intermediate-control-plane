@@ -309,4 +309,26 @@ assert.equal(verifyProductionAcceptanceAttestation(
   fixture({ residual: { ...good.residual, measuredAt: 'October 27, 2026 00:00:00 GMT' } }), options,
 ).valid, false, 'residual measurement timestamp must use strict RFC3339');
  
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ residual: { ...good.residual, S: 0.25 } }), options,
+).valid, true, 'upper topology-domain boundary S=0.25 accepted');
+
+const negativeResidualDomain = verifyProductionAcceptanceAttestation(
+  fixture({ residual: { ...good.residual, S: -0.000001 } }), options,
+);
+assert.equal(negativeResidualDomain.valid, false, 'negative residual coordinate rejected even when cone epsilon might tolerate it');
+assert.ok(negativeResidualDomain.failures.includes('residual_value_out_of_domain'));
+
+const highResidualDomain = verifyProductionAcceptanceAttestation(
+  fixture({ residual: { ...good.residual, S: 0.250001 } }), options,
+);
+assert.equal(highResidualDomain.valid, false, 'residual coordinate above 0.25 rejected');
+assert.ok(highResidualDomain.failures.includes('residual_value_out_of_domain'));
+
+const extremeSignedResidual = verifyProductionAcceptanceAttestation(
+  fixture({ residual: { ...good.residual, S: 100 } }), options,
+);
+assert.equal(extremeSignedResidual.valid, false, 'a correctly signed but impossible residual cannot pass G6');
+assert.ok(extremeSignedResidual.failures.includes('residual_value_out_of_domain'));
+
 console.log('production-acceptance-attestation: proof-carrying positive/negative assertions passed');
