@@ -464,6 +464,27 @@ test('numerical certificate must bind the exact source commit and model input di
   assert.ok(result.failures.includes('g6_numerical_certificate_model_input_digest_mismatch'));
 });
 
+test('numerical certificate proof URL stays on the deployment-pinned HTTPS origin', () => {
+  const fixture = makeFixture({
+    certificateChanges: {
+      evidenceUrl: 'https://attacker.example/proof.json',
+    },
+  });
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_numerical_certificate_evidence_origin_mismatch'));
+  assert.ok(result.failures.includes('g6_numerical_certificate_evidence_url_mismatch'));
+});
+
+test('certificate binds the exact canonical model measurement digest', () => {
+  const fixture = makeFixture();
+  fixture.receipt.measurement.STopological = 0.2;
+  fixture.receipt = signReceipt(fixture.receipt);
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_numerical_certificate_measurement_digest_mismatch'));
+});
+
 test('numeric schema bounds reject negative budgets and fractional Chern integers', () => {
   const negativeBudget = makeFixture({
     measurementChanges: { positiveCurvatureBudget: -1 },
