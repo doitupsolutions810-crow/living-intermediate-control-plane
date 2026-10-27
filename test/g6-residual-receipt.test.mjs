@@ -5,6 +5,7 @@ import {
   CONTROL_PLANE_REPOSITORY,
   GREAT_SCALE_G6_RECEIPT_ISSUER,
   GREAT_SCALE_G6_RECEIPT_SCHEMA,
+  GREAT_SCALE_G6_RECEIPT_SCHEMA_BLOB_SHA,
   GREAT_SCALE_REPOSITORY,
   canonicalG6ReceiptJson,
   verifyGreatScaleG6ResidualReceipt,
@@ -47,6 +48,7 @@ const expected = {
   targetArtifactDigest,
   numericalVerifierId,
   residualSourceId: GREAT_SCALE_G6_RECEIPT_ISSUER,
+  g6ReceiptSchemaBlobSha: GREAT_SCALE_G6_RECEIPT_SCHEMA_BLOB_SHA,
 };
 
 const time = offsetMs => new Date(NOW + offsetMs).toISOString();
