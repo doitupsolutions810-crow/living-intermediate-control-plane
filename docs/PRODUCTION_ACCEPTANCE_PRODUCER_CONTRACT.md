@@ -32,6 +32,10 @@ The consumer must receive independently provisioned values for:
 - `PRODUCTION_ACCEPTANCE_KEY_ID`
 - `PRODUCTION_ACCEPTANCE_BUILD_ID`
 - `PRODUCTION_ACCEPTANCE_RESIDUAL_SOURCE_ID`
+- `PRODUCTION_ACCEPTANCE_REPOSITORY`
+- `PRODUCTION_ACCEPTANCE_COMMIT_SHA`
+- `PRODUCTION_ACCEPTANCE_ARTIFACT_DIGEST`
+- `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES` (comma-separated, deployment-owned suite names)
 - `PRODUCTION_ACCEPTANCE_URL`
 
 Do not generate a replacement production key at runtime or accept key identifiers and public keys supplied by the artifact itself. The exact source ID, build ID and key ID must match the deployment's pinned values.
@@ -64,17 +68,21 @@ The production producer is considered connected only after all of the following 
 
 Until these criteria are proven, the contract is specified but the producer connection remains **OPEN / HOLD**.
 
-## Additional proof-carrying release gap — not yet closed
+## Proof-carrying contract status
 
-The current JSON Schema v1 is an **attestation-envelope baseline**, not yet a complete proof-carrying release artifact. It contains gate IDs/statuses and a build-bound residual, but does not yet carry the exact source commit SHA, workflow run ID/attempt, tested suite names and outcomes, immutable artifact digest, or per-gate evidence references described by Great Scale's proof-carrying release criteria.
+The schema and verifier now require the following proof fields before an attestation can validate:
 
-Before an authoritative producer is implemented or this schema is frozen, extend the contract and verifier to bind:
-- repository and exact 40-character source revision;
-- workflow/run ID, attempt, run URL, and observable successful conclusion;
-- required suite names and each suite's outcome bound to that same source revision;
-- immutable artifact digest for the candidate being promoted;
-- per-gate evidence reference/digest and observation time.
+- `source.repository` and an exact 40-character `source.commitSha`, both compared against deployment-pinned repository/revision settings;
+- an HTTPS GitHub Actions `execution.runUrl`, positive run ID and attempt, `conclusion=success`, completion time, and a workflow `headSha` equal to the source commit;
+- a fixed `suiteResults` set compared against deployment-controlled `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES`, with every suite successful and bound to the same source SHA, run ID, and attempt;
+- an immutable artifact name and SHA-256 digest, with the digest compared against `PRODUCTION_ACCEPTANCE_ARTIFACT_DIGEST`;
+- per-gate evidence references which must point to a declared successful suite and repeat that suite's signed evidence digest and observation time.
 
-These are not optional display fields. The verifier must reject missing, stale, skipped, unknown, or mismatched evidence. The trusted producer must resolve the required suite list from deployment-controlled policy; it must not declare its own reduced set of required checks. A signed statement that only says `G0–G6 = PASS` still does not independently show which checks ran or which revision they covered.
+These checks prevent an attestation from reducing its own required-suite set, changing the source revision independently of the workflow run, or stating that a gate passed without a suite evidence reference. The complete proof is included in the canonical payload and covered by the Ed25519 signature.
 
-Until this proof-carrying extension and the authoritative producer exist, `contracts/production-acceptance/v1.schema.json` is a design baseline only and must not be used to enable procurement or production authority.
+## Remaining producer and live-verification boundary
+
+The schema/verifier contract is stronger, but its fields remain claims until an authoritative producer populates them from independently observed CI and deployment evidence. The consumer validates run URL shape and cross-field consistency; it does not itself fetch GitHub's Actions API or download the artifact and verify its digest. Therefore the trusted producer must independently verify the named workflow run, its exact head SHA, required job/suite outcomes and attempt, and the artifact digest before signing. The producer signing identity must be independently provisioned; the artifact may not pick its own key.
+
+The authoritative G0–G6 producer and deployment configuration are **not yet verified**. The schema is still a draft contract and must not be used to enable procurement or production authority until the producer performs those checks and the live signed artifact passes positive/negative end-to-end verification.
+
