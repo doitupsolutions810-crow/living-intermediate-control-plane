@@ -139,6 +139,8 @@ if (planeState.paused) {
   decision = 'PAUSED';
 } else if (!residualInput.valid) {
   decision = 'HOLD_INVALID_RESIDUAL';
+} else if (!gates.procurement.coneCompliant) {
+  decision = 'HOLD_RESIDUAL_CONE';
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
 } else if (coreReady && !gates.procurement.evidenceAuthorized) {
@@ -202,7 +204,6 @@ const result = {
         : decision === 'HOLD_INVALID_RESIDUAL'
           ? 'GREAT_SCALE_S is invalid; residual and authorization checks failed closed.'
           : decision === 'READY_FOR_PROCUREMENT'
-            ? evidenceConsole.status === 'ok'
               ? 'Integrated check passed. Public evidence-console healthy.'
               : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
             : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
