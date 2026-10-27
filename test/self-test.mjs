@@ -12,7 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
-import { evaluateProcurementReadiness } from '../lib/gate-namespaces.mjs';
+import { evaluateProcurementReadiness, evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -40,6 +40,18 @@ assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: f
 
 // Gate namespace must not infer contract validity from a status label.
 const gateOptions = { coreReady: true, env: {}, config: {}, S: 0, requireCone: false };
+assert(evaluateProductionAuthorization({
+  ...gateOptions,
+  supplyChainOk: true
+}).productionAuthorized === false, 'caller-supplied supply-chain boolean cannot authorize production without signed G0-G6 attestation');
+const productionBooleanBypass = evaluateProductionAuthorization({
+  ...gateOptions,
+  supplyChainOk: true,
+  productionAcceptanceAttestation: null,
+  acceptanceVerificationOptions: { publicKeyPem: 'invalid', keyId: 'caller-key', buildId: 'caller-build' }
+});
+assert(productionBooleanBypass.productionAuthorized === false, 'production remains held when attestation is absent even with permissive-looking verifier options');
+assert(productionBooleanBypass.productionAcceptanceVerified === false, 'production gate exposes failed acceptance verification');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: false }
