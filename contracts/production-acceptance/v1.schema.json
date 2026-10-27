@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/doitupsolutions810-crow/living-intermediate-control-plane/blob/main/contracts/production-acceptance/v1.schema.json",
+  "title": "Great Scale Production Acceptance Attestation v1",
+  "description": "Separate G0-G6 production acceptance proof. An E0-E6 evidence-console contract document is not a substitute.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "issuer",
+    "keyId",
+    "environment",
+    "buildId",
+    "generatedAt",
+    "expiresAt",
+    "gates",
+    "residual",
+    "digest",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "great-scale.production-acceptance/v1"
+    },
+    "issuer": {
+      "const": "living-intermediate-control-plane-production-acceptance"
+    },
+    "keyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environment": {
+      "const": "production"
+    },
+    "buildId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "G0",
+              "G1",
+              "G2",
+              "G3",
+              "G4",
+              "G5",
+              "G6"
+            ]
+          },
+          "status": {
+            "const": "PASS"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G0"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G1"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G2"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G3"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G4"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G5"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "const": "G6"
+              }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "residual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "sourceId",
+        "buildId",
+        "measuredAt",
+        "S"
+      ],
+      "properties": {
+        "schema": {
+          "const": "great-scale.residual-attestation/v1"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "buildId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measuredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "S": {
+          "type": "number"
+        }
+      }
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/]{86}==$"
+    }
+  }
+}
