@@ -49,6 +49,6 @@
     "verify:evidence-console:live": "node status/verify-public-evidence-console.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
