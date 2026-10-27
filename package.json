@@ -45,7 +45,8 @@
     "docker:build": "docker build -t living-intermediate-control-plane:0.10.0 .",
     "test": "node test/self-test.mjs && node --test test/evidence-console.test.mjs && npm --prefix platform test",
     "procure:local": "ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
-    "procure:gated:local": "GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure"
+    "procure:gated:local": "GATE_DOCTOR=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure",
+    "verify:evidence-console:live": "node status/verify-public-evidence-console.mjs"
   },
   "engines": {
     "node": ">=18"
