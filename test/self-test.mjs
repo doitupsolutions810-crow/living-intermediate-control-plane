@@ -11,7 +11,7 @@ import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration
 import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.mjs';
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
-import { acceptsLocalEvidence, isEvidenceAuthorized } from '../lib/evidence-authorization.mjs';
+import { acceptsLocalEvidence, isEvidenceAuthorized, authorizeProcurement } from '../lib/evidence-authorization.mjs';
 import { evaluateSupplyChainEvidence } from '../lib/supply-chain-evidence.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +42,13 @@ assert(isEvidenceAuthorized({ status: 'unreachable', authority: 'local', localOp
 assert(isEvidenceAuthorized({ status: 'unreachable', authority: 'local', localOptIn: false }) === false, 'local fallback without opt-in denied');
 assert(isEvidenceAuthorized({ status: 'ok', authority: 'unknown', localOptIn: false }) === false, 'unknown authority denied');
 assert(isEvidenceAuthorized({ status: 'not_found', authority: 'local', localOptIn: false, force: true }) === false, 'force flag cannot manufacture evidence authorization');
+assert(authorizeProcurement({ coreReady: false, evidenceStatus: 'ok', evidenceAuthority: 'public', trustContractVerified: true }).authorized === false, 'core readiness remains independently necessary');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'ok', evidenceAuthority: 'public', trustContractVerified: false }).authorized === false, 'public 2xx without verified status/schema contract denied');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'ok', evidenceAuthority: 'public', trustContractVerified: true }).authorized === true, 'public evidence authorizes only with verified contract and core readiness');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'unconfigured', evidenceAuthority: 'local', localEvidenceAccepted: true }).authorized === true, 'observed local fallback authorizes only with explicit opt-in');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'unconfigured', evidenceAuthority: 'local', localEvidenceAccepted: false }).authorized === false, 'local fallback without explicit opt-in denied');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'ok', evidenceAuthority: 'local', localEvidenceAccepted: true }).authorized === false, 'local authority with non-fallback status denied');
+assert(authorizeProcurement({ coreReady: true, evidenceStatus: 'unknown', evidenceAuthority: 'unknown', localEvidenceAccepted: false, force: true }).authorized === false, 'force metadata cannot bypass the full authorization policy');
 const packageScripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure does not force local evidence');
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
