@@ -4,6 +4,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
@@ -14,6 +15,7 @@ import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
 import { parseResidualInput, residualInputGateEligible } from '../lib/residual-input.mjs';
 import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
+import { canonicalAttestationJson } from '../lib/measurement-attestation.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -62,7 +64,38 @@ assert(evaluateProductionAuthorization().productionAuthorized === false, 'produc
 assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true }).productionAuthorized === false, 'production authorization denied without verified measurement attestation');
 assert(evaluateProductionAuthorization({ coreReady: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without supply-chain authorization');
 assert(evaluateProductionAuthorization({ supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without core readiness');
-assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === true, 'production gate combines core, supply chain, attestation flag, and cone');
+const attestationKeys = generateKeyPairSync('ed25519');
+const expectedMeasurementIdentity = {
+  issuer: 'https://ci.example.test',
+  repository: 'doitupsolutions810-crow/living-intermediate-control-plane',
+  commitSha: '0123456789abcdef0123456789abcdef01234567',
+  runId: 'run-123',
+  artifactDigest: 'sha256:' + 'a'.repeat(64),
+};
+const measurementPayload = {
+  schema: 'control-plane.measurement-attestation/v1',
+  ...expectedMeasurementIdentity,
+  residualS: 0.125,
+  measuredAt: new Date(Date.now() - 1000).toISOString(),
+  expiresAt: new Date(Date.now() + 60_000).toISOString(),
+  keyId: 'test-measurement-key',
+};
+const signedMeasurementAttestation = {
+  ...measurementPayload,
+  signature: sign(null, Buffer.from(canonicalAttestationJson(measurementPayload), 'utf8'), attestationKeys.privateKey).toString('base64'),
+};
+const productionAuthorizationOptions = {
+  coreReady: true,
+  supplyChainOk: true,
+  measurementAttestation: signedMeasurementAttestation,
+  measurementAttestationExpected: expectedMeasurementIdentity,
+  measurementAttestationPublicKeyPem: attestationKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+  measurementAttestationKeyId: 'test-measurement-key',
+};
+assert(evaluateProductionAuthorization(productionAuthorizationOptions).productionAuthorized === true, 'production gate accepts a valid signed attestation bound to expected identity');
+const tamperedAttestation = { ...signedMeasurementAttestation, residualS: 0.2 };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: tamperedAttestation }).productionAuthorized === false, 'production gate rejects a tampered measurement payload');
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestationExpected: { ...expectedMeasurementIdentity, commitSha: 'ffffffffffffffffffffffffffffffffffffffff' } }).productionAuthorized === false, 'production gate rejects an attestation bound to a different commit');
 
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
