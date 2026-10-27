@@ -483,6 +483,22 @@ test('missing procurement check results default to HOLD even when the residual c
   assert.equal(status.authority, 'local');
 });
 
+test('evidence status builder rejects missing, duplicate, or foreign procurement gate IDs', () => {
+  const checks = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({ id, status: 'READY' }));
+  assert.throws(
+    () => buildEvidenceStatusDocument({ contractChecks: checks.slice(0, 6) }),
+    /each E0–E6 gate exactly once/
+  );
+  assert.throws(
+    () => buildEvidenceStatusDocument({ contractChecks: [...checks.slice(0, 6), { id: 'E5', status: 'READY' }] }),
+    /each E0–E6 gate exactly once/
+  );
+  assert.throws(
+    () => buildEvidenceStatusDocument({ contractChecks: [...checks.slice(0, 6), { id: 'G6', status: 'READY' }] }),
+    /each E0–E6 gate exactly once/
+  );
+});
+
 test('residual status producer rejects non-finite and out-of-domain coordinates', () => {
   for (const S of [Infinity, -Infinity, NaN, -0.01, 0.250001]) {
     assert.throws(() => buildEvidenceStatusDocument({ S }), /Residual coordinate S must be finite and within/);
