@@ -423,3 +423,12 @@ test('failed evidence without local opt-in is explicitly untrusted, never public
   assert.equal(result.authority, 'none');
   assert.equal(result.trustContractVerified, false);
 });
+
+test('missing schema required-list is rejected without throwing', () => {
+  const schema = goodSchema();
+  delete schema.required;
+  const result = validateEvidenceConsoleContract(goodStatus(), schema);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('schema_required_fields_missing'));
+  assert.ok(result.failures.includes('schema_required_sourceIdentity_missing'));
+});
