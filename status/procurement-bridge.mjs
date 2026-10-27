@@ -11,6 +11,7 @@
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
 import { evaluateGateNamespaces } from '../lib/gate-namespaces.mjs';
+import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { loadConfig } from '../lib/config.mjs';
 
 const config = loadConfig();
@@ -23,9 +24,11 @@ const coreReady =
   plan.overallDecision === 'READY';
 
 const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
+
 const gates = evaluateGateNamespaces({
   coreReady,
-  evidenceConsole: { status: process.env.ACCEPT_LOCAL_EVIDENCE ? 'unconfigured' : undefined },
+  evidenceConsole,
   env: process.env,
   config,
   S: residualS,
@@ -41,6 +44,12 @@ const result = {
   timestamp: new Date().toISOString(),
   decision: procurementDecision,
   residual: gates.residual,
+  evidenceConsole: {
+    status: evidenceConsole.status,
+    authority: evidenceConsole.authority,
+    trustContractVerified: evidenceConsole.trustContractVerified === true,
+    trustFailures: evidenceConsole.trustFailures || []
+  },
   gateNamespaces: {
     procurement: gates.procurement,
     production: gates.production,
