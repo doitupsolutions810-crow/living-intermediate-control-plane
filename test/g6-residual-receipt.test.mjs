@@ -399,3 +399,49 @@ test('unexpected measurement fields fail exact-shape validation', () => {
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('g6_receipt_measurement_shape_invalid'));
 });
+
+test('deployment must pin the exact Great Scale receipt schema blob', () => {
+  const fixture = makeFixture();
+  fixture.options.expected.g6ReceiptSchemaBlobSha = 'f'.repeat(40);
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_expected_receipt_schema_blob_sha_mismatch'));
+});
+
+test('raw saturation must be derived from topological floor and metric area', () => {
+  const fixture = makeFixture({
+    measurementChanges: { topologicalSaturationRaw: 0.8 },
+  });
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_measurement_raw_topological_saturation_mismatch'));
+});
+
+test('numerical certificate must bind the exact source commit and model input digest', () => {
+  const fixture = makeFixture({
+    certificateChanges: {
+      sourceCommitSha: 'c'.repeat(40),
+      modelInputDigest: 'e'.repeat(64),
+    },
+  });
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_numerical_certificate_source_commit_mismatch'));
+  assert.ok(result.failures.includes('g6_numerical_certificate_model_input_digest_mismatch'));
+});
+
+test('numeric schema bounds reject negative budgets and fractional Chern integers', () => {
+  const negativeBudget = makeFixture({
+    measurementChanges: { positiveCurvatureBudget: -1 },
+  });
+  const negativeResult = verifyGreatScaleG6ResidualReceipt(negativeBudget.receipt, negativeBudget.options);
+  assert.equal(negativeResult.valid, false);
+  assert.ok(negativeResult.failures.includes('g6_measurement_negative_value_positiveCurvatureBudget'));
+
+  const fractionalChern = makeFixture({
+    measurementChanges: { chernNumber: -1.25 },
+  });
+  const fractionalResult = verifyGreatScaleG6ResidualReceipt(fractionalChern.receipt, fractionalChern.options);
+  assert.equal(fractionalResult.valid, false);
+  assert.ok(fractionalResult.failures.includes('g6_measurement_chern_number_not_integer'));
+});
