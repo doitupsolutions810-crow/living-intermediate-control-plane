@@ -149,6 +149,7 @@ function makeFixture({
     metricAreaErrorUpperBound: 0.004,
     evidenceUrl: proofUrl,
     proofDigest: sha256(proof),
+    measurementDigest: sha256(Buffer.from(canonicalG6ReceiptJson(measurement), 'utf8')),
     verified: true,
     certificateKeyId,
     certificateSignature: '',
