@@ -150,6 +150,7 @@ No repository should claim end-to-end integration solely because this document e
 - The verifier resolves `authority.key_id` through an injected trusted-key registry. Each key entry must bind the key to an issuer and may restrict evidence types, repositories, and authority classes.
 - Replay protection is an injected callback because the production implementation must be durable and atomic across concurrent verifier instances. A process-local set is suitable only for unit tests, not production.
 - The verifier returns `productionAuthorized: false` by design. Evidence verification is not the final authorization decision; the receiving G-namespace gate must still apply its own policy.
+- `lib/evidence-envelope-gate.mjs` provides an additive async adapter for the existing production gate. It requires expected subject and policy bindings, calls the semantic verifier, and refuses to treat local evidence as production supply-chain evidence. The existing synchronous gate API remains unchanged.
 - The conformance fixtures use placeholder signature strings for structural schema testing only. They are not cryptographically signed examples and must never be accepted by the semantic verifier.
 
 The executable security tests are in `test/evidence-envelope-v1.test.mjs`; schema fixtures are checked by `scripts/validate-evidence-envelope.mjs`. CI has been configured to run both, but hosted execution remains unverified until a run returns usable step results and a successful conclusion.
