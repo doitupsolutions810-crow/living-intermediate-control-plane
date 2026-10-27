@@ -416,6 +416,17 @@ test('array item schema must reject unrecognized contract-check fields', () => {
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
 
+test('gate aliases cannot substitute for the canonical gates field', () => {
+  const aliased = { ...goodStatus() };
+  aliased.results = aliased.gates;
+  delete aliased.gates;
+  attachSourceSignature(aliased);
+  const result = validateEvidenceConsoleContract(aliased, goodSchema());
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
+  assert.ok(result.failures.includes('status_fields_not_exact'));
+});
+
 test('object-form gate map validates only the required E0-E6 properties', () => {
   const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
