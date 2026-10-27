@@ -44,10 +44,19 @@ assert(evaluateProcurementReadiness({
   ...gateOptions,
   evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: false }
 }).evidenceAuthorized === false, 'public status without verified contract is denied by gate namespace');
-assert(evaluateProcurementReadiness({
+const contractOnlyGate = evaluateProcurementReadiness({
   ...gateOptions,
   evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: true }
-}).evidenceAuthorized === true, 'public status with verified contract is accepted by gate namespace');
+});
+assert(contractOnlyGate.evidenceAuthorized === false, 'verified source contract alone cannot authorize procurement');
+assert(contractOnlyGate.note.includes('production-acceptance evidence is absent'), 'contract-only readiness note explains missing acceptance evidence');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: {
+    status: 'ok', authority: 'public', trustContractVerified: true,
+    procurementEvidenceVerified: true
+  }
+}).evidenceAuthorized === true, 'public contract plus separately verified production-acceptance evidence is accepted by gate namespace');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
