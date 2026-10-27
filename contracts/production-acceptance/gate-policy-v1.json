@@ -1,6 +1,6 @@
 {
   "schema": "great-scale.production-acceptance-gate-policy/v1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "gates": [
     {
       "id": "G0",
@@ -42,7 +42,7 @@
       "id": "G6",
       "policyId": "residual-measurement",
       "requiredSuiteName": "residual-measurement",
-      "requirement": "A fresh, source-pinned, same-build residual measurement is finite and satisfies the configured cone policy."
+      "requirement": "A fresh, source-pinned, same-build residual measurement is finite, lies in the topology-derived domain [0, 0.25], and satisfies the configured cone policy."
     }
   ]
 }
