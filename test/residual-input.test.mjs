@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseResidualCoordinate } from '../lib/residual-input.mjs';
+import { coneCompliant } from '../lib/great-scale-residual.mjs';
 
 test('unset residual coordinate uses the documented default', () => {
   assert.deepEqual(parseResidualCoordinate(undefined), {
@@ -57,4 +58,14 @@ test('no supplied invalid or out-of-domain coordinate is normalized to a success
     assert.notEqual(result.valid && result.value === 0, true, raw);
     assert.notEqual(result.decision, null, raw);
   }
+});
+
+
+test('cone floor is not treated as an independent domain or finiteness validator', () => {
+  // Characterize the algebraic limitation: psi(S)=CONE+S, so the floor alone
+  // accepts these values. The parser must still reject them at the boundary.
+  assert.equal(coneCompliant(Infinity), true);
+  assert.equal(coneCompliant(1e100), true);
+  assert.equal(parseResidualCoordinate('Infinity').decision, 'HOLD_INVALID_RESIDUAL');
+  assert.equal(parseResidualCoordinate('1e100').decision, 'HOLD_RESIDUAL_DOMAIN');
 });
