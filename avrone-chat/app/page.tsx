@@ -37,6 +37,7 @@ export default function Page() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('ready');
   const [cockpit, setCockpit] = useState<Cockpit | null>(null);
+  const [latticeSessionId, setLatticeSessionId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -92,10 +93,14 @@ export default function Page() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           messages: next.map(m => ({ role: m.role, content: m.content })),
-          belief: 0.55
+          belief: 0.55,
+          latticeSessionId
         })
       });
       const offline = res.headers.get('x-lattice-offline') === '1';
+      const nextLatticeSessionId = res.headers.get('x-lattice-session-id');
+      if (nextLatticeSessionId) setLatticeSessionId(nextLatticeSessionId);
+      else if (offline) setLatticeSessionId(null);
       const agentMarker = res.headers.get('x-avrone-agent') || '0';
       const agentOn = agentMarker !== '0';
       const provider = res.headers.get('x-avrone-provider');

@@ -34,6 +34,8 @@ npm run build
 
 When `EVIDENCE_CONSOLE_URL` is unset or the public domain returns 404/unreachable, cockpit reports local plane authority instead of failing hard.
 
+Avrone reuses the LICP lattice session for consecutive chat turns in the same page. The API returns the active session in `x-lattice-session-id`; if LICP has restarted and its in-memory session is gone, Avrone creates a replacement and continues. LICP session IDs are conversation context identifiers, not execution or production evidence.
+
 ## Agent tools
 
 When any LLM provider is configured (paid keys, free-tier keys, or keyless Pollinations), `POST /api/chat` prefers the agent tool loop. Paid keys still win when credited.

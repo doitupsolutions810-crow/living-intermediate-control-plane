@@ -3,11 +3,13 @@ import {
   type ComponentRegistrySnapshot,
   type PlatformComponent
 } from './component-registry.mjs';
+import { fetchLatticeSessionTurn } from './lattice-session.mjs';
 
 export type LatticeContext = {
   systemAugment?: string;
   spectrum?: unknown;
   offline?: boolean;
+  sessionId?: string;
 };
 
 export type { ComponentRegistrySnapshot, PlatformComponent } from './component-registry.mjs';
@@ -25,36 +27,21 @@ function platformHeaders(): Record<string, string> {
 
 export async function fetchLatticeTurn(
   message: string,
-  belief = 0.55
+  belief = 0.55,
+  sessionId?: string | null
 ): Promise<LatticeContext> {
   const platformUrl = platformBase();
   if (!platformUrl) {
     return { offline: true, systemAugment: 'Lattice offline (CONTROL12_PLATFORM_URL unset).' };
   }
 
-  const headers = platformHeaders();
-
-  try {
-    const sessionRes = await fetch(`${platformUrl}/api/v1/chat/session`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ label: 'avrone', belief }),
-      signal: AbortSignal.timeout(8000)
-    });
-    if (!sessionRes.ok) return { offline: true, systemAugment: 'Lattice session rejected.' };
-    const session = await sessionRes.json();
-    const turnRes = await fetch(`${platformUrl}/api/v1/chat/turn`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ sessionId: session.id, message, belief }),
-      signal: AbortSignal.timeout(8000)
-    });
-    if (!turnRes.ok) return { offline: true, systemAugment: 'Lattice turn rejected.' };
-    const turn = await turnRes.json();
-    return { systemAugment: turn.systemAugment, spectrum: turn.frame, offline: false };
-  } catch {
-    return { offline: true, systemAugment: 'Lattice unreachable.' };
-  }
+  return fetchLatticeSessionTurn({
+    baseUrl: platformUrl,
+    headers: platformHeaders(),
+    message,
+    belief,
+    sessionId
+  });
 }
 
 export async function fetchPlatformSnapshot() {
