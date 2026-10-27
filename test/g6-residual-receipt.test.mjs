@@ -261,14 +261,14 @@ function makeFixture({
   if (corruptReceiptSignature) receipt.signature = Buffer.alloc(64, 3).toString('base64');
   return {
     receipt,
-    proofEvidence: { url: certificate.evidenceUrl, bytes: proof },
+    proofEvidence: { url: certificate.evidenceUrl, finalUrl: certificate.evidenceUrl, status: 200, redirected: false, contentType: 'application/json; charset=utf-8', bytes: proof },
     options: {
       expected,
       receiptPublicKeyPem,
       receiptKeyId,
       numericalCertificatePublicKeyPem: certificatePublicKeyPem,
       numericalCertificateKeyId: certificateKeyId,
-      proofEvidence: { url: certificate.evidenceUrl, bytes: proof },
+      proofEvidence: { url: certificate.evidenceUrl, finalUrl: certificate.evidenceUrl, status: 200, redirected: false, contentType: 'application/json; charset=utf-8', bytes: proof },
       now: NOW,
       maxAgeMs: 300_000,
       maxClockSkewMs: 30_000,
@@ -384,7 +384,7 @@ test('numerical proof evidence must use the independently pinned HTTPS origin', 
 test('the certificate proof digest must match the exact fetched bytes at its declared URL', () => {
   const fixture = makeFixture();
   fixture.options.proofEvidence = {
-    url: fixture.receipt.numericalCertification.evidenceUrl,
+    ...fixture.options.proofEvidence,
     bytes: Buffer.from('different proof bytes', 'utf8'),
   };
   const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
