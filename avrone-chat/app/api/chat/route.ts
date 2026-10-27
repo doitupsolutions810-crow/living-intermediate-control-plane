@@ -9,6 +9,8 @@ import {
   isLangGraphEnabled,
   runLangGraphAgent
 } from '../../../lib/langgraph-agent';
+import { providerFailurePayload } from '../../../lib/chat-errors.mjs';
+import { scrubSecrets } from '../../../lib/scrub';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -107,16 +109,16 @@ export async function POST(req: Request) {
         }
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return sseReply(
-        `(Avrone agent error) ${msg}\n\nFalling back tip: check LLM keys / Pollinations (AVRONE_POLLINATIONS_ENABLED) and model names.`,
-        {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return Response.json(providerFailurePayload(scrubSecrets(errorMessage)), {
+        status: 502,
+        headers: {
           ...latticeHeaders(lattice),
           'x-avrone-agent': '0',
           'x-avrone-engine': 'error',
           'x-avrone-tools': '[]'
         }
-      );
+      });
     }
   }
 
