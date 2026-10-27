@@ -17,7 +17,8 @@ import { readPlaneState, pausePlane, resumePlane } from './status/plane-state.mj
 import { writeStatusFile } from './status/write-status-file.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { probeEvidenceConsole } from './lib/evidence-console.mjs';
-import { acceptsLocalEvidence, isEvidenceAuthorized } from './lib/evidence-authorization.mjs';
+import { acceptsLocalEvidence, authorizeProcurement } from './lib/evidence-authorization.mjs';
+import { loadSupplyChainEvidence } from './lib/supply-chain-runtime.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -110,26 +111,32 @@ const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 // Availability fallback is diagnostic only; authorization is a separate policy.
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env, config });
 
-const evidenceAuthorized = isEvidenceAuthorized({
-  status: evidenceConsole.status,
-  authority: evidenceConsole.authority,
-  localOptIn: localEvidenceAuthority
-});
+const supplyChainEvidence = loadSupplyChainEvidence({ root: __dirname });
 
 const coreReady =
   readiness.overallDecision === 'READY' &&
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
+const procurementAuthorization = authorizeProcurement({
+  coreReady: coreReady && supplyChainEvidence.authorized,
+  evidenceStatus: evidenceConsole.status,
+  evidenceAuthority: evidenceConsole.authority,
+  trustContractVerified: evidenceConsole.trustContractVerified === true,
+  localEvidenceAccepted: localEvidenceAuthority
+});
+
 let decision;
 if (planeState.paused) {
   decision = 'PAUSED';
-} else if (coreReady && evidenceAuthorized) {
+} else if (procurementAuthorization.authorized) {
   decision = 'READY_FOR_PROCUREMENT';
-} else if (coreReady) {
-  decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
-} else {
+} else if (!coreReady) {
   decision = 'HOLD';
+} else if (!supplyChainEvidence.authorized) {
+  decision = 'HOLD_SUPPLY_CHAIN_EVIDENCE';
+} else {
+  decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
 }
 
 const result = {
@@ -167,6 +174,17 @@ const result = {
     note: evidenceConsole.note
   },
   localEvidenceAccepted: localEvidenceAuthority,
+  evidenceAuthorization: {
+    authorized: procurementAuthorization.evidenceAuthorized,
+    reason: procurementAuthorization.reason,
+    trustContractVerified: evidenceConsole.trustContractVerified === true
+  },
+  supplyChainEvidence: {
+    authorized: supplyChainEvidence.authorized,
+    reason: supplyChainEvidence.reason,
+    revision: supplyChainEvidence.revision,
+    reportAttestationVerified: supplyChainEvidence.reportAttestationVerified
+  },
   note:
     dryRun
       ? 'Dry run — decision not recorded and status file not updated.'
@@ -176,9 +194,11 @@ const result = {
           ? evidenceConsole.status === 'ok'
             ? 'Integrated check passed. Public evidence-console healthy.'
             : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
-          : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-            ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-            : 'Core readiness or orchestration not yet READY.',
+          : decision === 'HOLD_SUPPLY_CHAIN_EVIDENCE'
+            ? 'Supply-chain evidence is missing, stale, revision-mismatched, skipped, unsigned, or not attested; procurement remains on HOLD.'
+            : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
+              ? 'Core systems READY. Public evidence-console contract is unverified; explicit local evidence opt-in is required.'
+              : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 
@@ -192,6 +212,8 @@ if (!dryRun) {
       orchestrationOverall: result.orchestration.overall,
       localEvidenceAccepted: result.localEvidenceAccepted,
       evidenceConsoleStatus: result.evidenceConsole.status,
+      supplyChainEvidenceAuthorized: result.supplyChainEvidence.authorized,
+      supplyChainEvidenceReason: result.supplyChainEvidence.reason,
       paused: result.paused,
       doctorPassed: result.doctorPassed
     });
