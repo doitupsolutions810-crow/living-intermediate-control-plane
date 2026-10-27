@@ -47,6 +47,12 @@ const results = [];
 let failed = 0;
 const scanEnv = {
   ALLOW_SKIP: allowSkip ? '1' : '0',
+  // These explicit values override inherited environment variables so an
+  // operator cannot silently bypass required scanners in an authorization run.
+  SKIP_TRIVY: '0',
+  SKIP_SNYK: '0',
+  SKIP_SNYK_CONTAINER: '0',
+  SKIP_OPA: '0',
   ...(imageRef ? { IMAGE_REF: imageRef } : {})
 };
 
