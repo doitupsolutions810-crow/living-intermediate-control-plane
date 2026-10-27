@@ -8,6 +8,8 @@
   "required": [
     "schema",
     "issuer",
+    "gatePolicyVersion",
+    "gatePolicyDigest",
     "keyId",
     "environment",
     "buildId",
@@ -184,6 +186,7 @@
         "additionalProperties": false,
         "required": [
           "id",
+          "policyId",
           "status",
           "evidence"
         ],
@@ -228,6 +231,17 @@
                 }
               }
             }
+          },
+          "policyId": {
+            "enum": [
+              "source-revision-binding",
+              "required-ci-suites-pass",
+              "immutable-artifact-provenance",
+              "supply-chain-attestation",
+              "security-policy-pass",
+              "runtime-health",
+              "residual-measurement"
+            ]
           }
         }
       },
@@ -377,6 +391,13 @@
     "signature": {
       "type": "string",
       "pattern": "^[A-Za-z0-9+/]{86}==$"
+    },
+    "gatePolicyVersion": {
+      "const": "1.0.0"
+    },
+    "gatePolicyDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   }
 }
