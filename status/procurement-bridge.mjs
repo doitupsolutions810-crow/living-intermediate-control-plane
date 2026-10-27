@@ -15,7 +15,7 @@ const plan = evaluateQuorum(createOrchestrationPlan('procurement-check'));
 
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env });
-// Public trust additionally requires the independently validated v5.3.1
+// Public trust additionally requires the independently validated v5.4.0
 // status/schema contract; the full core decision is computed below.
 
 const supplyChainEvidence = loadSupplyChainEvidence();
