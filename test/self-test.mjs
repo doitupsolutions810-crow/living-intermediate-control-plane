@@ -74,12 +74,12 @@ const validSupplyReport = {
   ok: true,
   failed: 0,
   allowSkip: false,
-  imageRef: 'ghcr.io/example/app@sha256:1234',
+  imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
   signed: true,
   results: [
-    { name: 'security-scan', ok: true, status: 0 },
-    { name: 'cosign-sign', ok: true, status: 0 },
-    { name: 'cosign-verify', ok: true, status: 0 },
+    { name: 'security-scan', ok: true, status: 0, imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+    { name: 'cosign-sign', ok: true, status: 0, imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
+    { name: 'cosign-verify', ok: true, status: 0, imageRef: 'ghcr.io/example/app@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
     { name: 'security-summary', ok: true, status: 0 }
   ]
 };
@@ -88,6 +88,8 @@ assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: 'diffe
 assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, allowSkip: true }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'soft-skip supply-chain report denied');
 assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: [...validSupplyReport.results, { name: 'trivy', ok: true, skipped: true }] }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'report with skipped security tool denied');
 assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, signed: false }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'unsigned image denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, imageRef: 'ghcr.io/example/app:latest' }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'mutable image tag denied');
+assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, results: validSupplyReport.results.map(item => item.name === 'cosign-verify' ? { ...item, imageRef: 'ghcr.io/example/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' } : item) }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'signature verification for a different image digest denied');
 assert(evaluateSupplyChainEvidence({ report: { ...validSupplyReport, timestamp: '2026-10-26T10:00:00.000Z' }, revision: 'abc123', nowMs: fixedNow }).authorized === false, 'stale supply-chain report denied');
 assert(evaluateSupplyChainEvidence({ report: validSupplyReport, revision: '', nowMs: fixedNow }).authorized === false, 'unknown current revision denied');
 
