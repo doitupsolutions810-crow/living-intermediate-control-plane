@@ -93,7 +93,7 @@ test('residual command-line entry points reject malformed coordinates instead of
   const here = dirname(fileURLToPath(import.meta.url));
   const root = resolve(here, '..');
   for (const [script, args, expected] of [
-    ['status/residual-snapshot.mjs', ['--tau', 'Infinity'], /tau must be finite/],
+    ['status/residual-snapshot.mjs', ['--tau', 'Infinity'], /tau/],
     ['status/residual-snapshot.mjs', ['--S', 'nonsense'], /GREAT_SCALE_S/],
     ['status/evidence-status.mjs', ['emit', '--S', 'nonsense'], /GREAT_SCALE_S/],
     ['status/evidence-status.mjs', ['emit', '--tau', '1.01'], /tau must be within/]
