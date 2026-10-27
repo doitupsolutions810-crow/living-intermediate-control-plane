@@ -333,6 +333,20 @@ test('fetch helper accepts only bounded JSON from the pinned origin with no redi
   assert.equal(calls[0].options.cache, 'no-store');
 });
 
+test('fetch helper accepts numeric Content-Length and rejects malformed or oversized lengths', async () => {
+  const bytes = Buffer.from(JSON.stringify({ proof: 'length-header-fixture' }), 'utf8');
+  const fetchWithLength = contentLength => fetchNumericalCertificateProof(proofUrl, {
+    expectedOrigin: new URL(proofUrl).origin,
+    timeoutMs: 1000,
+    maxBytes: 1024,
+    fetchImpl: async url => fakeFetchResponse(url, bytes, { contentLength }),
+  });
+
+  assert.ok(await fetchWithLength(bytes.byteLength), 'ordinary decimal Content-Length should be accepted');
+  assert.equal(await fetchWithLength('not-a-number'), null, 'malformed Content-Length should be rejected');
+  assert.equal(await fetchWithLength(1025), null, 'Content-Length above the configured byte cap should be rejected');
+});
+
 test('fetch helper rejects cross-origin URLs, redirects, final URL drift, and non-JSON responses', async () => {
   let calls = 0;
   const fetchImpl = async url => {
