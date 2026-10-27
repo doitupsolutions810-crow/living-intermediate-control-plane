@@ -22,7 +22,7 @@ import { probeEvidenceConsole } from './lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
 import { evaluateGateNamespaces } from './lib/gate-namespaces.mjs';
 import { residualSnapshot } from './lib/great-scale-residual.mjs';
-import { parseResidualInput } from './lib/residual-input.mjs';
+import { parseResidualInput, residualInputGateEligible } from './lib/residual-input.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -126,7 +126,7 @@ const coreReady =
 const residualInput = parseResidualInput(process.env.GREAT_SCALE_S);
 const residualS = residualInput.valid ? residualInput.value : 0;
 const gates = evaluateGateNamespaces({
-  coreReady: coreReady && residualInput.valid && residualInput.provided,
+  coreReady: coreReady && residualInputGateEligible(residualInput),
   evidenceConsole,
   env: process.env,
   config,
@@ -140,7 +140,7 @@ if (planeState.paused) {
   decision = 'PAUSED';
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
-} else if (coreReady && residualInput.valid && residualInput.provided && !gates.procurement.evidenceAuthorized) {
+} else if (coreReady && residualInputGateEligible(residualInput) && !gates.procurement.evidenceAuthorized) {
   decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
 } else {
   decision = 'HOLD';
