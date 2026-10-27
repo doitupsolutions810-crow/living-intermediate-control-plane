@@ -1,7 +1,7 @@
 import { generateKeyPairSync, createHash, sign } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
-import { coneCompliant } from '../lib/great-scale-residual.mjs';
+import { coneCompliant, fromTopologicalSaturation, isValidResidualCoordinate, residualSnapshot } from '../lib/great-scale-residual.mjs';
 import {
   PRODUCTION_ACCEPTANCE_ISSUER,
   PRODUCTION_ACCEPTANCE_SCHEMA,
@@ -334,5 +334,17 @@ assert.ok(extremeSignedResidual.failures.includes('residual_value_out_of_domain'
 
 assert.equal(coneCompliant(100), true,
   'coneCompliant is only a lower-bound predicate; G6 must independently enforce the [0, 0.25] model domain');
+
+assert.equal(isValidResidualCoordinate(0), true, 'lower topology-domain boundary accepted');
+assert.equal(isValidResidualCoordinate(0.25), true, 'upper topology-domain boundary accepted');
+for (const invalidS of [-0.000001, 0.250001, 100, Infinity, -Infinity, NaN]) {
+  assert.equal(isValidResidualCoordinate(invalidS), false, `invalid residual coordinate rejected: ${String(invalidS)}`);
+  assert.equal(residualSnapshot({ S: invalidS }).coneOk, false,
+    `diagnostic snapshot cannot claim coneOk for invalid S: ${String(invalidS)}`);
+}
+assert.equal(fromTopologicalSaturation(0).S, 0.25, 'tau=0 maps to upper valid boundary');
+assert.equal(fromTopologicalSaturation(1).S, 0, 'tau=1 maps to lower valid boundary');
+assert.equal(fromTopologicalSaturation(0).coneOk, true, 'valid topology-derived coordinate satisfies domain and cone');
+assert.equal(fromTopologicalSaturation(1).coneOk, true, 'valid topology-derived coordinate satisfies domain and cone');
 
 console.log('production-acceptance-attestation: proof-carrying positive/negative assertions passed');
