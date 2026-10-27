@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
-import { buildEvidenceStatusDocument, sealEvidenceStatusDocument } from '../lib/evidence-status-document.mjs';
+import { buildEvidenceStatusDocument, sealEvidenceStatusDocument, canonicalJson } from '../lib/evidence-status-document.mjs';
 import {
   probeEvidenceConsole,
   validateEvidenceConsoleContract,
@@ -446,4 +446,31 @@ test('E0-E6 procurement producer cannot satisfy the G0-G6 public production cons
   assert.equal(procurementDocument.namespaces.evidence, 'E0-E6');
   assert.equal(procurementDocument.namespaces.production, 'G0-G6');
   assert.equal(procurementDocument.productionClaimed, undefined);
+});
+
+
+test('producer-style signature over canonical JSON bytes is not accepted as a consumer signature over raw digest bytes', () => {
+  const unsignedStatus = {
+    ...expected,
+    sourceGeneratedAt: new Date().toISOString(),
+    sourceExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    sourceIdentity: trust.trustedSourceIdentity,
+    sourceKeyId: trust.trustedKeyId,
+    overall: 'READY',
+    gates: Array.from({ length: 7 }, (_, i) => ({ id: `G${i}`, status: 'READY' }))
+  };
+  const digest = signedEvidenceDigest(unsignedStatus);
+  const producerStyleSignature = sign(
+    null,
+    Buffer.from(canonicalJson(unsignedStatus), 'utf8'),
+    keyPair.privateKey
+  ).toString('base64');
+  const status = {
+    ...unsignedStatus,
+    sourceEvidenceDigest: digest,
+    sourceSignature: producerStyleSignature
+  };
+  const result = verifySignedEvidence(status, trust);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('signature_verification_failed'));
 });
