@@ -380,7 +380,9 @@
           "format": "date-time"
         },
         "S": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.25
         }
       }
     },
