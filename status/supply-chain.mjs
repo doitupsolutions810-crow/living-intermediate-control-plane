@@ -19,6 +19,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const dataDir = join(root, 'data');
 const outPath = join(dataDir, 'supply-chain-last.json');
+const attestationBundlePath = join(dataDir, 'supply-chain-last.bundle.json');
 
 const imageRef = process.env.IMAGE_REF || '';
 const doSign = process.env.SUPPLY_CHAIN_SIGN === '1';
@@ -123,4 +124,20 @@ const summary = {
 
 writeFileSync(outPath, JSON.stringify(summary, null, 2) + '\n');
 console.log('\n' + JSON.stringify(summary, null, 2));
-process.exit(failed === 0 ? 0 : 1);
+
+// The JSON report is not trusted merely because it exists locally. Sign the
+// exact bytes and require the caller to configure the identity/issuer that the
+// procurement bridge will use for independent verification.
+const attestationIdentity = (process.env.SUPPLY_CHAIN_ATTESTATION_IDENTITY || '').trim();
+const attestationIssuer = (process.env.SUPPLY_CHAIN_ATTESTATION_ISSUER || '').trim();
+let attestationOk = false;
+if (!attestationIdentity || !attestationIssuer) {
+  console.error('[supply-chain] SUPPLY_CHAIN_ATTESTATION_IDENTITY and SUPPLY_CHAIN_ATTESTATION_ISSUER are required for authorization-grade evidence.');
+} else {
+  const sign = spawnSync('cosign', [
+    'sign-blob', '--yes', '--bundle', attestationBundlePath, outPath
+  ], { cwd: root, stdio: 'inherit', env: process.env });
+  attestationOk = sign.status === 0 && existsSync(attestationBundlePath);
+  if (!attestationOk) console.error('[supply-chain] report attestation signing failed; report cannot authorize procurement.');
+}
+process.exit(failed === 0 && attestationOk ? 0 : 1);
