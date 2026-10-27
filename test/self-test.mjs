@@ -166,6 +166,14 @@ assert(existsSync(join(root, 'avrone-chat/app/api/health/route.ts')), 'avrone-ch
 assert(existsSync(join(root, 'avrone-chat/app/api/cockpit/route.ts')), 'avrone-chat cockpit route present');
 
 // evidence-console graceful behavior (stubbed fetch — no network)
+function evidenceResponseAt(url, body, init = {}) {
+  const response = new Response(body, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init.headers || {}) }
+  });
+  Object.defineProperty(response, 'url', { value: url, configurable: true });
+  return response;
+}
 const unset = await probeEvidenceConsole({ url: '', acceptLocal: true });
 assert(unset.status === 'unconfigured', 'evidence-console unconfigured when URL empty');
 assert(unset.authority === 'local', 'unconfigured console uses local authority');
@@ -176,7 +184,7 @@ assert(unsetDenied.note.includes('local authority is disabled'), 'unconfigured d
 const notFound = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
-  fetchImpl: async () => new Response('missing', { status: 404 })
+  fetchImpl: async input => evidenceResponseAt(String(input), 'missing', { status: 404 })
 });
 assert(notFound.status === 'not_found', 'evidence-console 404 maps to not_found');
 assert(notFound.authority === 'local', '404 console falls back to local authority');
@@ -184,7 +192,7 @@ assert(notFound.httpStatus === 404, '404 httpStatus preserved');
 const notFoundDenied = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: false,
-  fetchImpl: async () => new Response('missing', { status: 404 })
+  fetchImpl: async input => evidenceResponseAt(String(input), 'missing', { status: 404 })
 });
 assert(notFoundDenied.authority === 'public', '404 does not claim local authority when fallback is disabled');
 assert(notFoundDenied.note.includes('local fallback is disabled'), '404 diagnostic states fallback is disabled');
@@ -192,7 +200,7 @@ assert(notFoundDenied.note.includes('local fallback is disabled'), '404 diagnost
 const reachableUnverified = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
-  fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
+  fetchImpl: async input => evidenceResponseAt(String(input), JSON.stringify({ ok: true }), { status: 200 }),
   verifyDocument: async () => ({ valid: false, failures: [{ code: 'SCHEMA' }] })
 });
 assert(reachableUnverified.status === 'invalid', 'HTTP 200 without verified evidence contract is invalid');
@@ -208,7 +216,7 @@ assert(evaluateProcurementReadiness({
 const ok = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
-  fetchImpl: async () => new Response(JSON.stringify({ schema: 'test-fixture' }), { status: 200 }),
+  fetchImpl: async input => evidenceResponseAt(String(input), JSON.stringify({ schema: 'test-fixture' }), { status: 200 }),
   verifyDocument: async doc => ({
     valid: doc.schema === 'test-fixture',
     failures: doc.schema === 'test-fixture' ? [] : [{ code: 'SCHEMA' }]
@@ -227,9 +235,9 @@ const boundPair = await probeEvidenceConsole({
     const requestUrl = String(input);
     probeRequests.push(requestUrl);
     if (new URL(requestUrl).pathname === '/api/v1/evidence/schema') {
-      return new Response(JSON.stringify({ kind: 'schema', revision: 7 }), { status: 200 });
+      return evidenceResponseAt(requestUrl, JSON.stringify({ kind: 'schema', revision: 7 }), { status: 200 });
     }
-    return new Response(JSON.stringify({ kind: 'status', schemaRevision: 7 }), { status: 200 });
+    return evidenceResponseAt(requestUrl, JSON.stringify({ kind: 'status', schemaRevision: 7 }), { status: 200 });
   },
   verifyDocument: async (document, schema) => ({
     valid: document.kind === 'status' && schema.kind === 'schema' &&
