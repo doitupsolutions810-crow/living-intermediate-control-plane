@@ -54,7 +54,8 @@ function goodSchema(overrides = {}) {
     sourceExpiresAt: { type: 'string', format: 'date-time' },
     sourceIdentity: { type: 'string', minLength: 1 },
     sourceKeyId: { type: 'string', minLength: 1 },
-    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}
+    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+    sourceSignature: { type: 'string', minLength: 1 },
     runtime: constraint(expected.runtime),
     privacy: constraint(expected.privacy),
     serverSideEvidenceStorage: constraint(false),
