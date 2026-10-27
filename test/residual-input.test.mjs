@@ -2,21 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseResidualCoordinate } from '../lib/residual-input.mjs';
 
-test('unset residual coordinate uses the documented default and stays cone-compliant', () => {
+test('unset residual coordinate uses the documented default', () => {
   assert.deepEqual(parseResidualCoordinate(undefined), {
     valid: true, value: 0, gateValue: 0, source: 'default',
     coneCompliant: true, decision: null, error: null
   });
 });
 
-test('finite numeric residual coordinates are preserved exactly', () => {
-  assert.equal(parseResidualCoordinate('0').value, 0);
-  assert.equal(parseResidualCoordinate('0.125').value, 0.125);
-  assert.equal(parseResidualCoordinate('-0.125').value, -0.125);
+test('finite decimal coordinates within [0, 0.25] are preserved', () => {
+  for (const raw of ['0', '0.125', '0.25', '.125', '1.25e-1']) {
+    const result = parseResidualCoordinate(raw);
+    assert.equal(result.valid, true, raw);
+    assert.equal(result.value, Number(raw), raw);
+    assert.equal(result.decision, null, raw);
+  }
 });
 
-test('empty, non-numeric, NaN, and infinite residual coordinates fail closed', () => {
-  for (const raw of ['', '   ', 'not-a-number', 'NaN', 'Infinity', '-Infinity']) {
+test('empty, non-decimal, non-numeric, NaN, and infinite values fail closed', () => {
+  for (const raw of ['', '   ', 'not-a-number', 'NaN', 'Infinity', '-Infinity', '0x10', '0b10']) {
     const result = parseResidualCoordinate(raw);
     assert.equal(result.valid, false, JSON.stringify(raw));
     assert.equal(result.value, null, JSON.stringify(raw));
@@ -27,24 +30,31 @@ test('empty, non-numeric, NaN, and infinite residual coordinates fail closed', (
   }
 });
 
-test('numeric overflow is rejected rather than entering residual math', () => {
-  const result = parseResidualCoordinate('1e999');
-  assert.equal(result.valid, false);
-  assert.equal(result.value, null);
-  assert.equal(result.decision, 'HOLD_INVALID_RESIDUAL');
+test('overflow and underflow outside representable model intent are not accepted as valid coordinates', () => {
+  for (const raw of ['1e999', '-1e999']) {
+    assert.equal(parseResidualCoordinate(raw).decision, 'HOLD_INVALID_RESIDUAL');
+  }
 });
 
-test('finite but cone-violating coordinates produce an explicit cone hold', () => {
-  const result = parseResidualCoordinate('-0.125');
-  assert.equal(result.valid, true);
-  assert.equal(result.coneCompliant, false);
-  assert.equal(result.decision, 'HOLD_RESIDUAL_CONE');
-  assert.equal(result.gateValue, -0.125);
+test('finite coordinates outside topology-derived domain [0, 0.25] produce a domain hold', () => {
+  for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
+    const result = parseResidualCoordinate(raw);
+    assert.equal(result.valid, false, raw);
+    assert.equal(result.value, null, raw);
+    assert.equal(result.decision, 'HOLD_RESIDUAL_DOMAIN', raw);
+    assert.match(result.error, /\[0, 0\.25\]/);
+  }
 });
 
-test('finite cone-compliant coordinates do not create a residual hold', () => {
-  const result = parseResidualCoordinate('0.125');
-  assert.equal(result.valid, true);
-  assert.equal(result.coneCompliant, true);
-  assert.equal(result.decision, null);
+test('exact domain boundaries are accepted', () => {
+  assert.equal(parseResidualCoordinate('0').decision, null);
+  assert.equal(parseResidualCoordinate('0.25').decision, null);
+});
+
+test('no supplied invalid or out-of-domain coordinate is normalized to a successful zero', () => {
+  for (const raw of ['NaN', 'Infinity', '-0.125', '0.251', '1e100']) {
+    const result = parseResidualCoordinate(raw);
+    assert.notEqual(result.valid && result.value === 0, true, raw);
+    assert.notEqual(result.decision, null, raw);
+  }
 });
