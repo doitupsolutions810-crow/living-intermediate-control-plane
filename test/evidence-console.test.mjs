@@ -428,3 +428,22 @@ test('E0-E6 procurement evidence producer cannot grant G0-G6 production authorit
   assert.equal(result.trustContractVerified, false);
   assert.ok(result.trustFailures.some(failure => failure.startsWith('status_')));
 });
+
+
+test('E0-E6 procurement producer cannot satisfy the G0-G6 public production consumer contract', () => {
+  const procurementDocument = sealEvidenceStatusDocument(
+    buildEvidenceStatusDocument({ S: 0, authority: 'local' }),
+    {
+      privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+      keyId: trust.trustedKeyId
+    }
+  );
+  const result = validateEvidenceConsoleContract(procurementDocument, goodSchema());
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('status_runtime_mismatch'));
+  assert.ok(result.failures.includes('status_source_freshness_timestamps_invalid'));
+  assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
+  assert.equal(procurementDocument.namespaces.evidence, 'E0-E6');
+  assert.equal(procurementDocument.namespaces.production, 'G0-G6');
+  assert.equal(procurementDocument.productionClaimed, undefined);
+});
