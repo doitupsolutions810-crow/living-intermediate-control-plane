@@ -52,6 +52,7 @@ The consumer must receive independently provisioned values for:
 - `PRODUCTION_ACCEPTANCE_COMMIT_SHA`
 - `PRODUCTION_ACCEPTANCE_ARTIFACT_DIGEST`
 - `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES` (comma-separated, deployment-owned suite names)
+  The v1.0.0 gate policy currently requires exactly: `source-revision-binding,required-ci-suites-pass,immutable-artifact-provenance,supply-chain-attestation,security-policy-pass,runtime-health,residual-measurement`.
 - `PRODUCTION_ACCEPTANCE_URL`
 
 Do not generate a replacement production key at runtime or accept key identifiers and public keys supplied by the artifact itself. The exact source ID, build ID and key ID must match the deployment's pinned values.
@@ -83,6 +84,20 @@ The production producer is considered connected only after all of the following 
 7. Procurement and production remain separate decisions, with production **NO-GO** until every criterion passes.
 
 Until these criteria are proven, the contract is specified but the producer connection remains **OPEN / HOLD**.
+
+## Versioned G0–G6 gate policy
+
+The contract now binds the signed attestation to `gatePolicyVersion=1.0.0` and the SHA-256 digest of the canonical `contracts/production-acceptance/gate-policy-v1.json` document. Each gate includes a fixed `policyId`; the verifier rejects a different policy version/digest, duplicate or missing gates, and evidence that cites a suite other than the one designated for that gate.
+
+- **G0 — source-revision-binding:** pinned repository and full source commit match the workflow head.
+- **G1 — required-ci-suites-pass:** all deployment-required suites pass on that exact commit and workflow attempt.
+- **G2 — immutable-artifact-provenance:** artifact digest is pinned and provenance binds the artifact to the source.
+- **G3 — supply-chain-attestation:** required provenance/SBOM attestations validate against independent trust policy.
+- **G4 — security-policy-pass:** required security/admission checks pass; missing, skipped, or unknown results deny acceptance.
+- **G5 — runtime-health:** trusted live health observes the expected build and artifact digest in production.
+- **G6 — residual-measurement:** fresh, source-pinned, same-build residual is finite and meets the configured cone policy.
+
+These identifiers and suite names define the contract, not proof that those real-world checks have executed. In particular, G2–G5 need producer-side integrations that independently collect and verify their underlying evidence. A signed string asserting those suites passed is not a replacement for those integrations.
 
 ## Proof-carrying contract status
 
