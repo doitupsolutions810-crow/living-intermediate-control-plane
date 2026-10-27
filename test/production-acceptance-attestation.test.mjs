@@ -161,6 +161,25 @@ assert.equal(verifyProductionAcceptanceAttestation(
 ).valid, false, 'expired attestation rejected');
 
 assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ execution: {
+    ...good.execution,
+    startedAt: new Date(now - 20 * 60_000).toISOString(),
+    completedAt: new Date(now - 10 * 60_000).toISOString(),
+  } }), options,
+).valid, false, 'old successful workflow run is not refreshed by a newly signed attestation');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({
+    generatedAt: new Date(now - 1000).toISOString(),
+    execution: {
+      ...good.execution,
+      startedAt: new Date(now - 10 * 60_000).toISOString(),
+      completedAt: new Date(now - 6 * 60_000).toISOString(),
+    },
+  }), options,
+).valid, false, 'workflow evidence stale at attestation generation is rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
   fixture({ gates: ['G0','G1','G2','G3','G4','G5'].map(id => ({ id, status: 'PASS', evidence: [] })) }), options,
 ).valid, false, 'missing production gate rejected');
 
