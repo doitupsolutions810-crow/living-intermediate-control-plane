@@ -9,92 +9,214 @@ import {
 } from '../lib/production-acceptance-attestation.mjs';
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');
-const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' });
 const publicPem = publicKey.export({ type: 'spki', format: 'pem' });
 const keyId = 'unit-production-acceptance-key';
-const buildId = 'build-sha-0123456789abcdef';
+const buildId = 'test-build-2026-10-27-1';
 const residualSourceId = 'trusted-live-topology-measurer';
+const repository = 'doitupsolutions810-crow/living-intermediate-control-plane';
+const commitSha = 'a'.repeat(40);
+const artifactDigest = 'sha256:' + 'b'.repeat(64);
+const requiredSuiteNames = ['focused-contract-tests', 'repository-test-suite'];
+const runId = 12345;
+const runAttempt = 2;
+const runUrl = 'https://github.com/' + repository + '/actions/runs/' + runId;
 const now = Date.now();
 
+function sha(text) {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
 function fixture(overrides = {}) {
+  const suiteResults = requiredSuiteNames.map((name, index) => ({
+    name,
+    conclusion: 'success',
+    headSha: commitSha,
+    runId,
+    runAttempt,
+    evidenceUrl: runUrl + '/jobs/' + (900 + index),
+    evidenceDigest: sha('suite-evidence:' + name),
+  }));
+  const suiteByName = new Map(suiteResults.map(suite => [suite.name, suite]));
   const body = {
     schema: PRODUCTION_ACCEPTANCE_SCHEMA,
     issuer: PRODUCTION_ACCEPTANCE_ISSUER,
     keyId,
     environment: 'production',
     buildId,
-    generatedAt: new Date(now - 1000).toISOString(),
+    generatedAt: new Date(now - 500).toISOString(),
     expiresAt: new Date(now + 60_000).toISOString(),
-    gates: ['G0','G1','G2','G3','G4','G5','G6'].map(id => ({ id, status: 'PASS' })),
-    residual: { schema: 'great-scale.residual-attestation/v1', sourceId: residualSourceId, buildId, measuredAt: new Date(now - 1000).toISOString(), S: 0 },
+    source: { repository, commitSha },
+    execution: {
+      runId,
+      runAttempt,
+      runUrl,
+      headSha: commitSha,
+      conclusion: 'success',
+      completedAt: new Date(now - 1000).toISOString(),
+    },
+    artifact: { name: 'control-plane-release', digest: artifactDigest },
+    suiteResults,
+    gates: ['G0','G1','G2','G3','G4','G5','G6'].map((id, index) => {
+      const suiteName = requiredSuiteNames[index % requiredSuiteNames.length];
+      return {
+        id,
+        status: 'PASS',
+        evidence: [{
+          suiteName,
+          evidenceDigest: suiteByName.get(suiteName).evidenceDigest,
+          observedAt: new Date(now - 1500).toISOString(),
+        }],
+      };
+    }),
+    residual: {
+      schema: 'great-scale.residual-attestation/v1',
+      sourceId: residualSourceId,
+      buildId,
+      measuredAt: new Date(now - 1000).toISOString(),
+      S: 0,
+    },
     ...overrides,
   };
   const payload = canonicalAcceptanceJson(body);
   return {
     ...body,
-    digest: createHash('sha256').update(payload, 'utf8').digest('hex'),
+    digest: sha(payload),
     signature: sign(null, Buffer.from(payload, 'utf8'), privateKey).toString('base64'),
   };
 }
-const options = { publicKeyPem: publicPem, keyId, buildId, residualSourceId, now };
+
+const options = {
+  publicKeyPem: publicPem,
+  keyId,
+  buildId,
+  residualSourceId,
+  repository,
+  commitSha,
+  artifactDigest,
+  requiredSuiteNames,
+  now,
+};
 
 const good = fixture();
-assert.equal(verifyProductionAcceptanceAttestation(good, options).valid, true, 'valid signed G0-G6 attestation accepted');
+assert.equal(verifyProductionAcceptanceAttestation(good, options).valid, true,
+  'valid proof-carrying G0-G6 attestation accepted');
 
-const tampered = { ...good, environment: 'staging' };
-assert.equal(verifyProductionAcceptanceAttestation(tampered, options).valid, false, 'tampered payload rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  { ...good, environment: 'staging' }, options,
+).valid, false, 'tampered signed payload rejected');
 
-const wrongKey = verifyProductionAcceptanceAttestation(good, { ...options, keyId: 'untrusted-key' });
-assert.equal(wrongKey.valid, false, 'wrong pinned key id rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, keyId: 'untrusted-key' },
+).valid, false, 'wrong pinned key id rejected');
 
-const wrongBuild = verifyProductionAcceptanceAttestation(good, { ...options, buildId: 'different-build' });
-assert.equal(wrongBuild.valid, false, 'wrong build identity rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, buildId: 'different-build' },
+).valid, false, 'wrong build identity rejected');
 
-const stale = fixture({ generatedAt: new Date(now - 10 * 60_000).toISOString() });
-assert.equal(verifyProductionAcceptanceAttestation(stale, options).valid, false, 'stale attestation rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, repository: 'another-owner/another-repository' },
+).valid, false, 'wrong pinned source repository rejected');
 
-const incomplete = fixture({ gates: ['G0','G1','G2','G3','G4','G5'].map(id => ({ id, status: 'PASS' })) });
-assert.equal(verifyProductionAcceptanceAttestation(incomplete, options).valid, false, 'missing production gate rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, commitSha: 'c'.repeat(40) },
+).valid, false, 'wrong pinned source commit rejected');
 
-const failGate = fixture({ gates: ['G0','G1','G2','G3','G4','G5','G6'].map((id, i) => ({ id, status: i === 6 ? 'FAIL' : 'PASS' })) });
-assert.equal(verifyProductionAcceptanceAttestation(failGate, options).valid, false, 'failed production gate rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, artifactDigest: 'sha256:' + 'c'.repeat(64) },
+).valid, false, 'wrong pinned artifact digest rejected');
 
-assert.equal(verifyProductionAcceptanceAttestation(null, options).valid, false, 'missing attestation rejected');
-assert.equal(verifyProductionAcceptanceAttestation(good, { ...options, publicKeyPem: '' }).valid, false, 'missing pinned key rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, requiredSuiteNames: ['only-one-suite'] },
+).valid, false, 'consumer policy cannot be weakened by the attestation suite set');
 
-const noResidual = { ...good };
-delete noResidual.residual;
-assert.equal(verifyProductionAcceptanceAttestation(noResidual, options).valid, false, 'missing residual measurement rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ generatedAt: new Date(now - 10 * 60_000).toISOString() }), options,
+).valid, false, 'stale attestation rejected');
 
-const staleResidual = fixture({ residual: { schema: 'great-scale.residual-attestation/v1', sourceId: residualSourceId, buildId, measuredAt: new Date(now - 10 * 60_000).toISOString(), S: 0 } });
-assert.equal(verifyProductionAcceptanceAttestation(staleResidual, options).valid, false, 'stale residual measurement rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ expiresAt: new Date(now - 1000).toISOString() }), options,
+).valid, false, 'expired attestation rejected');
 
-const wrongResidualSource = fixture({ residual: { schema: 'great-scale.residual-attestation/v1', sourceId: 'untrusted-source', buildId, measuredAt: new Date(now - 1000).toISOString(), S: 0 } });
-assert.equal(verifyProductionAcceptanceAttestation(wrongResidualSource, options).valid, false, 'untrusted residual source rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: ['G0','G1','G2','G3','G4','G5'].map(id => ({ id, status: 'PASS', evidence: [] })) }), options,
+).valid, false, 'missing production gate rejected');
 
-const outOfCone = fixture({ residual: { schema: 'great-scale.residual-attestation/v1', sourceId: residualSourceId, buildId, measuredAt: new Date(now - 1000).toISOString(), S: -1 } });
-assert.equal(verifyProductionAcceptanceAttestation(outOfCone, options).valid, false, 'residual outside cone rejected');
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: ['G0','G1','G2','G3','G4','G5','G6'].map((id, i) => ({
+    id, status: i === 6 ? 'FAIL' : 'PASS', evidence: [],
+  })) }), options,
+).valid, false, 'failed production gate rejected');
 
-const callerTrustOverride = evaluateProductionAuthorization({
-  coreReady: true,
-  supplyChainOk: true,
-  productionAcceptanceAttestation: good,
-  acceptanceVerificationOptions: options,
-  env: {},
-  config: {},
-  S: 0,
-  requireCone: true,
-});
-assert.equal(callerTrustOverride.productionAuthorized, false, 'caller-supplied verifier key and build options cannot override deployment trust anchors');
+assert.equal(verifyProductionAcceptanceAttestation(null, options).valid, false,
+  'missing attestation rejected');
 
-const procurementGateReplay = fixture({
-  gates: ['E0','E1','E2','E3','E4','E5','E6'].map(id => ({ id, status: 'PASS' })),
-});
-assert.equal(
-  verifyProductionAcceptanceAttestation(procurementGateReplay, options).valid,
-  false,
-  'signed E0-E6 procurement checks cannot be relabeled as G0-G6 production acceptance',
-);
+assert.equal(verifyProductionAcceptanceAttestation(
+  good, { ...options, publicKeyPem: '' },
+).valid, false, 'missing pinned key rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ source: { repository, commitSha: 'f'.repeat(40) } }), options,
+).valid, false, 'source revision drift rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ execution: { ...good.execution, headSha: 'c'.repeat(40) } }), options,
+).valid, false, 'workflow head must match the source revision');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ execution: { ...good.execution, runUrl: 'https://github.com/other/repo/actions/runs/12345' } }), options,
+).valid, false, 'workflow URL must bind to source repository and run ID');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ execution: { ...good.execution, conclusion: 'failure' } }), options,
+).valid, false, 'failed workflow is non-authorizing');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ suiteResults: good.suiteResults.slice(0, 1) }), options,
+).valid, false, 'missing required suite result rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ suiteResults: [good.suiteResults[0], { ...good.suiteResults[1], name: good.suiteResults[0].name }] }), options,
+).valid, false, 'duplicate suite result rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ suiteResults: good.suiteResults.map((suite, index) => index === 1
+    ? { ...suite, headSha: 'd'.repeat(40) } : suite) }), options,
+).valid, false, 'suite result from another revision rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ suiteResults: good.suiteResults.map((suite, index) => index === 1
+    ? { ...suite, runAttempt: 1 } : suite) }), options,
+).valid, false, 'suite result from another run attempt rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ suiteResults: good.suiteResults.map((suite, index) => index === 1
+    ? { ...suite, evidenceUrl: 'https://evil.example.test/evidence' } : suite) }), options,
+).valid, false, 'suite evidence URL must be pinned to the workflow run');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: good.gates.map((gate, index) => index === 0
+    ? { ...gate, evidence: [{ ...gate.evidence[0], suiteName: 'undeclared-suite' }] } : gate) }), options,
+).valid, false, 'gate may not reference an undeclared suite');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: good.gates.map((gate, index) => index === 0
+    ? { ...gate, evidence: [{ ...gate.evidence[0], evidenceDigest: 'c'.repeat(64) }] } : gate) }), options,
+).valid, false, 'gate evidence digest must match signed suite evidence');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: good.gates.map((gate, index) => index === 0
+    ? { ...gate, evidence: [{ ...gate.evidence[0], observedAt: new Date(now + 60_000).toISOString() }] } : gate) }), options,
+).valid, false, 'future gate evidence timestamp rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ artifact: { name: 'control-plane-release', digest: 'sha256:' + 'c'.repeat(64) } }), options,
+).valid, false, 'artifact digest is bound to the independently pinned digest');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ gates: ['E0','E1','E2','E3','E4','E5','E6'].map(id => ({
+    id, status: 'PASS', evidence: [],
+  })) }), options,
+).valid, false, 'signed E0-E6 procurement checks cannot be relabeled as G0-G6 production acceptance');
 
 const eNamespaceProducerDocument = {
   schema: 'great-scale.evidence-status/v5.4.0',
@@ -108,10 +230,20 @@ const eNamespaceProducerDocument = {
   keyId,
   signature: good.signature,
 };
-assert.equal(
-  verifyProductionAcceptanceAttestation(eNamespaceProducerDocument, options).valid,
-  false,
-  'E0-E6 producer document is not a G0-G6 acceptance artifact',
-);
+assert.equal(verifyProductionAcceptanceAttestation(eNamespaceProducerDocument, options).valid, false,
+  'E0-E6 producer document is not a G0-G6 acceptance artifact');
 
-console.log('production-acceptance-attestation.test.mjs: 16/16 passed');
+const callerTrustOverride = evaluateProductionAuthorization({
+  coreReady: true,
+  supplyChainOk: true,
+  productionAcceptanceAttestation: good,
+  acceptanceVerificationOptions: options,
+  env: {},
+  config: {},
+  S: 0,
+  requireCone: true,
+});
+assert.equal(callerTrustOverride.productionAuthorized, false,
+  'caller-supplied verifier options cannot override deployment trust anchors');
+
+console.log('production-acceptance-attestation: proof-carrying positive/negative assertions passed');
