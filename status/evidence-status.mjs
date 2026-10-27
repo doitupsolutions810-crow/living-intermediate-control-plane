@@ -19,9 +19,10 @@ import { parseResidualCoordinate, parseTopologySaturation } from '../lib/residua
 
 const [,, cmd, ...rest] = process.argv;
 
-function flag(name, fallback = null) {
+function flag(name) {
   const i = rest.indexOf(name);
-  return i >= 0 && rest[i + 1] != null ? rest[i + 1] : fallback;
+  if (i < 0) return undefined;
+  return rest[i + 1] != null && !rest[i + 1].startsWith('--') ? rest[i + 1] : '';
 }
 
 if (cmd === 'emit') {
