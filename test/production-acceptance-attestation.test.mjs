@@ -107,6 +107,10 @@ assert.equal(verifyProductionAcceptanceAttestation(good, options).valid, true,
   'valid proof-carrying G0-G6 attestation accepted');
 
 assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ generatedAt: new Date(now - 500).toISOString() }), options,
+).valid, true, 'valid RFC3339 timestamp with fractional seconds accepted');
+
+assert.equal(verifyProductionAcceptanceAttestation(
   { ...good, environment: 'staging' }, options,
 ).valid, false, 'tampered signed payload rejected');
 
