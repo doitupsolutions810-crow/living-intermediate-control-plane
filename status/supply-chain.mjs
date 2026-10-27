@@ -14,6 +14,7 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { currentRevision } from '../lib/supply-chain-runtime.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -24,13 +25,6 @@ const attestationBundlePath = join(dataDir, 'supply-chain-last.bundle.json');
 const imageRef = process.env.IMAGE_REF || '';
 const doSign = process.env.SUPPLY_CHAIN_SIGN === '1';
 const allowSkip = process.env.ALLOW_SKIP !== '0' && process.env.ALLOW_SKIP !== 'false';
-
-function currentRevision() {
-  const supplied = (process.env.GITHUB_SHA || '').trim();
-  if (supplied) return supplied;
-  const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
-  return result.status === 0 ? result.stdout.trim() : '';
-}
 
 function run(name, script, env = {}) {
   process.stdout.write(`\n======== supply-chain: ${name} ========\n`);
@@ -94,7 +88,7 @@ try {
   version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 } catch {}
 
-const revision = currentRevision();
+const revision = currentRevision({ root, env: process.env });
 const summary = {
   timestamp: new Date().toISOString(),
   revision: revision || null,
