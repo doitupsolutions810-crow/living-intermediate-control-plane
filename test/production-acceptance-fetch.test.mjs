@@ -120,7 +120,6 @@ test('network timeout returns no attestation', async () => {
   }), null);
 });
 
-console.log('production-acceptance-fetch.test.mjs: 9/9 cases defined');
 
 test('cancels rejected response bodies instead of leaving untrusted streams open', async () => {
   let cancelled = 0;
