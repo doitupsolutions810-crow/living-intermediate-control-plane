@@ -47,6 +47,7 @@ const expected = {
   targetArtifactName: 'living-intermediate-control-plane-release.tar.zst',
   targetArtifactDigest,
   numericalVerifierId,
+  numericalCertificateEvidenceOrigin: new URL(proofUrl).origin,
   residualSourceId: GREAT_SCALE_G6_RECEIPT_ISSUER,
   g6ReceiptSchemaBlobSha: GREAT_SCALE_G6_RECEIPT_SCHEMA_BLOB_SHA,
 };
@@ -366,6 +367,18 @@ test('numerical certificate needs its own valid Ed25519 signature', () => {
   const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('g6_numerical_certificate_signature_verification_failed'));
+});
+
+test('numerical proof evidence must use the independently pinned HTTPS origin', () => {
+  const fixture = makeFixture({
+    certificateChanges: { evidenceUrl: 'https://untrusted.example/numerical-certificates/proof.json' },
+  });
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.failures.includes('g6_numerical_certificate_evidence_origin_mismatch'),
+    result.failures.join(','),
+  );
 });
 
 test('the certificate proof digest must match the exact fetched bytes at its declared URL', () => {
