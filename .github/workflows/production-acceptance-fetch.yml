@@ -12,6 +12,7 @@ on:
       - "integrate.mjs"
       - "test/production-acceptance-attestation.test.mjs"
       - "contracts/production-acceptance/v1.schema.json"
+      - "contracts/production-acceptance/gate-policy-v1.json"
       - "test/production-acceptance-schema.test.mjs"
       - "test/production-acceptance-fetch.test.mjs"
       - ".github/workflows/production-acceptance-fetch.yml"
