@@ -292,6 +292,26 @@ test('valid, dual-signed G6 receipt maps to the compact build-bound residual', (
   assert.equal(result.verified.targetBuildId, targetBuildId);
 });
 
+test('numerical certificate is bound to the exact canonical measurement payload', () => {
+  const fixture = makeFixture();
+  const changedMeasurement = {
+    ...fixture.receipt.measurement,
+    signedTopologicalPolarization: 0.4,
+  };
+  // Re-sign the outer receipt so this regression isolates the inner certificate's
+  // measurement binding rather than merely detecting outer-signature tampering.
+  const alteredReceipt = signReceipt({
+    ...fixture.receipt,
+    measurement: changedMeasurement,
+  });
+  const result = verifyGreatScaleG6ResidualReceipt(alteredReceipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(
+    result.failures.includes('g6_numerical_certificate_measurement_digest_mismatch'),
+    result.failures.join(','),
+  );
+});
+
 test('missing deployment pins and independent trust anchors fail closed', () => {
   const fixture = makeFixture();
   const missing = verifyGreatScaleG6ResidualReceipt(fixture.receipt);
