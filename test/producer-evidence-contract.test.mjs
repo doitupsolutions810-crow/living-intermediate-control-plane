@@ -17,6 +17,18 @@ function sha(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+function resign(status, schema) {
+  status.sourceSchemaDigest = sha(canonicalSourceJson(schema));
+  delete status.sourceEvidenceDigest;
+  delete status.sourceSignature;
+  status.sourceEvidenceDigest = sha(canonicalSourceJson(status));
+  const message = [
+    status.sourceIdentity, status.sourceKeyId, status.sourceGeneratedAt,
+    status.sourceExpiresAt, status.sourceEvidenceDigest,
+  ].join('\n');
+  status.sourceSignature = sign(null, Buffer.from(message), privateKey).toString('base64');
+}
+
 function fixture(at = now) {
   const properties = Object.fromEntries(Object.entries(EVIDENCE_CONTRACT).map(([key, value]) => [key, { const: value }]));
   Object.assign(properties, {
@@ -108,4 +120,40 @@ test('rejects missing independently pinned key configuration', () => {
   const result = verifyProducerEvidenceContract(status, schema, { publicKeyPem: '', keyId, now });
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('pinned_public_key_not_configured'));
+});
+
+test('rejects weakened required-field schema even when it is re-digested and correctly signed', () => {
+  const { status, schema } = fixture();
+  schema.required = schema.required.filter(field => field !== 'gates');
+  resign(status, schema);
+  const result = verifyProducerEvidenceContract(status, schema, { publicKeyPem, keyId, now });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('source_schema_required_fields_invalid'));
+});
+
+test('rejects schema without exact once-per-gate coverage even when correctly signed', () => {
+  const { status, schema } = fixture();
+  schema.properties.gates.allOf = schema.properties.gates.allOf.slice(1);
+  resign(status, schema);
+  const result = verifyProducerEvidenceContract(status, schema, { publicKeyPem, keyId, now });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('source_schema_gate_contract_invalid'));
+});
+
+test('rejects schema permitting duplicate gate entries even when correctly signed', () => {
+  const { status, schema } = fixture();
+  schema.properties.gates.uniqueItems = false;
+  resign(status, schema);
+  const result = verifyProducerEvidenceContract(status, schema, { publicKeyPem, keyId, now });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('source_schema_gate_contract_invalid'));
+});
+
+test('rejects invalid calendar timestamps rather than accepting Date.parse normalization', () => {
+  const { status, schema } = fixture();
+  status.sourceGeneratedAt = '2026-02-30T12:00:00.000Z';
+  resign(status, schema);
+  const result = verifyProducerEvidenceContract(status, schema, { publicKeyPem, keyId, now });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('freshness_timestamps_invalid'));
 });
