@@ -4,6 +4,36 @@ export type LatticeContext = {
   offline?: boolean;
 };
 
+export type PlatformComponent = {
+  id: string;
+  version?: string;
+  kind?: string;
+  registeredAt?: string;
+};
+
+export type ComponentRegistrySnapshot =
+  | { status: 'available'; components: PlatformComponent[] }
+  | { status: 'unavailable'; httpStatus?: number }
+  | { status: 'invalid' };
+
+function isPlatformComponent(value: unknown): value is PlatformComponent {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const component = value as Record<string, unknown>;
+  return (
+    typeof component.id === 'string' &&
+    (component.version === undefined || typeof component.version === 'string') &&
+    (component.kind === undefined || typeof component.kind === 'string') &&
+    (component.registeredAt === undefined || typeof component.registeredAt === 'string')
+  );
+}
+
+function parseComponentRegistry(value: unknown): ComponentRegistrySnapshot {
+  if (!Array.isArray(value) || !value.every(isPlatformComponent)) {
+    return { status: 'invalid' };
+  }
+  return { status: 'available', components: value };
+}
+
 function platformBase() {
   return (process.env.CONTROL12_PLATFORM_URL || '').replace(/\/$/, '');
 }
@@ -63,13 +93,17 @@ export async function fetchPlatformSnapshot() {
   delete headers['content-type'];
 
   try {
-    const [health, security, spectrum] = await Promise.all([
+    const [health, security, spectrum, componentRegistry] = await Promise.all([
       fetch(`${platformUrl}/health`, { headers, signal: AbortSignal.timeout(8000) }),
       fetch(`${platformUrl}/api/v1/security/status`, {
         headers,
         signal: AbortSignal.timeout(8000)
       }),
       fetch(`${platformUrl}/api/v1/audio/spectrum`, {
+        headers,
+        signal: AbortSignal.timeout(8000)
+      }),
+      fetch(`${platformUrl}/api/v1/components`, {
         headers,
         signal: AbortSignal.timeout(8000)
       })
@@ -98,6 +132,18 @@ export async function fetchPlatformSnapshot() {
       out.lattice = null;
     }
     out.spectrum = spectrum.ok ? await spectrum.json() : null;
+    if (componentRegistry.ok) {
+      try {
+        out.componentRegistry = parseComponentRegistry(await componentRegistry.json());
+      } catch {
+        out.componentRegistry = { status: 'invalid' };
+      }
+    } else {
+      out.componentRegistry = {
+        status: 'unavailable',
+        httpStatus: componentRegistry.status
+      };
+    }
     out.platform = { ok: health.ok };
   } catch (e) {
     out.platform = { ok: false, error: e instanceof Error ? e.message : String(e) };

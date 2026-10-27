@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentRegistrySnapshot } from '../lib/avrone-client';
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string };
 
@@ -16,6 +17,7 @@ type Cockpit = {
     authority?: string;
     note?: string;
   };
+  componentRegistry?: ComponentRegistrySnapshot;
 };
 
 function statusTone(ok: boolean | undefined, configured: boolean | undefined) {
@@ -249,6 +251,44 @@ export default function Page() {
           <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>{evidence.note}</p>
         ) : null}
       </header>
+
+      <section
+        aria-label="Registered platform components"
+        style={{
+          padding: 16,
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          background: 'var(--bg-elevated)'
+        }}
+      >
+        <h2 style={{ margin: '0 0 6px', fontSize: 16 }}>Registered platform components</h2>
+        <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--muted)' }}>
+          Local registry entries only; registration is not cross-repository verification.
+        </p>
+        {cockpit?.componentRegistry?.status === 'available' ? (
+          cockpit.componentRegistry.components.length ? (
+            <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 6 }}>
+              {cockpit.componentRegistry.components.map(component => (
+                <li key={component.id}>
+                  <strong>{component.id}</strong>
+                  {component.kind ? ` · ${component.kind}` : ''}
+                  {component.version ? ` · v${component.version}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={{ margin: 0, color: 'var(--muted)' }}>No components registered.</p>
+          )
+        ) : (
+          <p style={{ margin: 0, color: 'var(--warn)' }}>
+            {cockpit?.componentRegistry?.status === 'unavailable'
+              ? `Registry unavailable${cockpit.componentRegistry.httpStatus ? ` (HTTP ${cockpit.componentRegistry.httpStatus})` : ''}.`
+              : cockpit?.componentRegistry?.status === 'invalid'
+                ? 'Registry returned invalid component data.'
+                : 'Loading component registry…'}
+          </p>
+        )}
+      </section>
 
       <section
         style={{
