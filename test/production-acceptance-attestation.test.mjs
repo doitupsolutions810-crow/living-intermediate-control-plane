@@ -74,4 +74,4 @@ assert.equal(verifyProductionAcceptanceAttestation(wrongResidualSource, options)
 const outOfCone = fixture({ residual: { schema: 'great-scale.residual-attestation/v1', sourceId: residualSourceId, buildId, measuredAt: new Date(now - 1000).toISOString(), S: -1 } });
 assert.equal(verifyProductionAcceptanceAttestation(outOfCone, options).valid, false, 'residual outside cone rejected');
 
-console.log('production-acceptance-attestation.test.mjs: 12/12 passed');
+console.log('production-acceptance-attestation.test.mjs: 13/13 passed');
