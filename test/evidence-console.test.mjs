@@ -77,7 +77,10 @@ function goodSchema(overrides = {}) {
     version: constraint(expected.version),
     sourceIdentity: constraint('control12-evidence-console'),
     sourceKeyId: constraint('fixture-key-1'),
-    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}
+    sourceEvidenceDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+    sourceSignature: { type: 'string', pattern: '^[A-Za-z0-9+/]{86}==$' },
+    sourceGeneratedAt: { type: 'string', format: 'date-time' },
+    sourceExpiresAt: { type: 'string', format: 'date-time' },
     runtime: constraint(expected.runtime),
     privacy: constraint(expected.privacy),
     serverSideEvidenceStorage: constraint(false),
@@ -86,7 +89,7 @@ function goodSchema(overrides = {}) {
     requiredEvidenceClass: constraint(expected.requiredEvidenceClass),
     requiredEnvironment: constraint(expected.requiredEnvironment),
     mandatoryGates: constraint(7),
-    overall: { enum: ['READY', 'HOLD'] },
+    overall: constraint('READY'),
     gates: {
       type: 'array',
       minItems: 7,
@@ -99,6 +102,7 @@ function goodSchema(overrides = {}) {
       })),
       items: {
         type: 'object',
+        additionalProperties: false,
         required: ['id', 'status'],
         properties: {
           id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
@@ -110,6 +114,7 @@ function goodSchema(overrides = {}) {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     type: 'object',
+    additionalProperties: false,
     required: [...Object.keys(expected), 'sourceIdentity', 'sourceKeyId', 'sourceEvidenceDigest', 'sourceSignature', 'sourceGeneratedAt', 'sourceExpiresAt', 'overall', 'gates'],
     properties: { ...properties, ...overrides }
   };
@@ -375,6 +380,42 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
+
+test('schema values must be exact, not enums that merely include READY', () => {
+  const weakPolicy = goodSchema();
+  weakPolicy.properties.syntheticEvidenceRejected = { enum: [true, false] };
+  const policyResult = validateEvidenceConsoleContract(goodStatus(), weakPolicy);
+  assert.equal(policyResult.valid, false);
+  assert.ok(policyResult.failures.includes('schema_syntheticEvidenceRejected_constraint_mismatch'));
+
+  const weakOverall = goodSchema();
+  weakOverall.properties.overall = { enum: ['READY', 'HOLD'] };
+  const overallResult = validateEvidenceConsoleContract(goodStatus(), weakOverall);
+  assert.equal(overallResult.valid, false);
+  assert.ok(overallResult.failures.includes('schema_overall_constraint_mismatch'));
+});
+
+test('schema and status must contain only the exact contract fields', () => {
+  const extraSchema = goodSchema();
+  extraSchema.properties.operatorNote = { type: 'string' };
+  const schemaResult = validateEvidenceConsoleContract(goodStatus(), extraSchema);
+  assert.equal(schemaResult.valid, false);
+  assert.ok(schemaResult.failures.includes('schema_properties_not_exact'));
+
+  const extraStatus = goodStatus({ operatorNote: 'untrusted addition' });
+  const statusResult = validateEvidenceConsoleContract(extraStatus, goodSchema());
+  assert.equal(statusResult.valid, false);
+  assert.ok(statusResult.failures.includes('status_fields_not_exact'));
+});
+
+test('array item schema must reject unrecognized contract-check fields', () => {
+  const weakened = goodSchema();
+  weakened.properties.gates.items.additionalProperties = true;
+  const result = validateEvidenceConsoleContract(goodStatus(), weakened);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
+});
+
 test('object-form gate map validates only the required E0-E6 properties', () => {
   const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
@@ -406,41 +447,3 @@ test('object-form gate schema must reject additional gate properties', () => {
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
- },
-    sourceSignature: { type: 'string', pattern: '^[A-Za-z0-9+/]{86}==
-    runtime: constraint(expected.runtime),
-    privacy: constraint(expected.privacy),
-    serverSideEvidenceStorage: constraint(false),
-    syntheticEvidenceRejected: constraint(true),
-    productionEvidenceClassRequired: constraint(true),
-    requiredEvidenceClass: constraint(expected.requiredEvidenceClass),
-    requiredEnvironment: constraint(expected.requiredEnvironment),
-    mandatoryGates: constraint(7),
-    overall: { enum: ['READY', 'HOLD'] },
-    gates: {
-      type: 'array',
-      minItems: 7,
-      maxItems: 7,
-      uniqueItems: true,
-      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
-        contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
-        minContains: 1,
-        maxContains: 1
-      })),
-      items: {
-        type: 'object',
-        required: ['id', 'status'],
-        properties: {
-          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
-          status: constraint('READY')
-        }
-      }
-    }
-  };
-  return {
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    type: 'object',
-    required: [...Object.keys(expected), 'sourceGeneratedAt', 'sourceExpiresAt', 'overall', 'gates'],
-    properties: { ...properties, ...overrides }
-  };
-}
