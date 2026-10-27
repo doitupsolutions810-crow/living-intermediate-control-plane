@@ -59,7 +59,7 @@ The following JSON shape is normative for the proposal. Fields marked required m
 }
 ```
 
-The example is a schema proposal, not a claim that the current repositories emit these fields. A formal JSON Schema and canonicalization profile must be added before implementation.
+The formal draft JSON Schema is `schemas/cross-repository-evidence-envelope-v1.schema.json`. It validates structural shape and selected conditional rules only; it does not validate cryptographic signatures, issuer authorization, canonicalization, freshness against a trusted clock, replay state, or revision/digest matching. The schema and this contract remain proposals, and current repositories are not claimed to emit these fields.
 
 ## 3. Producer obligations
 
