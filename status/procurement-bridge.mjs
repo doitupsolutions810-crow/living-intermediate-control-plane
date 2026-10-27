@@ -11,21 +11,32 @@
 
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
 import { createOrchestrationPlan, evaluateQuorum } from '../agents/orchestration.mjs';
+import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
+import { acceptsLocalEvidence, isEvidenceAuthorized } from '../lib/evidence-authorization.mjs';
 
 const readiness = emitReadinessEvidence();
 const plan = evaluateQuorum(createOrchestrationPlan('procurement-check'));
 
-const localEvidenceAuthority = process.env.ACCEPT_LOCAL_EVIDENCE === '1' || process.env.ACCEPT_LOCAL_EVIDENCE === 'true';
+const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
+const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env });
+const evidenceAuthorized = isEvidenceAuthorized({
+  status: evidenceConsole.status,
+  authority: evidenceConsole.authority,
+  localOptIn: localEvidenceAuthority
+});
 
 const criteria = {
   readinessReady: readiness.overallDecision === 'READY' && readiness.failedGates.length === 0,
   rolesReady: plan.overallDecision === 'READY',
   supplyChainAssumedActive: true, // PR #12 already merged on main
-  localEvidenceAccepted: localEvidenceAuthority
+  localEvidenceAccepted: localEvidenceAuthority,
+  evidenceAuthorized,
+  evidenceStatus: evidenceConsole.status,
+  evidenceAuthority: evidenceConsole.authority
 };
 
 const allCoreMet = criteria.readinessReady && criteria.rolesReady && criteria.supplyChainAssumedActive;
-const procurementDecision = allCoreMet && (criteria.localEvidenceAccepted || process.env.FORCE_PROCUREMENT === '1')
+const procurementDecision = allCoreMet && evidenceAuthorized
   ? 'READY_FOR_PROCUREMENT'
   : 'HOLD_EVIDENCE_CONTROL';
 
@@ -40,7 +51,7 @@ const result = {
   },
   note: procurementDecision === 'READY_FOR_PROCUREMENT'
     ? 'Local plane accepted as temporary evidence authority under Control704 override'
-    : 'Waiting for public evidence-console domain or explicit ACCEPT_LOCAL_EVIDENCE=1',
+    : 'HOLD: valid public evidence or explicit ACCEPT_LOCAL_EVIDENCE=1 is required; FORCE_PROCUREMENT cannot bypass evidence authorization',
   securityValue: 'High'
 };
 
