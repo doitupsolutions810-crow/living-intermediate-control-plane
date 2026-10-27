@@ -12,7 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
-import { parseResidualInput } from '../lib/residual-input.mjs';
+import { parseResidualInput, residualInputGateEligible } from '../lib/residual-input.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -34,23 +34,27 @@ console.log('Self-test — Living Intermediate Control Plane\n');
 // Residual input is parsed strictly; invalid values cannot silently become S=0.
 const residualDefault = parseResidualInput(undefined);
 assert(residualDefault.valid && !residualDefault.provided && residualDefault.value === 0 && residualDefault.source === 'default' && residualDefault.decision === 'HOLD_RESIDUAL_UNSET', 'unset residual is explicitly labeled default and not treated as supplied input');
+assert(residualInputGateEligible(residualDefault) === false, 'unset residual default cannot satisfy residual gate');
 for (const raw of ['0', '0.125', '0.25', '.125', '1.25e-1']) {
   const parsed = parseResidualInput(raw);
   assert(parsed.valid && parsed.provided && parsed.decision === null, 'valid residual accepted: ' + raw);
+  assert(residualInputGateEligible(parsed) === true, 'explicit valid residual can satisfy input eligibility: ' + raw);
 }
 for (const raw of ['', '   ', 'NaN', 'Infinity', '-Infinity', 'bad', '0x10', '1e999', '1e-999']) {
   const parsed = parseResidualInput(raw);
   assert(!parsed.valid && parsed.provided && parsed.decision === 'HOLD_INVALID_RESIDUAL', 'malformed/non-finite residual rejected: ' + raw);
+  assert(residualInputGateEligible(parsed) === false, 'malformed residual cannot satisfy gate: ' + raw);
 }
 for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
   const parsed = parseResidualInput(raw);
   assert(!parsed.valid && parsed.provided && parsed.decision === 'HOLD_RESIDUAL_DOMAIN', 'out-of-domain residual rejected: ' + raw);
+  assert(residualInputGateEligible(parsed) === false, 'out-of-domain residual cannot satisfy gate: ' + raw);
 }
 
 // Invalid residual input must not be mislabeled as merely awaiting public evidence.
 const integrationSource = readFileSync(join(root, 'integrate.mjs'), 'utf8');
 assert(integrationSource.includes('coreReady && residualInput.valid && residualInput.provided && !gates.procurement.evidenceAuthorized'), 'invalid or unset residual cannot produce local-evidence readiness label');
-assert(integrationSource.includes('coreReady: coreReady && residualInput.valid && residualInput.provided'), 'unset default cannot satisfy gate core readiness');
+assert(integrationSource.includes('coreReady: coreReady && residualInputGateEligible(residualInput)'), 'integration delegates residual gate eligibility to tested helper');
 
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
