@@ -13,6 +13,7 @@ import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
 import { parseResidualInput, residualInputGateEligible } from '../lib/residual-input.mjs';
+import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -55,6 +56,13 @@ for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
 const integrationSource = readFileSync(join(root, 'integrate.mjs'), 'utf8');
 assert(integrationSource.includes('coreReady && residualInput.valid && residualInput.provided && !gates.procurement.evidenceAuthorized'), 'invalid or unset residual cannot produce local-evidence readiness label');
 assert(integrationSource.includes('coreReady: coreReady && residualInputGateEligible(residualInput)'), 'integration delegates residual gate eligibility to tested helper');
+
+// Production authorization is a distinct namespace and fails closed without each prerequisite.
+assert(evaluateProductionAuthorization().productionAuthorized === false, 'production authorization denied by default');
+assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true }).productionAuthorized === false, 'production authorization denied without verified measurement attestation');
+assert(evaluateProductionAuthorization({ coreReady: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without supply-chain authorization');
+assert(evaluateProductionAuthorization({ supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without core readiness');
+assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === true, 'production gate combines core, supply chain, attestation flag, and cone');
 
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
