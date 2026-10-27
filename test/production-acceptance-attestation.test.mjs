@@ -297,4 +297,16 @@ assert.equal(verifyProductionAcceptanceAttestation(
   fixture({ execution: { ...good.execution, startedAt: new Date(now - 500).toISOString() } }), options,
 ).valid, false, 'workflow start after completion rejected');
 
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ generatedAt: 'October 27, 2026 00:00:00 GMT' }), options,
+).valid, false, 'non-RFC3339 but Date.parse-compatible attestation timestamp rejected');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ expiresAt: '2026-02-30T00:00:00Z' }), options,
+).valid, false, 'impossible calendar date rejected instead of normalized by Date.parse');
+
+assert.equal(verifyProductionAcceptanceAttestation(
+  fixture({ residual: { ...good.residual, measuredAt: 'October 27, 2026 00:00:00 GMT' } }), options,
+).valid, false, 'residual measurement timestamp must use strict RFC3339');
+ 
 console.log('production-acceptance-attestation: proof-carrying positive/negative assertions passed');
