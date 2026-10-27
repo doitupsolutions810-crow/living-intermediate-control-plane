@@ -30,7 +30,7 @@ function signStatus(status) {
     status.sourceGeneratedAt,
     status.sourceExpiresAt,
     status.sourceEvidenceDigest
-  ].join('\\n');
+  ].join('\n');
   status.sourceSignature = sign(null, Buffer.from(message), sourcePrivateKeyPem).toString('base64');
   return status;
 }
