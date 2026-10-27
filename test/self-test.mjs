@@ -101,8 +101,9 @@ const ok = await probeEvidenceConsole({
   acceptLocal: true,
   fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
 });
-assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(ok.status === 'invalid', 'HTTP 200 without the trust contract maps to invalid');
+assert(ok.authority === 'local', 'unverified public response stays on local fallback authority');
+assert(ok.trustContractVerified === false, 'HTTP reachability alone never verifies evidence trust');
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
