@@ -29,41 +29,53 @@ jobs:
 
     steps:
       - name: Checkout
+        id: checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
+        id: setup_node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Init local data
+        id: init_data
         run: node status/init.mjs
 
       - name: Upgrade check
+        id: upgrade_check
         run: node status/upgrade-check.mjs
 
       - name: Verify changes
+        id: verify_changes
         run: node status/verify-changes.mjs
 
       - name: Doctor
+        id: doctor
         run: node status/doctor.mjs
 
       - name: Self-test and platform tests
+        id: test_suite
         run: npm test
 
       - name: Health
+        id: health
         run: node status/health.mjs
 
       - name: Checklist
+        id: checklist
         run: node status/checklist.mjs
 
       - name: Smoke
+        id: smoke
         run: node status/smoke.mjs
 
       - name: Dry-run procure
+        id: dry_run_procure
         run: DRY_RUN=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure
 
       - name: Trivy FS scan
+        id: trivy_fs
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
@@ -75,6 +87,7 @@ jobs:
           trivy-config: trivy.yaml
 
       - name: Snyk open-source scan
+        id: snyk_open_source
         if: env.SNYK_TOKEN != ''
         uses: snyk/actions/node@master
         env:
@@ -83,8 +96,64 @@ jobs:
           args: --severity-threshold=high
 
       - name: Snyk open-source skipped (no token)
+        id: snyk_skipped
         if: env.SNYK_TOKEN == ''
         run: echo "SNYK_TOKEN not set — open-source Snyk skipped (set repo secret to enforce)"
+
+      - name: Summarize CI step outcomes
+        id: ci_diagnostics
+        if: always()
+        env:
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          SETUP_NODE_OUTCOME: ${{ steps.setup_node.outcome }}
+          INIT_DATA_OUTCOME: ${{ steps.init_data.outcome }}
+          UPGRADE_CHECK_OUTCOME: ${{ steps.upgrade_check.outcome }}
+          VERIFY_CHANGES_OUTCOME: ${{ steps.verify_changes.outcome }}
+          DOCTOR_OUTCOME: ${{ steps.doctor.outcome }}
+          TEST_SUITE_OUTCOME: ${{ steps.test_suite.outcome }}
+          HEALTH_OUTCOME: ${{ steps.health.outcome }}
+          CHECKLIST_OUTCOME: ${{ steps.checklist.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          DRY_RUN_PROCURE_OUTCOME: ${{ steps.dry_run_procure.outcome }}
+          TRIVY_FS_OUTCOME: ${{ steps.trivy_fs.outcome }}
+          SNYK_OPEN_SOURCE_OUTCOME: ${{ steps.snyk_open_source.outcome }}
+          SNYK_SKIPPED_OUTCOME: ${{ steps.snyk_skipped.outcome }}
+        run: |
+          {
+            echo "# Plane CI diagnostics"
+            echo
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Event: ${GITHUB_EVENT_NAME}"
+            echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Attempt: ${GITHUB_RUN_ATTEMPT}"
+            echo
+            echo "| Step | Outcome |"
+            echo "|---|---|"
+            echo "| Checkout | ${CHECKOUT_OUTCOME:-not-reported} |"
+            echo "| Setup Node | ${SETUP_NODE_OUTCOME:-not-reported} |"
+            echo "| Init local data | ${INIT_DATA_OUTCOME:-not-reported} |"
+            echo "| Upgrade check | ${UPGRADE_CHECK_OUTCOME:-not-reported} |"
+            echo "| Verify changes | ${VERIFY_CHANGES_OUTCOME:-not-reported} |"
+            echo "| Doctor | ${DOCTOR_OUTCOME:-not-reported} |"
+            echo "| Self-test and platform tests | ${TEST_SUITE_OUTCOME:-not-reported} |"
+            echo "| Health | ${HEALTH_OUTCOME:-not-reported} |"
+            echo "| Checklist | ${CHECKLIST_OUTCOME:-not-reported} |"
+            echo "| Smoke | ${SMOKE_OUTCOME:-not-reported} |"
+            echo "| Dry-run procure | ${DRY_RUN_PROCURE_OUTCOME:-not-reported} |"
+            echo "| Trivy FS | ${TRIVY_FS_OUTCOME:-not-reported} |"
+            echo "| Snyk open source | ${SNYK_OPEN_SOURCE_OUTCOME:-not-run} |"
+            echo "| Snyk skipped marker | ${SNYK_SKIPPED_OUTCOME:-not-run} |"
+          } | tee CI-DIAGNOSTICS.md | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload CI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plane-ci-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: CI-DIAGNOSTICS.md
+          if-no-files-found: warn
+          retention-days: 14
 
   docker-build:
     name: Docker, Trivy, OPA, Snyk container, registry, Cosign
