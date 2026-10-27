@@ -123,7 +123,7 @@ const coreReady =
 
 // An unset coordinate uses the documented default. Supplied malformed values fail closed.
 const residualInput = parseResidualCoordinate(process.env.GREAT_SCALE_S);
-const residualS = residualInput.valid ? residualInput.value : -1; // sentinel only to force cone HOLD
+const residualS = residualInput.gateValue;
 const gates = evaluateGateNamespaces({
   coreReady,
   evidenceConsole,
@@ -137,10 +137,8 @@ const gates = evaluateGateNamespaces({
 let decision;
 if (planeState.paused) {
   decision = 'PAUSED';
-} else if (!residualInput.valid) {
-  decision = 'HOLD_INVALID_RESIDUAL';
-} else if (!gates.procurement.coneCompliant) {
-  decision = 'HOLD_RESIDUAL_CONE';
+} else if (residualInput.decision) {
+  decision = residualInput.decision;
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
 } else if (coreReady && !gates.procurement.evidenceAuthorized) {
@@ -188,6 +186,8 @@ const result = {
     valid: residualInput.valid,
     source: residualInput.source,
     supplied: process.env.GREAT_SCALE_S !== undefined,
+    coneCompliant: residualInput.coneCompliant,
+    decision: residualInput.decision,
     error: residualInput.error
   },
   residual: residualInput.valid ? gates.residual : null,
