@@ -230,6 +230,7 @@ function makeFixture({
       version: expected.modelVersion,
       parameters: { ...expected.modelParameters, ...receiptChanges.model?.parameters },
       inputDigest: modelInputDigest,
+      modelG6CertificationEligible: false,
       ...receiptChanges.model,
       parameters: { ...expected.modelParameters, ...receiptChanges.model?.parameters },
     },
@@ -511,6 +512,22 @@ test('target revision, target build, and target artifact stay independently pinn
   assert.ok(result.failures.includes('g6_receipt_target_commit_mismatch'));
   assert.ok(result.failures.includes('g6_receipt_target_build_id_mismatch'));
   assert.ok(result.failures.includes('g6_receipt_target_artifact_digest_mismatch'));
+});
+
+test('model output cannot claim eligibility to self-certify G6', () => {
+  const fixture = makeFixture({
+    receiptChanges: { model: { modelG6CertificationEligible: true } },
+  });
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.includes('g6_model_must_not_self_certify'));
+});
+
+test('model receipt shape matches the exact schema including the non-self-certification flag', () => {
+  const fixture = makeFixture();
+  assert.equal(fixture.receipt.model.modelG6CertificationEligible, false);
+  const result = verifyGreatScaleG6ResidualReceipt(fixture.receipt, fixture.options);
+  assert.equal(result.valid, true, result.failures.join(','));
 });
 
 test('outer digest/signature tampering is rejected', () => {
