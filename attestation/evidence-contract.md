@@ -28,11 +28,11 @@
 - The client-side `checkedAt` timestamp is diagnostic only and must not be used as evidence-source freshness. Because the contract identifies the runtime as `read-only-dynamic`, the producer must still renew the source timestamp from a real readiness observation at least within this five-minute window. A timestamp baked into a static artifact once at build/deploy time will become stale and must not keep authorizing procurement. If the producer cannot renew the observation, the correct result is a public-evidence hold.
 - Missing or invalid timestamps, expired evidence, stale evidence, excessive lifetime, or a future generation time beyond clock-skew tolerance invalidate public authority. Until the public producer publishes the v5.4.0 contract, the probe fails closed; operators must not silently re-label the old v5.3.1 response as fresh.
 
-## Action taken
+## Deployment status
 
-A compliant production deployment was pushed to the existing `control12-evidence-console` Vercel project under Control704 override.
+An earlier issue note recorded a deployment attempt on the existing `control12-evidence-console` Vercel project. The canonical endpoints were subsequently reported as HTTP 404, so that historical note is not proof of current live availability or a compliant v5.4.0 deployment.
 
-Once the build completes and the production alias serves the new routes, the procurement hold `HOLD_EVIDENCE_CONTROL` can be lifted.
+The v5.4.0 producer scaffold now exists in [CONTROL12 Lattice Ops PR #31](https://github.com/doitupsolutions810-crow/control12-lattice-ops/pull/31), but it has **not** been deployed. The project owner must verify the Vercel project and deployment permissions, set Root Directory to `evidence-console`, configure the protected producer keypair and independently pin the consumer's public key. The procurement hold must not be lifted until both canonical endpoints return a valid signed status document and matching schema, and those responses are verified live on the intended production alias.
 
 
 ## Procurement authority validation
@@ -50,4 +50,4 @@ The v5.4.0 freshness fields prevent a previously valid status payload from being
 
 The `E0`–`E6` identifiers mean only that the evidence console's own contract checks are satisfied. They are **not** the production readiness gates `G0`–`G6`; those retain their own authoritative production evaluator and can remain `NO_GO` while procurement trust is valid. The evidence console must not claim production gates are READY merely to make its trust contract pass.
 
-The runtime must be `read-only-dynamic`: each request may report coarse producer/contract health, but it must not claim seven production gates passed, write evidence, or infer gate values from the schema. The source timestamp must be refreshed from the producer's current actual observation for each response, with an expiry no longer than five minutes. A static build-time timestamp is not compliant.
+The runtime must be `read-only-dynamic`: each request may report coarse producer/contract health, but it must not claim seven production gates passed, write evidence, or infer gate values from the schema. The source timestamp is the generation time of the producer's own signed contract-check response, not a proof of production readiness. It is refreshed on each request and expires no later than five minutes. The console contract must not make claims about live production gates unless those claims come from a separate authenticated readiness source. A static build-time timestamp is not compliant.
