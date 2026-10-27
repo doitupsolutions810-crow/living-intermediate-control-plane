@@ -113,6 +113,8 @@ These checks prevent an attestation from reducing its own required-suite set, ch
 
 ## Remaining producer and live-verification boundary
 
+The verifier also enforces workflow freshness: the successful run must have completed within the configured five-minute evidence window both at evaluation time and relative to attestation generation. A newly signed artifact cannot refresh an old CI run by itself. These checks are regression-tested.
+
 The schema/verifier contract is stronger, but its fields remain claims until an authoritative producer populates them from independently observed CI and deployment evidence. The consumer validates run URL shape and cross-field consistency; it does not itself fetch GitHub's Actions API or download the artifact and verify its digest. Therefore the trusted producer must independently verify the named workflow run, its exact head SHA, required job/suite outcomes and attempt, and the artifact digest before signing. The producer signing identity must be independently provisioned; the artifact may not pick its own key.
 
 The authoritative G0–G6 producer and deployment configuration are **not yet verified**. The schema is still a draft contract and must not be used to enable procurement or production authority until the producer performs those checks and the live signed artifact passes positive/negative end-to-end verification.
