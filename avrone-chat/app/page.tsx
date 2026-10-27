@@ -281,11 +281,15 @@ export default function Page() {
           )
         ) : (
           <p style={{ margin: 0, color: 'var(--warn)' }}>
-            {cockpit?.componentRegistry?.status === 'unavailable'
-              ? `Registry unavailable${cockpit.componentRegistry.httpStatus ? ` (HTTP ${cockpit.componentRegistry.httpStatus})` : ''}.`
-              : cockpit?.componentRegistry?.status === 'invalid'
-                ? 'Registry returned invalid component data.'
-                : 'Loading component registry…'}
+            {cockpit?.componentRegistry?.status === 'unavailable' ? (
+              cockpit.componentRegistry.error
+                ? `Registry unavailable: ${cockpit.componentRegistry.error}`
+                : `Registry unavailable${cockpit.componentRegistry.httpStatus ? ` (HTTP ${cockpit.componentRegistry.httpStatus})` : ''}.`
+            ) : cockpit?.componentRegistry?.status === 'invalid' ? (
+              'Registry returned invalid component data.'
+            ) : (
+              'Loading component registry…'
+            )}
           </p>
         )}
       </section>
