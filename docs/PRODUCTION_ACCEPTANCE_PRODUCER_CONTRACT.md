@@ -95,7 +95,7 @@ The contract now binds the signed attestation to `gatePolicyVersion=1.0.0` and t
 - **G3 — supply-chain-attestation:** required provenance/SBOM attestations validate against independent trust policy.
 - **G4 — security-policy-pass:** required security/admission checks pass; missing, skipped, or unknown results deny acceptance.
 - **G5 — runtime-health:** trusted live health observes the expected build and artifact digest in production.
-- **G6 — residual-measurement:** fresh, source-pinned, same-build residual is finite and meets the configured cone policy.
+- **G6 — residual-measurement:** fresh, source-pinned, same-build residual is finite, within the topology-derived domain `[0, 0.25]`, and meets the configured cone policy.
 
 These identifiers and suite names define the contract, not proof that those real-world checks have executed. In particular, G2–G5 need producer-side integrations that independently collect and verify their underlying evidence. A signed string asserting those suites passed is not a replacement for those integrations.
 
