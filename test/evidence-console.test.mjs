@@ -38,7 +38,7 @@ function signStatus(status) {
 
 const expected = {
   version: '5.4.0',
-  runtime: 'static',
+  runtime: 'read-only-dynamic',
   privacy: 'local-only',
   serverSideEvidenceStorage: false,
   syntheticEvidenceRejected: true,
@@ -56,7 +56,7 @@ function goodStatus(overrides = {}) {
     sourceIdentity: 'control12-evidence-console',
     sourceKeyId: 'test-source-key-1',
     overall: 'READY',
-    gates: Array.from({ length: 7 }, (_, i) => ({ id: `G${i}`, status: 'READY' })),
+    gates: Array.from({ length: 7 }, (_, i) => ({ id: `E${i}`, status: 'READY' })),
     ...overrides
   };
   return signStatus(status);
@@ -90,7 +90,7 @@ function goodSchema(overrides = {}) {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -99,7 +99,7 @@ function goodSchema(overrides = {}) {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -210,13 +210,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -224,10 +224,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -317,8 +317,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -333,7 +333,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -364,7 +364,7 @@ test('object-form gate schema must reject additional gate properties', () => {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -373,7 +373,7 @@ test('object-form gate schema must reject additional gate properties', () => {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -484,13 +484,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -498,10 +498,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -591,8 +591,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -607,7 +607,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -637,7 +637,7 @@ test('object-form gate schema must reject additional gate properties', () => {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -646,7 +646,7 @@ test('object-form gate schema must reject additional gate properties', () => {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -757,13 +757,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -771,10 +771,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -864,8 +864,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -880,7 +880,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -948,7 +948,7 @@ test('public evidence fails closed when the independent trust anchor is absent',
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -957,7 +957,7 @@ test('public evidence fails closed when the independent trust anchor is absent',
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -1068,13 +1068,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -1082,10 +1082,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -1175,8 +1175,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -1191,7 +1191,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -1222,7 +1222,7 @@ test('object-form gate schema must reject additional gate properties', () => {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -1231,7 +1231,7 @@ test('object-form gate schema must reject additional gate properties', () => {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -1342,13 +1342,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -1356,10 +1356,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -1449,8 +1449,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -1465,7 +1465,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -1495,7 +1495,7 @@ test('object-form gate schema must reject additional gate properties', () => {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -1504,7 +1504,7 @@ test('object-form gate schema must reject additional gate properties', () => {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -1615,13 +1615,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -1629,10 +1629,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -1722,8 +1722,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -1738,7 +1738,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -1806,7 +1806,7 @@ test('public evidence fails closed when the independent trust anchor is absent',
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -1815,7 +1815,7 @@ test('public evidence fails closed when the independent trust anchor is absent',
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -1926,13 +1926,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -1940,10 +1940,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -2033,8 +2033,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -2049,7 +2049,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -2080,7 +2080,7 @@ test('object-form gate schema must reject additional gate properties', () => {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -2089,7 +2089,7 @@ test('object-form gate schema must reject additional gate properties', () => {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -2200,13 +2200,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -2214,10 +2214,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -2307,8 +2307,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -2323,7 +2323,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -2353,7 +2353,7 @@ test('object-form gate schema must reject additional gate properties', () => {
       minItems: 7,
       maxItems: 7,
       uniqueItems: true,
-      allOf: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'].map(id => ({
+      allOf: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map(id => ({
         contains: { type: 'object', required: ['id'], properties: { id: constraint(id) } },
         minContains: 1,
         maxContains: 1
@@ -2362,7 +2362,7 @@ test('object-form gate schema must reject additional gate properties', () => {
         type: 'object',
         required: ['id', 'status'],
         properties: {
-          id: { enum: ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'] },
+          id: { enum: ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'] },
           status: constraint('READY')
         }
       }
@@ -2473,13 +2473,13 @@ test('public HTTP endpoints are rejected before fetching', async () => {
 test('all seven named gates must be present exactly once', () => {
   const status = goodStatus({
     gates: [
-      { id: 'G0', status: 'READY' },
-      { id: 'G1', status: 'READY' },
-      { id: 'G2', status: 'READY' },
-      { id: 'G3', status: 'READY' },
-      { id: 'G4', status: 'READY' },
-      { id: 'G5', status: 'READY' },
-      { id: 'G5', status: 'READY' }
+      { id: 'E0', status: 'READY' },
+      { id: 'E1', status: 'READY' },
+      { id: 'E2', status: 'READY' },
+      { id: 'E3', status: 'READY' },
+      { id: 'E4', status: 'READY' },
+      { id: 'E5', status: 'READY' },
+      { id: 'E5', status: 'READY' }
     ]
   });
   const result = validateEvidenceConsoleContract(status, goodSchema());
@@ -2487,10 +2487,10 @@ test('all seven named gates must be present exactly once', () => {
   assert.ok(result.failures.includes('status_gates_not_all_ready_or_incomplete'));
 });
 
-test('gate schema must require exactly one occurrence of every G0-G6 ID', () => {
+test('gate schema must require exactly one occurrence of every E0-E6 ID', () => {
   const schema = goodSchema();
   schema.properties.gates.allOf = schema.properties.gates.allOf.filter(rule =>
-    rule.contains.properties.id.const !== 'G6'
+    rule.contains.properties.id.const !== 'E6'
   );
   const result = validateEvidenceConsoleContract(goodStatus(), schema);
   assert.equal(result.valid, false);
@@ -2580,8 +2580,8 @@ test('schema cannot omit or weaken source-freshness constraints', () => {
   assert.ok(weakenedResult.failures.includes('schema_sourceExpiresAt_constraint_mismatch'));
 });
 
-test('object-form gate map validates only the required G0-G6 properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+test('object-form gate map validates only the required E0-E6 properties', () => {
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
@@ -2596,7 +2596,7 @@ test('object-form gate map validates only the required G0-G6 properties', () => 
 });
 
 test('object-form gate schema must reject additional gate properties', () => {
-  const gateIds = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
+  const gateIds = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
   const status = goodStatus({
     gates: Object.fromEntries(gateIds.map(id => [id, 'READY']))
   });
