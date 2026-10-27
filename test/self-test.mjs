@@ -72,6 +72,7 @@ const expectedMeasurementIdentity = {
   commitSha: '0123456789abcdef0123456789abcdef01234567',
   runId: 'run-123',
   artifactDigest: 'sha256:' + 'a'.repeat(64),
+  nonce: 'challenge-nonce-unique-001',
 };
 const measurementPayload = {
   schema: 'control-plane.measurement-attestation/v1',
@@ -98,6 +99,7 @@ assert(evaluateProductionAuthorization(productionAuthorizationOptions).productio
 const tamperedAttestation = { ...signedMeasurementAttestation, residualS: 0.2 };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: tamperedAttestation }).productionAuthorized === false, 'production gate rejects a tampered measurement payload');
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestationExpected: { ...expectedMeasurementIdentity, commitSha: 'ffffffffffffffffffffffffffffffffffffffff' } }).productionAuthorized === false, 'production gate rejects an attestation bound to a different commit');
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestationExpected: { ...expectedMeasurementIdentity, nonce: 'different-challenge-nonce' } }).productionAuthorized === false, 'production gate rejects an attestation bound to a different challenge nonce');
 const expiredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() - 120_000).toISOString(), expiresAt: new Date(Date.now() - 60_000).toISOString() };
 const expiredAttestation = { ...expiredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(expiredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: expiredAttestation }).productionAuthorized === false, 'production gate rejects an expired signed measurement attestation');
