@@ -886,3 +886,40 @@ test('object-form gate schema must reject additional gate properties', () => {
   assert.equal(result.valid, false);
   assert.ok(result.failures.includes('schema_gate_shape_mismatch'));
 });
+
+
+test('public evidence requires a valid source signature and rejects tampering', async () => {
+  const status = goodStatus();
+  status.sourceSignature = (status.sourceSignature[0] === 'A' ? 'B' : 'A') + status.sourceSignature.slice(1);
+  const schema = goodSchema();
+  const result = await probeEvidenceConsole({
+    url: 'https://evidence.example.invalid',
+    fetchImpl: async url => String(url).endsWith('/api/status')
+      ? new Response(JSON.stringify(status), { status: 200 })
+      : new Response(JSON.stringify(schema), { status: 200 })
+  });
+  assert.equal(result.status, 'invalid');
+  assert.equal(result.authority, 'local');
+  assert.equal(result.trustContractVerified, false);
+  assert.ok(result.trustFailures.includes('source_signature_invalid'));
+});
+
+test('public evidence fails closed when the independent trust anchor is absent', async () => {
+  const oldKey = process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+  try {
+    delete process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM;
+    const status = goodStatus();
+    const schema = goodSchema();
+    const result = await probeEvidenceConsole({
+      url: 'https://evidence.example.invalid',
+      fetchImpl: async url => String(url).endsWith('/api/status')
+        ? new Response(JSON.stringify(status), { status: 200 })
+        : new Response(JSON.stringify(schema), { status: 200 })
+    });
+    assert.equal(result.status, 'invalid');
+    assert.equal(result.trustContractVerified, false);
+    assert.ok(result.trustFailures.includes('source_trust_anchor_unconfigured'));
+  } finally {
+    process.env.EVIDENCE_SOURCE_PUBLIC_KEY_PEM = oldKey;
+  }
+});
