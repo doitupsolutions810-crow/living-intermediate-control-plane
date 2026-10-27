@@ -173,6 +173,29 @@ assert(ok.authority === 'public', 'verified evidence document uses public author
 assert(ok.trustContractVerified === true, 'verified response exposes explicit trust-contract proof');
 assert(Array.isArray(ok.verificationFailures) && ok.verificationFailures.length === 0, 'verified response has no contract failures');
 
+const probeRequests = [];
+const boundPair = await probeEvidenceConsole({
+  url: 'https://evidence.example.invalid/api/status',
+  acceptLocal: true,
+  fetchImpl: async input => {
+    const requestUrl = String(input);
+    probeRequests.push(requestUrl);
+    if (new URL(requestUrl).pathname === '/api/v1/evidence/schema') {
+      return new Response(JSON.stringify({ kind: 'schema', revision: 7 }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ kind: 'status', schemaRevision: 7 }), { status: 200 });
+  },
+  verifyDocument: async (document, schema) => ({
+    valid: document.kind === 'status' && schema.kind === 'schema' &&
+      document.schemaRevision === schema.revision,
+    failures: [{ code: 'PAIR_BINDING' }],
+  }),
+});
+assert(probeRequests.length === 2, 'probe fetches both status and schema endpoints');
+assert(probeRequests.some(url => new URL(url).pathname === '/api/v1/evidence/schema'), 'probe fetches producer schema route');
+assert(boundPair.status === 'ok' && boundPair.trustContractVerified === true, 'probe verifier receives a matching status/schema pair');
+
+
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
