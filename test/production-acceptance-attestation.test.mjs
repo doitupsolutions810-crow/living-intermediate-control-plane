@@ -87,4 +87,31 @@ const callerTrustOverride = evaluateProductionAuthorization({
 });
 assert.equal(callerTrustOverride.productionAuthorized, false, 'caller-supplied verifier key and build options cannot override deployment trust anchors');
 
-console.log('production-acceptance-attestation.test.mjs: 14/14 passed');
+const procurementGateReplay = fixture({
+  gates: ['E0','E1','E2','E3','E4','E5','E6'].map(id => ({ id, status: 'PASS' })),
+});
+assert.equal(
+  verifyProductionAcceptanceAttestation(procurementGateReplay, options).valid,
+  false,
+  'signed E0-E6 procurement checks cannot be relabeled as G0-G6 production acceptance',
+);
+
+const eNamespaceProducerDocument = {
+  schema: 'great-scale.evidence-status/v5.4.0',
+  issuer: 'control12-evidence-console',
+  version: '5.4.0',
+  runtime: 'read-only-dynamic',
+  contractChecks: ['E0','E1','E2','E3','E4','E5','E6'].map(id => ({ id, status: 'READY' })),
+  generatedAt: new Date(now).toISOString(),
+  expiresAt: new Date(now + 60_000).toISOString(),
+  digest: good.digest,
+  keyId,
+  signature: good.signature,
+};
+assert.equal(
+  verifyProductionAcceptanceAttestation(eNamespaceProducerDocument, options).valid,
+  false,
+  'E0-E6 producer document is not a G0-G6 acceptance artifact',
+);
+
+console.log('production-acceptance-attestation.test.mjs: 16/16 passed');
