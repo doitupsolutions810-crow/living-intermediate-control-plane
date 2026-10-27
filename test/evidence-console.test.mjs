@@ -260,6 +260,10 @@ test('source-generated timestamps reject stale, expired, future, and missing evi
   const missing = goodStatus({ sourceGeneratedAt: undefined });
   const missingResult = validateEvidenceConsoleContract(missing, schema, { now });
   assert.ok(missingResult.failures.includes('status_source_freshness_timestamps_invalid'));
+
+  const impossibleDate = goodStatus({ sourceGeneratedAt: '2026-02-30T00:00:00Z' });
+  const impossibleDateResult = validateEvidenceConsoleContract(impossibleDate, schema, { now });
+  assert.ok(impossibleDateResult.failures.includes('status_source_freshness_timestamps_invalid'));
 });
 
 test('schema cannot omit or weaken source-freshness constraints', () => {
