@@ -8,8 +8,10 @@ on:
       - "lib/evidence-console.mjs"
       - "lib/evidence-status-document.mjs"
       - "lib/gate-namespaces.mjs"
+      - "lib/residual-input.mjs"
       - "test/evidence-console.test.mjs"
       - "test/gate-namespaces.test.mjs"
+      - "test/residual-input.test.mjs"
       - ".github/workflows/evidence-contract-tests.yml"
   push:
     branches: [main]
@@ -17,8 +19,10 @@ on:
       - "lib/evidence-console.mjs"
       - "lib/evidence-status-document.mjs"
       - "lib/gate-namespaces.mjs"
+      - "lib/residual-input.mjs"
       - "test/evidence-console.test.mjs"
       - "test/gate-namespaces.test.mjs"
+      - "test/residual-input.test.mjs"
       - ".github/workflows/evidence-contract-tests.yml"
 
 permissions:
@@ -43,8 +47,10 @@ jobs:
           node --check lib/evidence-console.mjs
           node --check lib/evidence-status-document.mjs
           node --check lib/gate-namespaces.mjs
+          node --check lib/residual-input.mjs
           node --check test/evidence-console.test.mjs
           node --check test/gate-namespaces.test.mjs
+          node --check test/residual-input.test.mjs
 
       - name: Run evidence and namespace regression tests
-        run: node --test test/evidence-console.test.mjs test/gate-namespaces.test.mjs
+        run: node --test test/evidence-console.test.mjs test/gate-namespaces.test.mjs test/residual-input.test.mjs
