@@ -114,4 +114,10 @@ test('each gate has a unique policy identifier and designated evidence suite', (
   assert.equal(new Set(PRODUCTION_GATE_POLICY.map(gate => gate.policyId)).size, 7);
   assert.equal(new Set(PRODUCTION_GATE_POLICY.map(gate => gate.requiredSuiteName)).size, 7);
   assert.deepEqual(PRODUCTION_GATE_POLICY.map(gate => gate.id), [...PRODUCTION_GATE_IDS]);
+
+  const g6 = PRODUCTION_GATE_POLICY.find(gate => gate.id === 'G6');
+  assert.equal(PRODUCTION_GATE_POLICY_VERSION, '1.0.2');
+  assert.match(g6.requirement, /numericalCertification/);
+  assert.match(g6.requirement, /certified curvature\/metric-area error upper bounds/);
+  assert.match(g6.requirement, /empirical Richardson estimates are diagnostic only/);
 });
