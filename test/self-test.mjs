@@ -63,6 +63,13 @@ assert(evaluateProcurementReadiness({
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
   evidenceConsole: { status: 'invalid', authority: 'public', trustContractVerified: false }
 }).evidenceAuthorized === false, 'public-labeled invalid response cannot be reclassified as local fallback');
+const invalidTrustGate = evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'invalid', authority: 'public', trustContractVerified: false }
+});
+assert(invalidTrustGate.procurementReady === false, 'invalid evidence keeps procurement on hold despite local opt-in');
+assert(invalidTrustGate.note.includes('trust verification failed'), 'gate note does not claim readiness after trust failure');
 assert(evaluateProcurementReadiness({
   ...gateOptions,
   env: { ACCEPT_LOCAL_EVIDENCE: '1' },
