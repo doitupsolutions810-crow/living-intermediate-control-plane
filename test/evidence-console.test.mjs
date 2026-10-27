@@ -647,3 +647,15 @@ test('public probe fails closed when a structurally valid response lacks trusted
   assert.equal(result.trustContractVerified, false);
   assert.ok(result.trustFailures.includes('signature_trust_configuration_missing'));
 });
+
+
+test('failed evidence without local opt-in is explicitly untrusted, never public', async () => {
+  const result = await probeEvidenceConsole({
+    url: 'https://evidence.example.invalid',
+    acceptLocal: false,
+    fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
+  });
+  assert.equal(result.status, 'invalid');
+  assert.equal(result.authority, 'none');
+  assert.equal(result.trustContractVerified, false);
+});
