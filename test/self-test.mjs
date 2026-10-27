@@ -104,6 +104,18 @@ const expiredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() 
 const expiredAttestation = { ...expiredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(expiredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: expiredAttestation }).productionAuthorized === false, 'production gate rejects an expired signed measurement attestation');
 
+const impossibleCalendarPayload = { ...measurementPayload, measuredAt: '2026-02-30T12:00:00Z' };
+const impossibleCalendarAttestation = { ...impossibleCalendarPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(impossibleCalendarPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: impossibleCalendarAttestation }).productionAuthorized === false, 'production gate rejects signed timestamps with impossible calendar dates');
+
+const nonRfc3339Payload = { ...measurementPayload, measuredAt: '2026-10-27 12:00:00Z' };
+const nonRfc3339Attestation = { ...nonRfc3339Payload, signature: sign(null, Buffer.from(canonicalAttestationJson(nonRfc3339Payload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: nonRfc3339Attestation }).productionAuthorized === false, 'production gate rejects parseable but non-RFC3339 measurement timestamps');
+
+const futureMeasuredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() + 60_000).toISOString(), expiresAt: new Date(Date.now() + 120_000).toISOString() };
+const futureMeasuredAttestation = { ...futureMeasuredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(futureMeasuredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: futureMeasuredAttestation }).productionAuthorized === false, 'production gate rejects measurement timestamps too far in the future');
+
 const longLivedPayload = { ...measurementPayload, measuredAt: new Date(Date.now() - 1000).toISOString(), expiresAt: new Date(Date.now() + 11 * 60_000).toISOString() };
 const longLivedAttestation = { ...longLivedPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(longLivedPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
 assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: longLivedAttestation }).productionAuthorized === false, 'production gate rejects attestations with a lifetime over ten minutes');
