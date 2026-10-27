@@ -87,6 +87,7 @@ const signedMeasurementAttestation = {
 const productionAuthorizationOptions = {
   coreReady: true,
   supplyChainOk: true,
+  S: 0.125,
   measurementAttestation: signedMeasurementAttestation,
   measurementAttestationExpected: expectedMeasurementIdentity,
   measurementAttestationPublicKeyPem: attestationKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
