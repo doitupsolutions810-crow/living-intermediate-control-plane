@@ -40,7 +40,161 @@ test('source and execution fields bind repository revision and successful workfl
   assert.deepEqual([...execution.required].sort(),
     ['runId', 'runAttempt', 'runUrl', 'headSha', 'conclusion', 'startedAt', 'completedAt'].sort());
   assert.equal(execution.properties.conclusion.const, 'success');
-  assert.equal(execution.properties.headSha.pattern, '^[a-fA-F0-9]{40}$');
+  assert.equal(execution.properties.headSha.pattern, '^[a-fA-F0-9]{40}
+});
+
+test('immutable artifact identity and required suite results are explicit', () => {
+  const artifact = schema.properties.artifact;
+  assert.equal(artifact.additionalProperties, false);
+  assert.deepEqual([...artifact.required].sort(), ['digest', 'name']);
+  assert.equal(artifact.properties.digest.pattern, '^sha256:[a-f0-9]{64}$');
+  const suites = schema.properties.suiteResults;
+  assert.equal(suites.type, 'array');
+  assert.equal(suites.minItems, 1);
+  assert.deepEqual([...suites.items.required].sort(),
+    ['name', 'conclusion', 'headSha', 'runId', 'runAttempt', 'evidenceUrl', 'evidenceDigest'].sort());
+  assert.equal(suites.items.properties.conclusion.const, 'success');
+  assert.equal(suites.items.properties.evidenceDigest.pattern, '^[a-f0-9]{64}
+});
+
+test('G0-G6 are exact and each passing gate carries suite evidence references', () => {
+  const gates = schema.properties.gates;
+  assert.equal(gates.type, 'array');
+  assert.equal(gates.minItems, PRODUCTION_GATE_IDS.length);
+  assert.equal(gates.maxItems, PRODUCTION_GATE_IDS.length);
+  assert.deepEqual(gates.items.properties.id.enum, [...PRODUCTION_GATE_IDS]);
+  assert.equal(gates.items.properties.status.const, 'PASS');
+  assert.equal(gates.items.additionalProperties, false);
+  assert.deepEqual([...gates.items.required].sort(), ['id', 'status', 'evidence'].sort());
+  const evidence = gates.items.properties.evidence;
+  assert.equal(evidence.type, 'array');
+  assert.ok(evidence.minItems >= 1);
+  assert.deepEqual([...evidence.items.required].sort(), ['suiteName', 'evidenceDigest', 'observedAt'].sort());
+  assert.equal(evidence.items.additionalProperties, false);
+  const requiredIds = gates.allOf.map(rule => rule.contains.properties.id.const).sort();
+  assert.deepEqual(requiredIds, [...PRODUCTION_GATE_IDS].sort());
+  assert.ok(gates.allOf.every(rule => rule.minContains === 1 && rule.maxContains === 1));
+});
+
+test('residual measurement is a separate exact, build-bound object', () => {
+  const residual = schema.properties.residual;
+  const fields = ['schema', 'sourceId', 'buildId', 'measuredAt', 'S'];
+  assert.equal(residual.type, 'object');
+  assert.equal(residual.additionalProperties, false);
+  assert.deepEqual([...residual.required].sort(), [...fields].sort());
+  assert.deepEqual(Object.keys(residual.properties).sort(), [...fields].sort());
+  assert.equal(residual.properties.schema.const, 'great-scale.residual-attestation/v1');
+  assert.equal(residual.properties.S.type, 'number');
+  assert.equal(residual.properties.measuredAt.format, 'date-time');
+});
+
+test('digest and Ed25519 signature have fixed wire formats', () => {
+  assert.equal(schema.properties.digest.pattern, '^[a-f0-9]{64}$');
+  assert.equal(schema.properties.signature.pattern, '^[A-Za-z0-9+/]{86}==$');
+  assert.equal(schema.properties.generatedAt.format, 'date-time');
+  assert.equal(schema.properties.expiresAt.format, 'date-time');
+});
+);
+  assert.equal(execution.properties.runUrl.pattern, "^https://github\.com/");
+  assert.equal(execution.properties.startedAt.format, 'date-time');
+  assert.equal(execution.properties.completedAt.format, 'date-time');
+});
+
+test('immutable artifact identity and required suite results are explicit', () => {
+  const artifact = schema.properties.artifact;
+  assert.equal(artifact.additionalProperties, false);
+  assert.deepEqual([...artifact.required].sort(), ['digest', 'name']);
+  assert.equal(artifact.properties.digest.pattern, '^sha256:[a-f0-9]{64}$');
+  const suites = schema.properties.suiteResults;
+  assert.equal(suites.type, 'array');
+  assert.equal(suites.minItems, 1);
+  assert.deepEqual([...suites.items.required].sort(),
+    ['name', 'conclusion', 'headSha', 'runId', 'runAttempt', 'evidenceUrl', 'evidenceDigest'].sort());
+  assert.equal(suites.items.properties.conclusion.const, 'success');
+  assert.equal(suites.items.properties.evidenceDigest.pattern, '^[a-f0-9]{64}$');
+});
+
+test('G0-G6 are exact and each passing gate carries suite evidence references', () => {
+  const gates = schema.properties.gates;
+  assert.equal(gates.type, 'array');
+  assert.equal(gates.minItems, PRODUCTION_GATE_IDS.length);
+  assert.equal(gates.maxItems, PRODUCTION_GATE_IDS.length);
+  assert.deepEqual(gates.items.properties.id.enum, [...PRODUCTION_GATE_IDS]);
+  assert.equal(gates.items.properties.status.const, 'PASS');
+  assert.equal(gates.items.additionalProperties, false);
+  assert.deepEqual([...gates.items.required].sort(), ['id', 'status', 'evidence'].sort());
+  const evidence = gates.items.properties.evidence;
+  assert.equal(evidence.type, 'array');
+  assert.ok(evidence.minItems >= 1);
+  assert.deepEqual([...evidence.items.required].sort(), ['suiteName', 'evidenceDigest', 'observedAt'].sort());
+  assert.equal(evidence.items.additionalProperties, false);
+  const requiredIds = gates.allOf.map(rule => rule.contains.properties.id.const).sort();
+  assert.deepEqual(requiredIds, [...PRODUCTION_GATE_IDS].sort());
+  assert.ok(gates.allOf.every(rule => rule.minContains === 1 && rule.maxContains === 1));
+});
+
+test('residual measurement is a separate exact, build-bound object', () => {
+  const residual = schema.properties.residual;
+  const fields = ['schema', 'sourceId', 'buildId', 'measuredAt', 'S'];
+  assert.equal(residual.type, 'object');
+  assert.equal(residual.additionalProperties, false);
+  assert.deepEqual([...residual.required].sort(), [...fields].sort());
+  assert.deepEqual(Object.keys(residual.properties).sort(), [...fields].sort());
+  assert.equal(residual.properties.schema.const, 'great-scale.residual-attestation/v1');
+  assert.equal(residual.properties.S.type, 'number');
+  assert.equal(residual.properties.measuredAt.format, 'date-time');
+});
+
+test('digest and Ed25519 signature have fixed wire formats', () => {
+  assert.equal(schema.properties.digest.pattern, '^[a-f0-9]{64}$');
+  assert.equal(schema.properties.signature.pattern, '^[A-Za-z0-9+/]{86}==$');
+  assert.equal(schema.properties.generatedAt.format, 'date-time');
+  assert.equal(schema.properties.expiresAt.format, 'date-time');
+});
+);
+  assert.equal(suites.items.properties.evidenceUrl.pattern, "^https://github\.com/");
+});
+
+test('G0-G6 are exact and each passing gate carries suite evidence references', () => {
+  const gates = schema.properties.gates;
+  assert.equal(gates.type, 'array');
+  assert.equal(gates.minItems, PRODUCTION_GATE_IDS.length);
+  assert.equal(gates.maxItems, PRODUCTION_GATE_IDS.length);
+  assert.deepEqual(gates.items.properties.id.enum, [...PRODUCTION_GATE_IDS]);
+  assert.equal(gates.items.properties.status.const, 'PASS');
+  assert.equal(gates.items.additionalProperties, false);
+  assert.deepEqual([...gates.items.required].sort(), ['id', 'status', 'evidence'].sort());
+  const evidence = gates.items.properties.evidence;
+  assert.equal(evidence.type, 'array');
+  assert.ok(evidence.minItems >= 1);
+  assert.deepEqual([...evidence.items.required].sort(), ['suiteName', 'evidenceDigest', 'observedAt'].sort());
+  assert.equal(evidence.items.additionalProperties, false);
+  const requiredIds = gates.allOf.map(rule => rule.contains.properties.id.const).sort();
+  assert.deepEqual(requiredIds, [...PRODUCTION_GATE_IDS].sort());
+  assert.ok(gates.allOf.every(rule => rule.minContains === 1 && rule.maxContains === 1));
+});
+
+test('residual measurement is a separate exact, build-bound object', () => {
+  const residual = schema.properties.residual;
+  const fields = ['schema', 'sourceId', 'buildId', 'measuredAt', 'S'];
+  assert.equal(residual.type, 'object');
+  assert.equal(residual.additionalProperties, false);
+  assert.deepEqual([...residual.required].sort(), [...fields].sort());
+  assert.deepEqual(Object.keys(residual.properties).sort(), [...fields].sort());
+  assert.equal(residual.properties.schema.const, 'great-scale.residual-attestation/v1');
+  assert.equal(residual.properties.S.type, 'number');
+  assert.equal(residual.properties.measuredAt.format, 'date-time');
+});
+
+test('digest and Ed25519 signature have fixed wire formats', () => {
+  assert.equal(schema.properties.digest.pattern, '^[a-f0-9]{64}$');
+  assert.equal(schema.properties.signature.pattern, '^[A-Za-z0-9+/]{86}==$');
+  assert.equal(schema.properties.generatedAt.format, 'date-time');
+  assert.equal(schema.properties.expiresAt.format, 'date-time');
+});
+);
+  assert.equal(execution.properties.runUrl.pattern, "^https://github\.com/");
+  assert.equal(execution.properties.startedAt.format, 'date-time');
   assert.equal(execution.properties.completedAt.format, 'date-time');
 });
 
