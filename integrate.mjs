@@ -111,6 +111,24 @@ const plan = evaluateQuorum(createOrchestrationPlan(goal));
 const launchdesk = handleLaunchDeskAction(action, goal);
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
+// Production acceptance is a distinct artifact, never inferred from E0-E6 source status.
+// The endpoint and its verifier trust anchors must be deployment-controlled.
+// Missing, unreachable, malformed, or unverified artifacts remain a hard hold.
+async function fetchProductionAcceptanceAttestation() {
+  const url = process.env.PRODUCTION_ACCEPTANCE_URL;
+  if (!url) return null;
+  try {
+    const response = await fetch(url, { headers: { accept: 'application/json' } });
+    if (!response.ok) return null;
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().includes('application/json')) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+const productionAcceptanceAttestation = await fetchProductionAcceptanceAttestation();
+
 // Availability fallback is diagnostic only; authorization is a separate policy.
 // FORCE_PROCUREMENT is never an authorization input (Great Scale invariant).
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env, config });
@@ -125,6 +143,7 @@ const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
 const gates = evaluateGateNamespaces({
   coreReady,
   evidenceConsole,
+  productionAcceptanceAttestation,
   env: process.env,
   config,
   S: residualS,
