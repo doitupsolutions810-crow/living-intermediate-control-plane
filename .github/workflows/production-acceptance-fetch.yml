@@ -6,6 +6,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "lib/production-acceptance-fetch.mjs"
+      - "lib/producer-evidence-contract.mjs"
+      - "lib/producer-evidence-contract.mjs"
       - "lib/production-acceptance-attestation.mjs"
       - "lib/gate-namespaces.mjs"
       - "lib/great-scale-residual.mjs"
@@ -15,6 +17,7 @@ on:
       - "contracts/production-acceptance/gate-policy-v1.json"
       - "test/production-acceptance-schema.test.mjs"
       - "test/production-acceptance-fetch.test.mjs"
+      - "test/producer-evidence-contract.test.mjs"
       - ".github/workflows/production-acceptance-fetch.yml"
   push:
     branches: [main]
@@ -55,7 +58,7 @@ jobs:
           node-version: "20"
 
       - name: Syntax check
-        run: node --check lib/production-acceptance-fetch.mjs && node --check lib/production-acceptance-attestation.mjs && node --check integrate.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs && node --check test/production-acceptance-attestation.test.mjs
+        run: node --check lib/production-acceptance-fetch.mjs && node --check lib/producer-evidence-contract.mjs && node --check test/producer-evidence-contract.test.mjs && node --check lib/production-acceptance-attestation.mjs && node --check integrate.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs && node --check test/production-acceptance-attestation.test.mjs
 
       - name: Run focused transport tests
-        run: node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs && node test/production-acceptance-attestation.test.mjs
+        run: node --test test/producer-evidence-contract.test.mjs && node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs && node test/production-acceptance-attestation.test.mjs
