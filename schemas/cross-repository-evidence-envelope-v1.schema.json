@@ -218,6 +218,7 @@
       "if": {
         "properties": {
           "execution": {
+            "type": "object",
             "properties": {
               "mode": {
                 "const": "real"
@@ -235,9 +236,17 @@
       "then": {
         "properties": {
           "execution": {
+            "type": "object",
             "required": [
               "worker_receipt_id"
-            ]
+            ],
+            "properties": {
+              "worker_receipt_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
           }
         }
       }
@@ -246,6 +255,7 @@
       "if": {
         "properties": {
           "execution": {
+            "type": "object",
             "properties": {
               "mode": {
                 "const": "simulation"
@@ -263,6 +273,7 @@
       "then": {
         "properties": {
           "claim": {
+            "type": "object",
             "properties": {
               "status": {
                 "enum": [

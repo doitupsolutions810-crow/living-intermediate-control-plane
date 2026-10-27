@@ -91,6 +91,45 @@ test("missing expected subject or policy fails closed", async () => {
   assert.equal(result.productionAuthorized, false);
 });
 
+test("partial expected subject fails closed instead of leaving revision and artifact unbound", async () => {
+  const result = await evaluateProductionAuthorizationWithEnvelope({
+    ...baseOptions,
+    expectedSubject: { repository: subject.repository },
+    supplyChainEnvelope: envelope(),
+  });
+  assert.equal(result.evidenceAccepted, false);
+  assert.ok(result.evidenceVerification.failures.some(f => f.code === "EXPECTED_BINDING_REQUIRED"));
+  assert.equal(result.production.supplyChainOk, false);
+  assert.equal(result.productionAuthorized, false);
+});
+
+test("malformed expected revision or artifact digest fails closed", async () => {
+  for (const expectedSubject of [
+    { ...subject, revision: "main" },
+    { ...subject, artifact_digest: "sha256:invalid" },
+  ]) {
+    const result = await evaluateProductionAuthorizationWithEnvelope({
+      ...baseOptions,
+      expectedSubject,
+      supplyChainEnvelope: envelope(),
+    });
+    assert.equal(result.evidenceAccepted, false);
+    assert.ok(result.evidenceVerification.failures.some(f => f.code === "EXPECTED_BINDING_REQUIRED"));
+    assert.equal(result.productionAuthorized, false);
+  }
+});
+
+test("partial expected policy fails closed", async () => {
+  const result = await evaluateProductionAuthorizationWithEnvelope({
+    ...baseOptions,
+    expectedPolicy: { policy_id: policy.policy_id },
+    supplyChainEnvelope: envelope(),
+  });
+  assert.equal(result.evidenceAccepted, false);
+  assert.ok(result.evidenceVerification.failures.some(f => f.code === "EXPECTED_BINDING_REQUIRED"));
+  assert.equal(result.productionAuthorized, false);
+});
+
 test("subject mismatch prevents supply-chain evidence acceptance", async () => {
   const result = await evaluateProductionAuthorizationWithEnvelope({
     ...baseOptions,
