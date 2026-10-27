@@ -135,8 +135,13 @@ const reachableUnverified = await probeEvidenceConsole({
   verifyDocument: async () => ({ valid: false, failures: [{ code: 'SCHEMA' }] })
 });
 assert(reachableUnverified.status === 'invalid', 'HTTP 200 without verified evidence contract is invalid');
-assert(reachableUnverified.authority === 'local', 'reachable but unverified endpoint does not gain public authority');
+assert(reachableUnverified.authority === 'public', 'reachable but unverified endpoint is not downgraded to local authority');
 assert(reachableUnverified.trustContractVerified === false, 'unverified response explicitly denies trust contract');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: reachableUnverified
+}).evidenceAuthorized === false, 'reachable but cryptographically unverified source cannot authorize via local fallback');
 
 const ok = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
