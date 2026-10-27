@@ -24,6 +24,22 @@ An attestation must contain exactly these fields:
 
 The canonical payload is produced by recursively sorting object keys and preserving array order. The digest is SHA-256 over the UTF-8 canonical payload. The Ed25519 signature is over those same canonical payload bytes, excluding the outer `digest` and `signature` properties. The verifier is authoritative for signature validation; JSON Schema alone cannot establish authenticity or authority.
 
+## Candidate G0-G6 gate policy
+
+The versioned policy manifest is `contracts/production-acceptance/gate-policy-v1.json`. The executable verifier carries the same policy in code, computes a canonical SHA-256 digest over its version and gate definitions, and rejects an attestation with a different policy version/digest. Each gate includes a policy ID and must reference its designated evidence suite.
+
+| Gate | Policy ID | Required evidence suite | Intended criterion |
+|---|---|---|---|
+| G0 | `source-revision-binding` | `source-revision-binding` | Pinned repository/commit identity equals the workflow head. |
+| G1 | `required-ci-suites-pass` | `required-ci-suites-pass` | Required suite set passed on the exact source revision and run attempt. |
+| G2 | `immutable-artifact-provenance` | `immutable-artifact-provenance` | Artifact digest is pinned and provenance binds it to the source revision. |
+| G3 | `supply-chain-attestation` | `supply-chain-attestation` | Required supply-chain provenance and SBOM attestations verify against an independent trust policy. |
+| G4 | `security-policy-pass` | `security-policy-pass` | Required vulnerability and admission checks pass; skipped or unknown results deny acceptance. |
+| G5 | `runtime-health` | `runtime-health` | A trusted live check observes the expected build/artifact in the target environment. |
+| G6 | `residual-measurement` | `residual-measurement` | A fresh source-pinned, same-build residual is finite and satisfies the configured cone policy. |
+
+These are **proposed contract meanings**, not a claim that current repository workflows already emit these seven named suites or that each criterion has been independently demonstrated. The deployment-controlled `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES` must match this policy's exact seven-suite set. The authoritative producer must map observed job/run and external evidence into these bundles; it may not manufacture successful suite results or synthesize G0-G6 PASS values.
+
 ## Deployment trust requirements
 
 The consumer must receive independently provisioned values for:
