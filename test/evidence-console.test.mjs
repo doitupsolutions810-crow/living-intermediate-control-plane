@@ -522,3 +522,34 @@ test('producer verifier rejects signed documents with invalid check status value
   assert.equal(result.valid, false);
   assert.ok(result.failures.some(failure => failure.code === 'E_GATES' && failure.detail.includes('invalid status')));
 });
+
+
+test('producer verifier rejects signed residuals outside the topology-derived domain', () => {
+  const status = buildEvidenceStatusDocument({ S: 0 });
+  status.residual.S = 0.5;
+  const sealed = sealEvidenceStatusDocument(status, {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const result = verifyEvidenceStatusDocument(sealed, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.some(failure => failure.code === 'RESIDUAL_DOMAIN'));
+});
+
+test('producer verifier rejects signed residuals whose derived coordinates disagree', () => {
+  const status = buildEvidenceStatusDocument({ S: 0.1 });
+  status.residual.logCoord = 99;
+  const sealed = sealEvidenceStatusDocument(status, {
+    privateKeyPem: keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    keyId: trust.trustedKeyId
+  });
+  const result = verifyEvidenceStatusDocument(sealed, {
+    publicKeyPem: trust.publicKeyPem,
+    keyId: trust.trustedKeyId
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.failures.some(failure => failure.code === 'RESIDUAL_CONSISTENCY'));
+});
