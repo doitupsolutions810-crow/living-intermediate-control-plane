@@ -19,7 +19,7 @@ An attestation must contain exactly these fields:
 - `keyId`, `environment=production`, and the exact `buildId`
 - `generatedAt`, `expiresAt`
 - exactly one `PASS` entry for each `G0` through `G6`
-- `residual`: a build-bound, source-bound, time-stamped measurement with schema `great-scale.residual-attestation/v1` and finite numeric `S`
+- `residual`: a build-bound, source-bound, time-stamped measurement with schema `great-scale.residual-attestation/v1` and finite numeric `S` in the topology-derived domain `[0, 0.25]`
 - `digest` and `signature`
 
 The canonical payload is produced by recursively sorting object keys and preserving array order. The digest is SHA-256 over the UTF-8 canonical payload. The Ed25519 signature is over those same canonical payload bytes, excluding the outer `digest` and `signature` properties. The verifier is authoritative for signature validation; JSON Schema alone cannot establish authenticity or authority.
@@ -36,7 +36,7 @@ The versioned policy manifest is `contracts/production-acceptance/gate-policy-v1
 | G3 | `supply-chain-attestation` | `supply-chain-attestation` | Required supply-chain provenance and SBOM attestations verify against an independent trust policy. |
 | G4 | `security-policy-pass` | `security-policy-pass` | Required vulnerability and admission checks pass; skipped or unknown results deny acceptance. |
 | G5 | `runtime-health` | `runtime-health` | A trusted live check observes the expected build/artifact in the target environment. |
-| G6 | `residual-measurement` | `residual-measurement` | A fresh source-pinned, same-build residual is finite and satisfies the configured cone policy. |
+| G6 | `residual-measurement` | `residual-measurement` | A fresh source-pinned, same-build residual is finite, lies in `[0, 0.25]`, and satisfies the configured cone policy. |
 
 These are **proposed contract meanings**, not a claim that current repository workflows already emit these seven named suites or that each criterion has been independently demonstrated. The deployment-controlled `PRODUCTION_ACCEPTANCE_REQUIRED_SUITES` must match this policy's exact seven-suite set. The authoritative producer must map observed job/run and external evidence into these bundles; it may not manufacture successful suite results or synthesize G0-G6 PASS values.
 
@@ -57,7 +57,7 @@ The consumer must receive independently provisioned values for:
 
 Do not generate a replacement production key at runtime or accept key identifiers and public keys supplied by the artifact itself. The exact source ID, build ID and key ID must match the deployment's pinned values.
 
-The verifier rejects missing or extra fields, an incomplete/duplicated gate set, failed gates, schema mismatch, stale/future/expired timestamps, wrong key/build/source identity, digest/signature mismatch, non-finite residuals and out-of-cone residuals. The transport helper additionally requires HTTPS, exact final URL, no redirects, HTTP 200, JSON content type, no-cache, bounded size and bounded time.
+The verifier rejects missing or extra fields, an incomplete/duplicated gate set, failed gates, schema mismatch, stale/future/expired timestamps, wrong key/build/source identity, digest/signature mismatch, non-finite residuals, out-of-domain residuals (`S` outside `[0, 0.25]`), and out-of-cone residuals. The transport helper additionally requires HTTPS, exact final URL, no redirects, HTTP 200, JSON content type, no-cache, bounded size and bounded time.
 
 ## Required producer behavior
 
