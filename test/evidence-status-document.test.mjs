@@ -179,4 +179,61 @@ const keyId = 'unit-test-key';
   });
 }
 
-console.log('evidence-status-document.test.mjs: 10/10 groups passed');
+// 11. The verifier rejects signed documents with forged claims or inconsistent residual math.
+{
+  const unknownTopLevel = buildEvidenceStatusDocument({ S: 0.1 });
+  unknownTopLevel.productionAuthorized = true;
+  const signedUnknownTopLevel = sealEvidenceStatusDocument(
+    unknownTopLevel, { privateKeyPem: privPem, keyId },
+  );
+  const unknownTopLevelResult = verifyEvidenceStatusDocument(signedUnknownTopLevel, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(unknownTopLevelResult.valid, false);
+  assert.ok(unknownTopLevelResult.failures.some(f => f.code === 'DOCUMENT_FIELDS'));
+
+  const wrongNamespaces = buildEvidenceStatusDocument({ S: 0.1 });
+  wrongNamespaces.namespaces.production = 'AUTHORIZED';
+  const signedWrongNamespaces = sealEvidenceStatusDocument(
+    wrongNamespaces, { privateKeyPem: privPem, keyId },
+  );
+  const namespaceResult = verifyEvidenceStatusDocument(signedWrongNamespaces, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(namespaceResult.valid, false);
+  assert.ok(namespaceResult.failures.some(f => f.code === 'NAMESPACE'));
+
+  const wrongGateStatus = buildEvidenceStatusDocument({ S: 0.1 });
+  wrongGateStatus.contractChecks[0].status = 'AUTHORIZED';
+  const signedWrongGate = sealEvidenceStatusDocument(
+    wrongGateStatus, { privateKeyPem: privPem, keyId },
+  );
+  const gateResult = verifyEvidenceStatusDocument(signedWrongGate, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(gateResult.valid, false);
+  assert.ok(gateResult.failures.some(f => f.code === 'E_GATES'));
+
+  const wrongResidual = buildEvidenceStatusDocument({ S: 0.1 });
+  wrongResidual.residual.psi = 999;
+  const signedWrongResidual = sealEvidenceStatusDocument(
+    wrongResidual, { privateKeyPem: privPem, keyId },
+  );
+  const residualResult = verifyEvidenceStatusDocument(signedWrongResidual, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  });
+  assert.equal(residualResult.valid, false);
+  assert.ok(residualResult.failures.some(f => f.code === 'RESIDUAL_BINDING'));
+
+  const callerNote = buildEvidenceStatusDocument({ S: 0.1 });
+  callerNote.note = 'caller-controlled note';
+  const signedWithNote = sealEvidenceStatusDocument(
+    callerNote, { privateKeyPem: privPem, keyId },
+  );
+  assert.notEqual(signedWithNote.note, 'caller-controlled note');
+  assert.equal(verifyEvidenceStatusDocument(signedWithNote, {
+    publicKeyPem: pubPem, keyId, requireSignature: true,
+  }).valid, true, 'diagnostic note remains outside the signed payload');
+}
+
+console.log('evidence-status-document.test.mjs: 11/11 groups passed');
