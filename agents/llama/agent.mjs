@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { createToolkit } from './toolkit.mjs';
 import { authorize, revoke, isAuthorized, readSession } from './session.mjs';
 import { ollamaChat, ollamaTags } from './ollama.mjs';
+import { assignDualAtlasRole } from '../dual-atlas.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '../..');
@@ -122,12 +123,15 @@ async function agentTurn(userText, history) {
 async function main() {
   if (mode === 'status') {
     const s = readSession(root);
+    const dual = assignDualAtlasRole(0);
     console.log(JSON.stringify({
       authorized: isAuthorized(root),
       session: s,
       model: config.model,
       baseUrl: config.baseUrl,
-      tools: toolkit.list_tools()
+      tools: toolkit.list_tools(),
+      dualAtlas: dual,
+      residualPartition: dual.partition,
     }, null, 2));
     return;
   }
@@ -192,7 +196,12 @@ async function main() {
         continue;
       }
       if (line === '/status') {
-        console.log(JSON.stringify({ authorized: isAuthorized(root), session: readSession(root) }, null, 2));
+        const dual = assignDualAtlasRole(0);
+        console.log(JSON.stringify({
+          authorized: isAuthorized(root),
+          session: readSession(root),
+          dualAtlas: dual,
+        }, null, 2));
         continue;
       }
       if (line === '/unattended') {
