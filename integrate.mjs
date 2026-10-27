@@ -4,6 +4,8 @@
  * readiness → orchestration → LaunchDesk → procurement decision
  * Optional doctor gate when gateDoctorOnProcure or GATE_DOCTOR=1
  * Evidence-console: graceful when public domain 404s / unreachable
+ *
+ * GSLI: residual coordinate + independent E/G gate namespaces
  */
 
 import { spawnSync } from 'node:child_process';
@@ -18,6 +20,8 @@ import { writeStatusFile } from './status/write-status-file.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { probeEvidenceConsole } from './lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
+import { evaluateGateNamespaces } from './lib/gate-namespaces.mjs';
+import { residualSnapshot } from './lib/great-scale-residual.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -108,21 +112,32 @@ const launchdesk = handleLaunchDeskAction(action, goal);
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
 // Availability fallback is diagnostic only; authorization is a separate policy.
+// FORCE_PROCUREMENT is never an authorization input (Great Scale invariant).
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env, config });
-
-const force = process.env.FORCE_PROCUREMENT === '1';
 
 const coreReady =
   readiness.overallDecision === 'READY' &&
   readiness.failedGates.length === 0 &&
   plan.overallDecision === 'READY';
 
+// Residual coordinate for this evaluation (default S=0 until live QGT/topology feed)
+const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
+const gates = evaluateGateNamespaces({
+  coreReady,
+  evidenceConsole,
+  env: process.env,
+  config,
+  S: residualS,
+  supplyChainOk: false, // production requires explicit supply-chain path; not assumed
+  requireCone: true,
+});
+
 let decision;
 if (planeState.paused) {
   decision = 'PAUSED';
-} else if (coreReady && (localEvidenceAuthority || force)) {
+} else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
-} else if (coreReady) {
+} else if (coreReady && !gates.procurement.evidenceAuthorized) {
   decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
 } else {
   decision = 'HOLD';
@@ -163,6 +178,12 @@ const result = {
     note: evidenceConsole.note
   },
   localEvidenceAccepted: localEvidenceAuthority,
+  residual: gates.residual,
+  gateNamespaces: {
+    procurement: gates.procurement,
+    production: gates.production,
+    invariant: gates.invariant,
+  },
   note:
     dryRun
       ? 'Dry run — decision not recorded and status file not updated.'
