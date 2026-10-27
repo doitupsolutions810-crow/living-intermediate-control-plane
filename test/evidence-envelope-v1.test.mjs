@@ -67,12 +67,13 @@ function guardOnce() {
   };
 }
 
-const options = (replayGuard = guardOnce()) => ({
+const options = (replayGuard = guardOnce(), overrides = {}) => ({
   trustedKeys,
   expectedSubject,
   expectedPolicy,
   now,
   replayGuard,
+  ...overrides,
 });
 
 test("accepts a valid signed envelope bound to expected subject and policy", async () => {
@@ -101,9 +102,9 @@ test("rejects real execution without worker receipt", async () => {
 });
 
 test("rejects artifact or revision mismatch", async () => {
-  const result = await verifyEvidenceEnvelope(makeEnvelope(), options(), {
+  const result = await verifyEvidenceEnvelope(makeEnvelope(), options(guardOnce(), {
     expectedSubject: { ...expectedSubject, revision: "c".repeat(40) },
-  });
+  }));
   assert.ok(result.failures.some(f => f.code === "SUBJECT_MISMATCH"));
 });
 
