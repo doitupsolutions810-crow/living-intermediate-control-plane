@@ -30,7 +30,7 @@ export async function fetchLatticeTurn(
     const sessionRes = await fetch(`${platformUrl}/api/v1/chat/session`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ label: 'avrona', belief }),
+      body: JSON.stringify({ label: 'avrone', belief }),
       signal: AbortSignal.timeout(8000)
     });
     if (!sessionRes.ok) return { offline: true, systemAugment: 'Lattice session rejected.' };
