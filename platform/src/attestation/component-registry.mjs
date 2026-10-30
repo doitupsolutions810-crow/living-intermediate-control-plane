@@ -10,11 +10,23 @@ export class ComponentRegistry {
 
   async load() {
     if (this.cache) return this.cache;
+    let raw;
     try {
-      this.cache = JSON.parse(await fs.readFile(this.file, 'utf8'));
-    } catch {
+      raw = await fs.readFile(this.file, 'utf8');
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
       this.cache = { components: {} };
+      return this.cache;
     }
+
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('component registry must be a JSON object');
+    }
+    if (!data.components || typeof data.components !== 'object' || Array.isArray(data.components)) {
+      throw new Error('component registry must contain a components object');
+    }
+    this.cache = data;
     return this.cache;
   }
 

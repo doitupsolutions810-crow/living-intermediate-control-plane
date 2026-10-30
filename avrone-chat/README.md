@@ -34,6 +34,14 @@ npm run build
 
 When `EVIDENCE_CONSOLE_URL` is unset or the public domain returns 404/unreachable, cockpit reports local plane authority instead of failing hard.
 
+Avrone reuses the LICP lattice session for consecutive chat turns in the same page. The API returns the active session in `x-lattice-session-id`; if LICP has restarted and its in-memory session is gone, Avrone creates a replacement and continues. LICP session IDs are conversation context identifiers, not execution or production evidence.
+
+### Chat history and controls
+
+Recent conversations are stored in the browser's local storage (up to 20 chats, 60 messages per chat, and bounded total content); they are not synchronized to a server or shared across browsers. Use **New chat** to start a separate conversation with its own LICP session. While a response streams, **Stop generating** keeps any partial answer; failed turns show an actionable error and can be retried without duplicating the user message.
+
+Avrone reports provider/model metadata after a successful response. The repository supports xAI/Grok through the OpenAI-compatible provider configuration, but the active model depends on deployment environment variables and credentials. Search and other agent tools also depend on their configured providers; image generation and voice are not currently provided by this chat UI.
+
 ## Agent tools
 
 When any LLM provider is configured (paid keys, free-tier keys, or keyless Pollinations), `POST /api/chat` prefers the agent tool loop. Paid keys still win when credited.

@@ -9,10 +9,19 @@ import {
   isLangGraphEnabled,
   runLangGraphAgent
 } from '../../../lib/langgraph-agent';
+import { providerFailurePayload } from '../../../lib/chat-errors.mjs';
+import { scrubSecrets } from '../../../lib/scrub';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
+
+function latticeHeaders(lattice: { offline?: boolean; sessionId?: string }) {
+  return {
+    'x-lattice-offline': lattice.offline ? '1' : '0',
+    ...(lattice.sessionId ? { 'x-lattice-session-id': lattice.sessionId } : {})
+  };
+}
 
 function sseReply(text: string, extraHeaders?: Record<string, string>) {
   const encoder = new TextEncoder();
@@ -34,7 +43,11 @@ function sseReply(text: string, extraHeaders?: Record<string, string>) {
 }
 
 export async function POST(req: Request) {
-  let body: { messages?: Array<{ role: string; content?: string }>; belief?: number };
+  let body: {
+    messages?: Array<{ role: string; content?: string }>;
+    belief?: number;
+    latticeSessionId?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -44,7 +57,11 @@ export async function POST(req: Request) {
   const messages = body.messages || [];
   const last = messages.filter(m => m.role === 'user').pop();
   const text = last?.content || '';
-  const lattice = await fetchLatticeTurn(String(text), body.belief ?? 0.55);
+  const lattice = await fetchLatticeTurn(
+    String(text),
+    body.belief ?? 0.55,
+    body.latticeSessionId
+  );
 
   const llm = resolveLlmConfig();
 
@@ -60,7 +77,7 @@ export async function POST(req: Request) {
           headers: {
             'content-type': 'text/event-stream; charset=utf-8',
             'cache-control': 'no-store',
-            'x-lattice-offline': lattice.offline ? '1' : '0',
+            ...latticeHeaders(lattice),
             'x-avrone-agent': 'langgraph',
             'x-avrone-engine': 'langgraph',
             'x-avrone-provider': provider,
@@ -83,7 +100,7 @@ export async function POST(req: Request) {
         headers: {
           'content-type': 'text/event-stream; charset=utf-8',
           'cache-control': 'no-store',
-          'x-lattice-offline': lattice.offline ? '1' : '0',
+          ...latticeHeaders(lattice),
           'x-avrone-agent': '1',
           'x-avrone-engine': 'classic',
           'x-avrone-provider': provider,
@@ -92,16 +109,16 @@ export async function POST(req: Request) {
         }
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return sseReply(
-        `(Avrone agent error) ${msg}\n\nFalling back tip: check LLM keys / Pollinations (AVRONE_POLLINATIONS_ENABLED) and model names.`,
-        {
-          'x-lattice-offline': lattice.offline ? '1' : '0',
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return Response.json(providerFailurePayload(scrubSecrets(errorMessage)), {
+        status: 502,
+        headers: {
+          ...latticeHeaders(lattice),
           'x-avrone-agent': '0',
           'x-avrone-engine': 'error',
           'x-avrone-tools': '[]'
         }
-      );
+      });
     }
   }
 
@@ -111,7 +128,7 @@ export async function POST(req: Request) {
     const tip =
       '\n\n—\nAgent mode needs an LLM provider (paid key, free-tier key, or Pollinations).';
     return sseReply(`${det.reply || ''}${tip}`, {
-      'x-lattice-offline': lattice.offline ? '1' : '0',
+      ...latticeHeaders(lattice),
       'x-avrone-agent': '0',
       'x-avrone-engine': 'deterministic',
       'x-avrone-tools': toolsSummaryHeader(det.activities)
@@ -130,7 +147,7 @@ export async function POST(req: Request) {
     '`search <q>`, `fetch <url>`, `js: <code>`, `shell: <cmd>`.';
 
   return sseReply(reply, {
-    'x-lattice-offline': lattice.offline ? '1' : '0',
+    ...latticeHeaders(lattice),
     'x-avrone-agent': '0',
     'x-avrone-engine': 'lattice',
     'x-avrone-tools': '[]'

@@ -1,0 +1,37 @@
+{
+  "schema": "control-plane.evidence-envelope/v1",
+  "evidence_id": "evidence-sim-0001",
+  "evidence_type": "execution",
+  "claim": {
+    "status": "PASS",
+    "summary": "Incorrectly claims a simulation is production success."
+  },
+  "subject": {
+    "repository": "doitupsolutions810-crow/swarm-vm-runner",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "workflow_run_id": "run-123",
+    "job_id": "job-456"
+  },
+  "execution": {
+    "mode": "simulation",
+    "started_at": "2026-10-27T00:00:00Z",
+    "completed_at": "2026-10-27T00:00:05Z"
+  },
+  "authority": {
+    "class": "signed_internal",
+    "issuer": "swarm-vm-runner",
+    "key_id": "test-key-1"
+  },
+  "policy": {
+    "policy_id": "execution-release-gate",
+    "policy_version": "1"
+  },
+  "issued_at": "2026-10-27T00:00:06Z",
+  "expires_at": "2026-10-27T01:00:06Z",
+  "request_id": "request-0001",
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "schema-fixture-only-not-a-cryptographic-signature"
+  }
+}

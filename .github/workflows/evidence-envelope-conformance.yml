@@ -1,0 +1,42 @@
+name: Evidence Envelope Conformance
+
+on:
+  pull_request:
+    paths:
+      - "schemas/**"
+      - "scripts/validate-evidence-envelope.mjs"
+      - "lib/evidence-envelope-v1.mjs"
+      - "lib/evidence-envelope-gate.mjs"
+      - "test/evidence-envelope-v1.test.mjs"
+      - "test/evidence-envelope-gate.test.mjs"
+      - ".github/workflows/evidence-envelope-conformance.yml"
+  push:
+    branches:
+      - main
+      - "design/cross-repo-evidence-envelope-v1"
+    paths:
+      - "schemas/**"
+      - "scripts/validate-evidence-envelope.mjs"
+      - "lib/evidence-envelope-v1.mjs"
+      - "lib/evidence-envelope-gate.mjs"
+      - "test/evidence-envelope-v1.test.mjs"
+      - "test/evidence-envelope-gate.test.mjs"
+      - ".github/workflows/evidence-envelope-conformance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  schema-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install isolated schema validator dependencies
+        run: npm install --no-save --package-lock=false ajv@8 ajv-formats@3
+      - name: Validate valid and invalid golden fixtures
+        run: node scripts/validate-evidence-envelope.mjs
+      - name: Run semantic verifier and production-gate security tests
+        run: node --test test/evidence-envelope-v1.test.mjs test/evidence-envelope-gate.test.mjs

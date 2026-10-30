@@ -1,8 +1,18 @@
+import {
+  parseComponentRegistry,
+  type ComponentRegistrySnapshot,
+  type PlatformComponent
+} from './component-registry.mjs';
+import { fetchLatticeSessionTurn } from './lattice-session.mjs';
+
 export type LatticeContext = {
   systemAugment?: string;
   spectrum?: unknown;
   offline?: boolean;
+  sessionId?: string;
 };
+
+export type { ComponentRegistrySnapshot, PlatformComponent } from './component-registry.mjs';
 
 function platformBase() {
   return (process.env.CONTROL12_PLATFORM_URL || '').replace(/\/$/, '');
@@ -17,36 +27,21 @@ function platformHeaders(): Record<string, string> {
 
 export async function fetchLatticeTurn(
   message: string,
-  belief = 0.55
+  belief = 0.55,
+  sessionId?: string | null
 ): Promise<LatticeContext> {
   const platformUrl = platformBase();
   if (!platformUrl) {
     return { offline: true, systemAugment: 'Lattice offline (CONTROL12_PLATFORM_URL unset).' };
   }
 
-  const headers = platformHeaders();
-
-  try {
-    const sessionRes = await fetch(`${platformUrl}/api/v1/chat/session`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ label: 'avrone', belief }),
-      signal: AbortSignal.timeout(8000)
-    });
-    if (!sessionRes.ok) return { offline: true, systemAugment: 'Lattice session rejected.' };
-    const session = await sessionRes.json();
-    const turnRes = await fetch(`${platformUrl}/api/v1/chat/turn`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ sessionId: session.id, message, belief }),
-      signal: AbortSignal.timeout(8000)
-    });
-    if (!turnRes.ok) return { offline: true, systemAugment: 'Lattice turn rejected.' };
-    const turn = await turnRes.json();
-    return { systemAugment: turn.systemAugment, spectrum: turn.frame, offline: false };
-  } catch {
-    return { offline: true, systemAugment: 'Lattice unreachable.' };
-  }
+  return fetchLatticeSessionTurn({
+    baseUrl: platformUrl,
+    headers: platformHeaders(),
+    message,
+    belief,
+    sessionId
+  });
 }
 
 export async function fetchPlatformSnapshot() {
@@ -102,5 +97,57 @@ export async function fetchPlatformSnapshot() {
   } catch (e) {
     out.platform = { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
+  try {
+    const componentRegistry = await fetch(`${platformUrl}/api/v1/components`, {
+      headers: platformHeaders(),
+      signal: AbortSignal.timeout(8000)
+    });
+    out.componentRegistry = componentRegistry.ok
+      ? parseComponentRegistry(await componentRegistry.json())
+      : { status: 'unavailable', httpStatus: componentRegistry.status };
+  } catch (error) {
+    out.componentRegistry = {
+      status: 'unavailable',
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
   return out;
+}
+
+export async function postCockpitAction(
+  action: string,
+  payload: Record<string, unknown> = {}
+): Promise<Record<string, unknown>> {
+  const platformUrl = platformBase();
+  if (!platformUrl) {
+    return { status: 503, error: 'platform URL not configured' };
+  }
+
+  try {
+    const response = await fetch(`${platformUrl}/api/v1/cockpit/action`, {
+      method: 'POST',
+      headers: platformHeaders(),
+      body: JSON.stringify({ ...payload, action }),
+      signal: AbortSignal.timeout(8000)
+    });
+
+    let result: unknown;
+    try {
+      result = await response.json();
+    } catch {
+      return { status: 502, error: 'platform returned invalid JSON' };
+    }
+
+    return {
+      ...(result && typeof result === 'object' && !Array.isArray(result)
+        ? result
+        : { result }),
+      status: response.status
+    };
+  } catch (error) {
+    return {
+      status: 502,
+      error: `platform request failed: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
 }
