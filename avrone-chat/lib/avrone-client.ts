@@ -104,3 +104,23 @@ export async function fetchPlatformSnapshot() {
   }
   return out;
 }
+
+/**
+ * Fail-closed placeholder for the cockpit's legacy POST route.
+ *
+ * The route imports this export, but there is no established action allowlist,
+ * permission check, or downstream action contract in this package yet. Do not
+ * turn this into a generic proxy or dispatch an agent-supplied action to the
+ * Control12 plane. Mutating cockpit operations remain disabled until each
+ * action has a documented contract and server-side authorization.
+ */
+export async function postCockpitAction(
+  _action: string,
+  _body: Record<string, unknown>
+): Promise<{ ok: false; status: 501; error: 'cockpit_action_not_configured' }> {
+  return {
+    ok: false,
+    status: 501,
+    error: 'cockpit_action_not_configured'
+  };
+}
