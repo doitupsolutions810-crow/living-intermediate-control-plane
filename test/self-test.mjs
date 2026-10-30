@@ -4,6 +4,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { emitReadinessEvidence } from '../lattice/readiness-poller.mjs';
@@ -12,6 +13,9 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { parseResidualInput, residualInputGateEligible } from '../lib/residual-input.mjs';
+import { evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
+import { canonicalAttestationJson } from '../lib/measurement-attestation.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -30,6 +34,103 @@ function assert(condition, message) {
 }
 
 console.log('Self-test — Living Intermediate Control Plane\n');
+// Residual input is parsed strictly; invalid values cannot silently become S=0.
+const residualDefault = parseResidualInput(undefined);
+assert(residualDefault.valid && !residualDefault.provided && residualDefault.value === 0 && residualDefault.source === 'default' && residualDefault.decision === 'HOLD_RESIDUAL_UNSET', 'unset residual is explicitly labeled default and not treated as supplied input');
+assert(residualInputGateEligible(residualDefault) === false, 'unset residual default cannot satisfy residual gate');
+for (const raw of ['0', '0.125', '0.25', '.125', '1.25e-1']) {
+  const parsed = parseResidualInput(raw);
+  assert(parsed.valid && parsed.provided && parsed.decision === null, 'valid residual accepted: ' + raw);
+  assert(residualInputGateEligible(parsed) === true, 'explicit valid residual can satisfy input eligibility: ' + raw);
+}
+for (const raw of ['', '   ', 'NaN', 'Infinity', '-Infinity', 'bad', '0x10', '1e999', '1e-999']) {
+  const parsed = parseResidualInput(raw);
+  assert(!parsed.valid && parsed.provided && parsed.decision === 'HOLD_INVALID_RESIDUAL', 'malformed/non-finite residual rejected: ' + raw);
+  assert(residualInputGateEligible(parsed) === false, 'malformed residual cannot satisfy gate: ' + raw);
+}
+for (const raw of ['-0.0001', '-0.125', '0.2500001', '1', '1e100']) {
+  const parsed = parseResidualInput(raw);
+  assert(!parsed.valid && parsed.provided && parsed.decision === 'HOLD_RESIDUAL_DOMAIN', 'out-of-domain residual rejected: ' + raw);
+  assert(residualInputGateEligible(parsed) === false, 'out-of-domain residual cannot satisfy gate: ' + raw);
+}
+
+// Invalid residual input must not be mislabeled as merely awaiting public evidence.
+const integrationSource = readFileSync(join(root, 'integrate.mjs'), 'utf8');
+assert(integrationSource.includes('coreReady && residualInputGateEligible(residualInput) && !gates.procurement.evidenceAuthorized'), 'invalid or unset residual cannot produce local-evidence readiness label');
+assert(integrationSource.includes('coreReady: coreReady && residualInputGateEligible(residualInput)'), 'integration delegates residual gate eligibility to tested helper');
+
+// Production authorization is a distinct namespace and fails closed without each prerequisite.
+assert(evaluateProductionAuthorization().productionAuthorized === false, 'production authorization denied by default');
+assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true }).productionAuthorized === false, 'production authorization denied without verified measurement attestation');
+assert(evaluateProductionAuthorization({ coreReady: true, supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === false, 'legacy caller-supplied verification boolean cannot authorize production');
+assert(evaluateProductionAuthorization({ coreReady: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without supply-chain authorization');
+assert(evaluateProductionAuthorization({ supplyChainOk: true, measurementAttestationVerified: true }).productionAuthorized === false, 'production authorization denied without core readiness');
+const attestationKeys = generateKeyPairSync('ed25519');
+const expectedMeasurementIdentity = {
+  issuer: 'https://ci.example.test',
+  repository: 'doitupsolutions810-crow/living-intermediate-control-plane',
+  commitSha: '0123456789abcdef0123456789abcdef01234567',
+  runId: 'run-123',
+  artifactDigest: 'sha256:' + 'a'.repeat(64),
+  nonce: 'challenge-nonce-unique-001',
+};
+const measurementPayload = {
+  schema: 'control-plane.measurement-attestation/v1',
+  ...expectedMeasurementIdentity,
+  residualS: 0.125,
+  measuredAt: new Date(Date.now() - 1000).toISOString(),
+  expiresAt: new Date(Date.now() + 60_000).toISOString(),
+  keyId: 'test-measurement-key',
+};
+const signedMeasurementAttestation = {
+  ...measurementPayload,
+  signature: sign(null, Buffer.from(canonicalAttestationJson(measurementPayload), 'utf8'), attestationKeys.privateKey).toString('base64'),
+};
+const productionAuthorizationOptions = {
+  coreReady: true,
+  supplyChainOk: true,
+  S: 0.125,
+  measurementAttestation: signedMeasurementAttestation,
+  measurementAttestationExpected: expectedMeasurementIdentity,
+  measurementAttestationPublicKeyPem: attestationKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+  measurementAttestationKeyId: 'test-measurement-key',
+};
+assert(evaluateProductionAuthorization(productionAuthorizationOptions).productionAuthorized === true, 'production gate accepts a valid signed attestation bound to expected identity');
+const tamperedAttestation = { ...signedMeasurementAttestation, residualS: 0.2 };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: tamperedAttestation }).productionAuthorized === false, 'production gate rejects a tampered measurement payload');
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestationExpected: { ...expectedMeasurementIdentity, commitSha: 'ffffffffffffffffffffffffffffffffffffffff' } }).productionAuthorized === false, 'production gate rejects an attestation bound to a different commit');
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestationExpected: { ...expectedMeasurementIdentity, nonce: 'different-challenge-nonce' } }).productionAuthorized === false, 'production gate rejects an attestation bound to a different challenge nonce');
+const expiredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() - 120_000).toISOString(), expiresAt: new Date(Date.now() - 60_000).toISOString() };
+const expiredAttestation = { ...expiredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(expiredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: expiredAttestation }).productionAuthorized === false, 'production gate rejects an expired signed measurement attestation');
+
+const impossibleCalendarPayload = { ...measurementPayload, measuredAt: '2026-02-30T12:00:00Z' };
+const impossibleCalendarAttestation = { ...impossibleCalendarPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(impossibleCalendarPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: impossibleCalendarAttestation }).productionAuthorized === false, 'production gate rejects signed timestamps with impossible calendar dates');
+
+const nonRfc3339Payload = { ...measurementPayload, measuredAt: '2026-10-27 12:00:00Z' };
+const nonRfc3339Attestation = { ...nonRfc3339Payload, signature: sign(null, Buffer.from(canonicalAttestationJson(nonRfc3339Payload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: nonRfc3339Attestation }).productionAuthorized === false, 'production gate rejects parseable but non-RFC3339 measurement timestamps');
+
+for (const [label, timestamp] of [
+  ['out-of-range UTC offset hour', '2026-10-27T12:00:00+24:00'],
+  ['out-of-range UTC offset minute', '2026-10-27T12:00:00+01:60'],
+  ['leap second unsupported by parser contract', '2026-10-27T12:00:60Z'],
+]) {
+  const invalidTimestampPayload = { ...measurementPayload, measuredAt: timestamp };
+  const invalidTimestampAttestation = { ...invalidTimestampPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(invalidTimestampPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+  assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: invalidTimestampAttestation }).productionAuthorized === false, 'production gate rejects ' + label);
+}
+
+
+const futureMeasuredPayload = { ...measurementPayload, measuredAt: new Date(Date.now() + 60_000).toISOString(), expiresAt: new Date(Date.now() + 120_000).toISOString() };
+const futureMeasuredAttestation = { ...futureMeasuredPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(futureMeasuredPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: futureMeasuredAttestation }).productionAuthorized === false, 'production gate rejects measurement timestamps too far in the future');
+
+const longLivedPayload = { ...measurementPayload, measuredAt: new Date(Date.now() - 1000).toISOString(), expiresAt: new Date(Date.now() + 11 * 60_000).toISOString() };
+const longLivedAttestation = { ...longLivedPayload, signature: sign(null, Buffer.from(canonicalAttestationJson(longLivedPayload), 'utf8'), attestationKeys.privateKey).toString('base64') };
+assert(evaluateProductionAuthorization({ ...productionAuthorizationOptions, measurementAttestation: longLivedAttestation }).productionAuthorized === false, 'production gate rejects attestations with a lifetime over ten minutes');
+
 // Authority policy: local fallback is never implicit procurement authorization.
 assert(acceptsLocalEvidence({ env: {}, config: {} }) === false, 'local evidence rejected by default');
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} }) === true, 'local evidence explicit env opt-in accepted');
