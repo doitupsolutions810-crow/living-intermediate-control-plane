@@ -30,7 +30,7 @@ export async function fetchLatticeTurn(
     const sessionRes = await fetch(`${platformUrl}/api/v1/chat/session`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ label: 'avrone', belief }),
+      body: JSON.stringify({ label: 'avrona', belief }),
       signal: AbortSignal.timeout(8000)
     });
     if (!sessionRes.ok) return { offline: true, systemAugment: 'Lattice session rejected.' };
@@ -103,4 +103,24 @@ export async function fetchPlatformSnapshot() {
     out.platform = { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
   return out;
+}
+
+/**
+ * Fail-closed placeholder for the cockpit's legacy POST route.
+ *
+ * The route imports this export, but there is no established action allowlist,
+ * permission check, or downstream action contract in this package yet. Do not
+ * turn this into a generic proxy or dispatch an agent-supplied action to the
+ * Control12 plane. Mutating cockpit operations remain disabled until each
+ * action has a documented contract and server-side authorization.
+ */
+export async function postCockpitAction(
+  _action: string,
+  _body: Record<string, unknown>
+): Promise<{ ok: false; status: 501; error: 'cockpit_action_not_configured' }> {
+  return {
+    ok: false,
+    status: 501,
+    error: 'cockpit_action_not_configured'
+  };
 }
