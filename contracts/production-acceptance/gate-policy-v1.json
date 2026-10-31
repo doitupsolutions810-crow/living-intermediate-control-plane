@@ -1,0 +1,48 @@
+{
+  "schema": "great-scale.production-acceptance-gate-policy/v1",
+  "version": "1.0.3",
+  "gates": [
+    {
+      "id": "G0",
+      "policyId": "source-revision-binding",
+      "requiredSuiteName": "source-revision-binding",
+      "requirement": "The repository and full source commit SHA equal deployment pins, and the workflow head SHA matches."
+    },
+    {
+      "id": "G1",
+      "policyId": "required-ci-suites-pass",
+      "requiredSuiteName": "required-ci-suites-pass",
+      "requirement": "The deployment-required test suite set executes and succeeds on the exact pinned source revision and workflow attempt."
+    },
+    {
+      "id": "G2",
+      "policyId": "immutable-artifact-provenance",
+      "requiredSuiteName": "immutable-artifact-provenance",
+      "requirement": "The immutable artifact digest is pinned and its provenance binds the artifact to the source revision."
+    },
+    {
+      "id": "G3",
+      "policyId": "supply-chain-attestation",
+      "requiredSuiteName": "supply-chain-attestation",
+      "requirement": "Required supply-chain provenance and SBOM attestations are present and verified against an independent trust policy."
+    },
+    {
+      "id": "G4",
+      "policyId": "security-policy-pass",
+      "requiredSuiteName": "security-policy-pass",
+      "requirement": "Required vulnerability and admission-policy checks pass; skipped, missing, or unknown security results deny acceptance."
+    },
+    {
+      "id": "G5",
+      "policyId": "runtime-health",
+      "requiredSuiteName": "runtime-health",
+      "requirement": "A trusted live health check observes the expected build and immutable artifact digest in the target production environment."
+    },
+    {
+      "id": "G6",
+      "policyId": "residual-measurement",
+      "requiredSuiteName": "residual-measurement",
+      "requirement": "A fresh, source-pinned, same-build residual measurement is finite, lies in the topology-derived domain [0, 0.25], and satisfies the configured cone policy. G6 requires a Great Scale numericalCertification signed by an independent numerical-certificate key with its own fresh generatedAt/expiresAt, exact source/input/measurement digests, proof artifact matching proofDigest, and certified curvature/metric-area error upper bounds within tolerance. Empirical Richardson estimates are diagnostic only."
+    }
+  ]
+}

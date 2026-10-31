@@ -22,6 +22,7 @@ import { probeEvidenceConsole } from './lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from './lib/evidence-authorization.mjs';
 import { evaluateGateNamespaces } from './lib/gate-namespaces.mjs';
 import { residualSnapshot } from './lib/great-scale-residual.mjs';
+import { fetchProductionAcceptanceAttestation } from './lib/production-acceptance-fetch.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -111,6 +112,11 @@ const plan = evaluateQuorum(createOrchestrationPlan(goal));
 const launchdesk = handleLaunchDeskAction(action, goal);
 const evidenceConsole = await probeEvidenceConsole({ acceptLocal: true });
 
+// Production acceptance is a distinct artifact, never inferred from E0-E6 source status.
+// The endpoint and its verifier trust anchors must be deployment-controlled.
+// Missing, unreachable, malformed, or unverified artifacts remain a hard hold.
+const productionAcceptanceAttestation = await fetchProductionAcceptanceAttestation();
+
 // Availability fallback is diagnostic only; authorization is a separate policy.
 // FORCE_PROCUREMENT is never an authorization input (Great Scale invariant).
 const localEvidenceAuthority = acceptsLocalEvidence({ env: process.env, config });
@@ -125,6 +131,7 @@ const residualS = Number(process.env.GREAT_SCALE_S || 0) || 0;
 const gates = evaluateGateNamespaces({
   coreReady,
   evidenceConsole,
+  productionAcceptanceAttestation,
   env: process.env,
   config,
   S: residualS,
@@ -137,8 +144,10 @@ if (planeState.paused) {
   decision = 'PAUSED';
 } else if (gates.procurement.procurementReady) {
   decision = 'READY_FOR_PROCUREMENT';
+} else if (coreReady && gates.procurement.publicContractOk) {
+  decision = 'HOLD_PRODUCTION_ACCEPTANCE_EVIDENCE';
 } else if (coreReady && !gates.procurement.evidenceAuthorized) {
-  decision = 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE';
+  decision = 'HOLD_EVIDENCE_AUTHORIZATION';
 } else {
   decision = 'HOLD';
 }
@@ -193,9 +202,11 @@ const result = {
           ? evidenceConsole.status === 'ok'
             ? 'Integrated check passed. Public evidence-console healthy.'
             : 'Integrated check passed. Local evidence accepted (public console gracefully deferred).'
-          : decision === 'READY_LOCAL_HOLD_PUBLIC_EVIDENCE'
-            ? 'Core systems READY. Public evidence-console still required or set ACCEPT_LOCAL_EVIDENCE=1.'
-            : 'Core readiness or orchestration not yet READY.',
+          : decision === 'HOLD_PRODUCTION_ACCEPTANCE_EVIDENCE'
+            ? 'Core systems READY and source contract verified, but procurement is held because the authoritative production-acceptance artifact and verifier are not connected.'
+            : decision === 'HOLD_EVIDENCE_AUTHORIZATION'
+              ? 'Core systems READY, but evidence authorization is not established; procurement remains held.'
+              : 'Core readiness or orchestration not yet READY.',
   securityValue: config.securityValue
 };
 

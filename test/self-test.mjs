@@ -12,6 +12,7 @@ import { handleLaunchDeskAction, listNamedActions } from '../launchdesk/actions.
 import { readPlaneState } from '../status/plane-state.mjs';
 import { probeEvidenceConsole } from '../lib/evidence-console.mjs';
 import { acceptsLocalEvidence } from '../lib/evidence-authorization.mjs';
+import { evaluateGateNamespaces, evaluateProcurementReadiness, evaluateProductionAuthorization } from '../lib/gate-namespaces.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -36,6 +37,88 @@ assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: '1' }, config: {} })
 assert(acceptsLocalEvidence({ env: { ACCEPT_LOCAL_EVIDENCE: 'true' }, config: {} }) === true, 'local evidence true env opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: true } }) === true, 'local evidence explicit config opt-in accepted');
 assert(acceptsLocalEvidence({ env: {}, config: { acceptLocalEvidenceByDefault: false } }) === false, 'false config does not authorize local evidence');
+
+// Gate namespace must not infer contract validity from a status label.
+const gateOptions = { coreReady: true, env: {}, config: {}, S: 0, requireCone: false };
+assert(evaluateProductionAuthorization({
+  ...gateOptions,
+  supplyChainOk: true
+}).productionAuthorized === false, 'caller-supplied supply-chain boolean cannot authorize production without signed G0-G6 attestation');
+const productionBooleanBypass = evaluateProductionAuthorization({
+  ...gateOptions,
+  supplyChainOk: true,
+  productionAcceptanceAttestation: null,
+  acceptanceVerificationOptions: { publicKeyPem: 'invalid', keyId: 'caller-key', buildId: 'caller-build' }
+});
+assert(productionBooleanBypass.productionAuthorized === false, 'production remains held when attestation is absent even with permissive-looking verifier options');
+assert(productionBooleanBypass.productionAcceptanceVerified === false, 'production gate exposes failed acceptance verification');
+const noMeasurement = evaluateGateNamespaces({
+  ...gateOptions,
+  supplyChainOk: true,
+  productionAcceptanceAttestation: null,
+});
+assert(noMeasurement.residual.observed === false, 'default S=0 is not reported as a measured residual');
+assert(noMeasurement.residual.provenanceVerified === false, 'unverified residual provenance is visible in diagnostics');
+assert(noMeasurement.procurement.procurementReady === false && noMeasurement.production.productionAuthorized === false, 'both authorization namespaces fail closed without signed acceptance and residual evidence');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: false }
+}).evidenceAuthorized === false, 'public status without verified contract is denied by gate namespace');
+const contractOnlyGate = evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: { status: 'ok', authority: 'public', trustContractVerified: true }
+});
+assert(contractOnlyGate.evidenceAuthorized === false, 'verified source contract alone cannot authorize procurement');
+assert(contractOnlyGate.note.includes('production-acceptance evidence is absent'), 'contract-only readiness note explains missing acceptance evidence');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: {
+    status: 'ok', authority: 'public', trustContractVerified: true,
+    procurementEvidenceVerified: true
+  }
+}).evidenceAuthorized === false, 'caller-supplied acceptance boolean cannot authorize procurement without a verifier');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { authority: 'local' }
+}).evidenceAuthorized === false, 'local opt-in without observed degraded status is denied');
+const localFallbackWithoutAcceptance = evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'unreachable', authority: 'local' }
+});
+assert(localFallbackWithoutAcceptance.evidenceAuthorized === false, 'local fallback cannot bypass missing production-acceptance evidence');
+assert(localFallbackWithoutAcceptance.note.includes('production-acceptance evidence is absent'), 'local fallback hold explains missing acceptance evidence');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: {
+    status: 'unreachable', authority: 'local',
+    procurementEvidenceVerified: true
+  }
+}).evidenceAuthorized === false, 'caller-supplied acceptance boolean cannot bypass the verifier on local fallback');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'invalid', authority: 'public', trustContractVerified: false }
+}).evidenceAuthorized === false, 'public-labeled invalid response cannot be reclassified as local fallback');
+const invalidTrustGate = evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'invalid', authority: 'public', trustContractVerified: false }
+});
+assert(invalidTrustGate.procurementReady === false, 'invalid evidence keeps procurement on hold despite local opt-in');
+assert(invalidTrustGate.note.includes('trust verification failed'), 'gate note does not claim readiness after trust failure');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: { status: 'invalid', authority: 'local', trustContractVerified: false }
+}).evidenceAuthorized === false, 'invalid evidence cannot authorize local fallback even when mislabeled local');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  evidenceConsole: { status: 'unreachable', authority: 'local' }
+}).evidenceAuthorized === false, 'recognized local fallback without opt-in is denied');
+
 const packageScripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 assert(packageScripts.procure === 'node integrate.mjs procure', 'default procure does not force local evidence');
 assert(packageScripts['procure:gated'] === 'GATE_DOCTOR=1 node integrate.mjs procure', 'gated procure does not force local evidence');
@@ -83,26 +166,89 @@ assert(existsSync(join(root, 'avrone-chat/app/api/health/route.ts')), 'avrone-ch
 assert(existsSync(join(root, 'avrone-chat/app/api/cockpit/route.ts')), 'avrone-chat cockpit route present');
 
 // evidence-console graceful behavior (stubbed fetch — no network)
+function evidenceResponseAt(url, body, init = {}) {
+  const response = new Response(body, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init.headers || {}) }
+  });
+  Object.defineProperty(response, 'url', { value: url, configurable: true });
+  return response;
+}
 const unset = await probeEvidenceConsole({ url: '', acceptLocal: true });
 assert(unset.status === 'unconfigured', 'evidence-console unconfigured when URL empty');
 assert(unset.authority === 'local', 'unconfigured console uses local authority');
+const unsetDenied = await probeEvidenceConsole({ url: '', acceptLocal: false });
+assert(unsetDenied.authority === 'public', 'unconfigured console does not claim local authority when fallback is disabled');
+assert(unsetDenied.note.includes('local authority is disabled'), 'unconfigured diagnostic states fallback is disabled');
 
 const notFound = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
-  fetchImpl: async () => new Response('missing', { status: 404 })
+  fetchImpl: async input => evidenceResponseAt(String(input), 'missing', { status: 404 })
 });
 assert(notFound.status === 'not_found', 'evidence-console 404 maps to not_found');
 assert(notFound.authority === 'local', '404 console falls back to local authority');
 assert(notFound.httpStatus === 404, '404 httpStatus preserved');
+const notFoundDenied = await probeEvidenceConsole({
+  url: 'https://evidence.example.invalid/console',
+  acceptLocal: false,
+  fetchImpl: async input => evidenceResponseAt(String(input), 'missing', { status: 404 })
+});
+assert(notFoundDenied.authority === 'public', '404 does not claim local authority when fallback is disabled');
+assert(notFoundDenied.note.includes('local fallback is disabled'), '404 diagnostic states fallback is disabled');
+
+const reachableUnverified = await probeEvidenceConsole({
+  url: 'https://evidence.example.invalid/console',
+  acceptLocal: true,
+  fetchImpl: async input => evidenceResponseAt(String(input), JSON.stringify({ ok: true }), { status: 200 }),
+  verifyDocument: async () => ({ valid: false, failures: [{ code: 'SCHEMA' }] })
+});
+assert(reachableUnverified.status === 'invalid', 'HTTP 200 without verified evidence contract is invalid');
+assert(reachableUnverified.authority === 'public', 'reachable but unverified endpoint is not downgraded to local authority');
+assert(reachableUnverified.trustContractVerified === false, 'unverified response explicitly denies trust contract');
+assert(reachableUnverified.note.includes('trust failure'), 'invalid evidence diagnostic identifies a trust failure, not fallback');
+assert(evaluateProcurementReadiness({
+  ...gateOptions,
+  env: { ACCEPT_LOCAL_EVIDENCE: '1' },
+  evidenceConsole: reachableUnverified
+}).evidenceAuthorized === false, 'reachable but cryptographically unverified source cannot authorize via local fallback');
 
 const ok = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',
   acceptLocal: true,
-  fetchImpl: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
+  fetchImpl: async input => evidenceResponseAt(String(input), JSON.stringify({ schema: 'test-fixture' }), { status: 200 }),
+  verifyDocument: async doc => ({
+    valid: doc.schema === 'test-fixture',
+    failures: doc.schema === 'test-fixture' ? [] : [{ code: 'SCHEMA' }]
+  })
 });
-assert(ok.status === 'ok', 'evidence-console 200 maps to ok');
-assert(ok.authority === 'public', 'healthy console uses public authority');
+assert(ok.status === 'ok', 'verified evidence document maps to ok');
+assert(ok.authority === 'public', 'verified evidence document uses public authority');
+assert(ok.trustContractVerified === true, 'verified response exposes explicit trust-contract proof');
+assert(Array.isArray(ok.verificationFailures) && ok.verificationFailures.length === 0, 'verified response has no contract failures');
+
+const probeRequests = [];
+const boundPair = await probeEvidenceConsole({
+  url: 'https://evidence.example.invalid/api/status',
+  acceptLocal: true,
+  fetchImpl: async input => {
+    const requestUrl = String(input);
+    probeRequests.push(requestUrl);
+    if (new URL(requestUrl).pathname === '/api/v1/evidence/schema') {
+      return evidenceResponseAt(requestUrl, JSON.stringify({ kind: 'schema', revision: 7 }), { status: 200 });
+    }
+    return evidenceResponseAt(requestUrl, JSON.stringify({ kind: 'status', schemaRevision: 7 }), { status: 200 });
+  },
+  verifyDocument: async (document, schema) => ({
+    valid: document.kind === 'status' && schema.kind === 'schema' &&
+      document.schemaRevision === schema.revision,
+    failures: [{ code: 'PAIR_BINDING' }],
+  }),
+});
+assert(probeRequests.length === 2, 'probe fetches both status and schema endpoints');
+assert(probeRequests.some(url => new URL(url).pathname === '/api/v1/evidence/schema'), 'probe fetches producer schema route');
+assert(boundPair.status === 'ok' && boundPair.trustContractVerified === true, 'probe verifier receives a matching status/schema pair');
+
 
 const boom = await probeEvidenceConsole({
   url: 'https://evidence.example.invalid/console',

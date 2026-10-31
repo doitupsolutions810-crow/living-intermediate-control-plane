@@ -1,0 +1,73 @@
+name: Production Acceptance Contract Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "lib/production-acceptance-fetch.mjs"
+      - "lib/producer-evidence-contract.mjs"
+      - "lib/g6-residual-receipt.mjs"
+      - "test/g6-residual-receipt.test.mjs"
+      - "test/evidence-console-probe-security.test.mjs"
+      - "lib/evidence-console.mjs"
+      - "lib/production-acceptance-attestation.mjs"
+      - "lib/gate-namespaces.mjs"
+      - "lib/great-scale-residual.mjs"
+      - "integrate.mjs"
+      - "test/production-acceptance-attestation.test.mjs"
+      - "contracts/production-acceptance/v1.schema.json"
+      - "contracts/production-acceptance/gate-policy-v1.json"
+      - "test/production-acceptance-schema.test.mjs"
+      - "test/production-acceptance-fetch.test.mjs"
+      - "test/producer-evidence-contract.test.mjs"
+      - ".github/workflows/production-acceptance-fetch.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/production-acceptance-fetch.mjs"
+      - "lib/producer-evidence-contract.mjs"
+      - "lib/g6-residual-receipt.mjs"
+      - "test/g6-residual-receipt.test.mjs"
+      - "test/evidence-console-probe-security.test.mjs"
+      - "lib/evidence-console.mjs"
+      - "lib/production-acceptance-attestation.mjs"
+      - "lib/gate-namespaces.mjs"
+      - "lib/great-scale-residual.mjs"
+      - "integrate.mjs"
+      - "contracts/production-acceptance/v1.schema.json"
+      - "contracts/production-acceptance/gate-policy-v1.json"
+      - "test/production-acceptance-fetch.test.mjs"
+      - "test/producer-evidence-contract.test.mjs"
+      - "test/production-acceptance-schema.test.mjs"
+      - "test/production-acceptance-attestation.test.mjs"
+      - ".github/workflows/production-acceptance-fetch.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-acceptance-fetch-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fetch-contract:
+    name: Attestation transport and authority regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check
+        run: node --check lib/production-acceptance-fetch.mjs && node --check lib/producer-evidence-contract.mjs && node --check lib/g6-residual-receipt.mjs && node --check test/g6-residual-receipt.test.mjs && node --check test/producer-evidence-contract.test.mjs && node --check lib/evidence-console.mjs && node --check test/evidence-console-probe-security.test.mjs && node --check lib/production-acceptance-attestation.mjs && node --check integrate.mjs && node --check test/production-acceptance-fetch.test.mjs && node --check test/production-acceptance-schema.test.mjs && node --check test/production-acceptance-attestation.test.mjs
+
+      - name: Run focused transport tests
+        run: node --test test/producer-evidence-contract.test.mjs && node --test test/production-acceptance-fetch.test.mjs test/production-acceptance-schema.test.mjs && node test/production-acceptance-attestation.test.mjs && node --test test/g6-residual-receipt.test.mjs && node --test test/evidence-console-probe-security.test.mjs

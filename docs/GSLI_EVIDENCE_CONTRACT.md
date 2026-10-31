@@ -23,7 +23,7 @@ Every evidence status document **must** carry a residual block:
 }
 ```
 
-`coneOk` must be `true` for the document to verify.
+`coneOk` must be `true` for the document to verify, and `S` must be finite and lie in the topology-derived domain `[0, 0.25]`. The predicate `coneCompliant(S)` is only a lower-bound check (`Ψ = CONE + S`); it is not a substitute for domain validation, measurement freshness, source/build binding, or signature verification.
 
 ## Namespaces (independent)
 
@@ -59,7 +59,7 @@ Required fields:
 | `lib/evidence-authorization.mjs` | local opt-in + cone dual |
 | `status/evidence-status.mjs` | CLI emit / verify |
 | `status/write-status-file.mjs` | Persists `data/status.json` + `data/evidence-status.json` |
-| `test/evidence-status-document.test.mjs` | 5 focused cases |
+| `test/evidence-status-document.test.mjs` | 7 focused cases (including out-of-domain residual rejection) |
 
 ## Alignment with open PRs
 
