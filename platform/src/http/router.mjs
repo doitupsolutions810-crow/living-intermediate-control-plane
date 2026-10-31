@@ -1,3 +1,25 @@
+import { isIP } from 'node:net';
+
+/**
+ * Permit tokenless operation only on loopback. A non-loopback listener must
+ * have an explicit bearer token configured; otherwise auth checks would be
+ * silently disabled by requireAuth's local-development behavior.
+ */
+export function assertSecureBinding(host, token) {
+  const normalized = String(host || '').toLowerCase();
+  const ipv4Loopback = isIP(normalized) === 4
+    && Number(normalized.split('.')[0]) === 127;
+  // Keep hostname allowance narrow. Do not use a string prefix for IPv4:
+  // "127.example.com" is a hostname, not proof of a loopback address.
+  const loopback = normalized === 'localhost'
+    || normalized === '::1'
+    || normalized === '[::1]'
+    || ipv4Loopback;
+  if (!loopback && !String(token || '')) {
+    throw new Error('CONTROL12_PLATFORM_TOKEN is required when binding to a non-loopback host');
+  }
+}
+
 export function sendJson(res, status, body) {
   const data = JSON.stringify(body);
   res.writeHead(status, {

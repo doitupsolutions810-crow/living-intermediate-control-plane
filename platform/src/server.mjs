@@ -4,7 +4,7 @@ import { config } from './config.mjs';
 import { ResonantBridge } from './audio/resonant-bridge.mjs';
 import { CodingAgent } from './agents/coding-agent.mjs';
 import { CodingQuorum } from './agents/coding-quorum.mjs';
-import { readJson, requireAuth, requireAuthUnlessChatOpen, sendJson, sendOptions } from './http/router.mjs';
+import { assertSecureBinding, readJson, requireAuth, requireAuthUnlessChatOpen, sendJson, sendOptions } from './http/router.mjs';
 import { createAppServer, installTlsReloadSignal } from './security/create-server.mjs';
 import { AccessLogger } from './security/access-logger.mjs';
 import { analyzeAccessLog } from './security/anomaly-detector.mjs';
@@ -16,6 +16,9 @@ import { createFederationApi } from './api/federation/index.mjs';
 import { createAttestationApi } from './api/attestation/index.mjs';
 import { ComponentRegistry } from './attestation/component-registry.mjs';
 import { buildSessionLink, createSessionLinkStore } from './attestation/session-link.mjs';
+
+// Never expose a tokenless control plane on a non-loopback interface.
+assertSecureBinding(config.host, config.apiToken);
 
 await fs.mkdir(config.root, { recursive: true });
 await fs.mkdir(config.workspace, { recursive: true });
@@ -87,6 +90,21 @@ const attestation = createAttestationApi({
 
 const tlsHandle = { current: null };
 
+// These endpoints disclose security posture, component inventory, or attestation
+// metadata. They remain convenient on tokenless loopback development, but require
+// the configured bearer token whenever one is set.
+const AUTHENTICATED_GET_PATHS = new Set([
+  '/api/v1/security/anomalies',
+  '/api/v1/security/renew',
+  '/api/v1/security/status',
+  '/api/v1/attestation/sbom',
+  '/api/v1/attestation/statement',
+  '/api/v1/attestation/policy',
+  '/api/v1/components',
+  '/api/v1/bridge/avrone-stack/probe',
+  '/api/v1/federation/snapshot'
+]);
+
 const handler = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
   const hasBearer = Boolean((req.headers.authorization || '').match(/^Bearer\s+\S+/i));
@@ -97,6 +115,9 @@ const handler = async (req, res) => {
 
   try {
     if (req.method === 'OPTIONS') return sendOptions(res);
+    if (req.method === 'GET' && AUTHENTICATED_GET_PATHS.has(url.pathname)) {
+      requireAuth(req, config.apiToken);
+    }
 
     if (req.method === 'GET' && url.pathname === '/health') {
       return sendJson(res, 200, {
