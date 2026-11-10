@@ -64,7 +64,7 @@ jobs:
         run: DRY_RUN=1 ACCEPT_LOCAL_EVIDENCE=1 node integrate.mjs procure
 
       - name: Trivy FS scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -209,7 +209,7 @@ jobs:
           path: slsa-provenance.json
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ steps.meta.outputs.image_ref }}
@@ -220,7 +220,7 @@ jobs:
           trivy-config: trivy.yaml
 
       - name: Trivy image JSON for OPA
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ steps.meta.outputs.image_ref }}
@@ -271,7 +271,7 @@ jobs:
 
       - name: Trivy SARIF
         if: always()
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: ${{ steps.meta.outputs.image_ref }}
