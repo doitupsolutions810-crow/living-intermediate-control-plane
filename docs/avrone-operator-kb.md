@@ -132,3 +132,19 @@ UI reads `x-avrone-tools` (JSON summary) and SSE comment events `: avrone-tool �
 
 Export lessons: use `exportLessonsForEnv()` from `avrone-chat/lib/operator-memory.ts` and paste into Vercel as plain env. Do not put API keys in the memory blob.
 
+## Control704 access layer (v1.5.0)
+
+Full doc: [`docs/control704-access.md`](control704-access.md).
+
+- Pages: `/control704/login`, `/control704` (dashboard), `/control704/override` (dry-run diff → apply).
+- APIs: `/api/control704/{login,logout,session,targets,audit,override}`, proxy `/api/proxy/{x|y|z}/<path>`.
+- Roles `viewer < technician < admin`; sessions are HMAC cookies signed with `AVRONE_AUTH_SECRET`;
+  accounts are scrypt hashes in `CONTROL704_ACCOUNTS`. Add a technician with
+  `node avrone-chat/scripts/control704-hash-key.mjs <id> <role> --key-out <file>`.
+- X/Y/Z = token-override / dataset-code / lattice-op (from `control704-proxy-system`). Upstreams are
+  unset until `CONTROL704_PROXY_<T>_URL` is set → dashboard shows "not configured".
+- Dataset override is admin-only, needs a reason, previews first, and every action lands in the
+  hash-chained audit log (durable copy = Vercel runtime logs `[control704-audit]`).
+- Chat agent gets `proxy_x/y/z`, `control704_targets`, `dataset_override` only when signed in.
+- Admin key for Jean lives in the box secrets file (`card.CONTROL704_ADMIN_KEY`), never in the repo or Vercel (only its hash).
+

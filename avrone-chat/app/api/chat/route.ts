@@ -9,6 +9,7 @@ import {
   isLangGraphEnabled,
   runLangGraphAgent
 } from '../../../lib/langgraph-agent';
+import { sessionFromCookieHeader } from '../../../lib/control704/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,8 +54,17 @@ export async function POST(req: Request) {
     const useLangGraph = isLangGraphEnabled();
     if (useLangGraph) {
       try {
+        // Control704 tools are only attached for a verified technician session.
+        const caller = await sessionFromCookieHeader(req.headers.get('cookie'));
+        const c704Note = caller
+          ? `Control704 session: ${caller.sub} (role ${caller.role}). Tools proxy_x/proxy_y/proxy_z/control704_targets are available` +
+            (caller.role === 'admin'
+              ? '; dataset_override is available (dry run first, apply only after explicit confirmation).'
+              : '; dataset_override requires admin.')
+          : '';
         const { stream, activities, provider, model } = await runLangGraphAgent(messages, {
-          systemAugment: lattice.systemAugment
+          systemAugment: [lattice.systemAugment, c704Note].filter(Boolean).join('\n\n'),
+          caller
         });
         return new Response(stream, {
           headers: {

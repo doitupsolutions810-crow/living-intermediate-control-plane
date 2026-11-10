@@ -29,6 +29,7 @@ import {
 import type { ToolActivity } from './agent-tools';
 import { scrubSecrets } from './scrub';
 import { buildLangChainTools } from './langgraph-tools';
+import type { ToolCaller } from './control704/agent-tools';
 import {
   formatOperatorNotes,
   isLangGraphEnabled,
@@ -124,8 +125,8 @@ function statusFromError(err: unknown): { status: number; body: string } {
   return { status: status || 500, body };
 }
 
-function buildGraph(configs: LlmConfig[], onActivity?: OnActivity) {
-  const lcTools = buildLangChainTools(onActivity);
+function buildGraph(configs: LlmConfig[], onActivity?: OnActivity, caller?: ToolCaller | null) {
+  const lcTools = buildLangChainTools(onActivity, caller);
   const toolNode = new ToolNode(lcTools);
 
   async function llmCall(state: typeof AgentState.State) {
@@ -236,7 +237,13 @@ function sseStreamFromText(
  */
 export async function runLangGraphAgent(
   userMessages: Array<{ role: string; content?: string }>,
-  opts?: { systemAugment?: string; onActivity?: OnActivity; maxRounds?: number }
+  opts?: {
+    systemAugment?: string;
+    onActivity?: OnActivity;
+    maxRounds?: number;
+    /** Verified Control704 session (enables proxy_x/y/z + dataset_override). */
+    caller?: ToolCaller | null;
+  }
 ): Promise<AgentLoopResult> {
   const configs = listLlmConfigs();
   if (!configs.length) {
@@ -256,7 +263,7 @@ export async function runLangGraphAgent(
     .filter(Boolean)
     .join('\n\n');
 
-  const compiled = buildGraph(configs, onActivity);
+  const compiled = buildGraph(configs, onActivity, opts?.caller);
   const maxRounds = opts?.maxRounds ?? MAX_TOOL_ROUNDS;
   // Each llm↔tools hop counts; recursionLimit ≈ 2 * rounds + 1
   const recursionLimit = Math.max(4, maxRounds * 2 + 2);
