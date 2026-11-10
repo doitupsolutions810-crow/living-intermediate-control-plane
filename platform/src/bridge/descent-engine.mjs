@@ -7,7 +7,7 @@ export class DescentEngine {
     this.x = opts.start ?? 1.0;
     this.k = opts.k ?? 0.5;
     this.tickMs = opts.tickMs ?? 150;
-    this.stateDir = opts.stateDir ?? path.join(process.cwd(), 'state);
+    this.stateDir = opts.stateDir ?? path.join(process.cwd(), 'state');
     this.stateFile = path.join(this.stateDir, 'descent-engine.json);
     this._timer = null;
     this.history = [];
