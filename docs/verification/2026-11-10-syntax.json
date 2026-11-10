@@ -1,0 +1,15 @@
+{
+  "schema": "avrone.verification.v1",
+  "date": "2026-11-10",
+  "repository": "https://github.com/doitupsolutions810-crow/living-intermediate-control-plane",
+  "base_commit": "5db14c9cbaa8dcf8c9014a1416ee252033e45a9d",
+  "command": "npm test (cwd: platform)",
+  "exit_code": 0,
+  "passed": {
+    "platform": 49
+  },
+  "scope": "Existing repository Node test suite after syntax repair; no deployment.",
+  "changed_sources_sha256": {
+    "platform/src/bridge/descent-engine.mjs": "6e6da650654fe83cd5dd3d2aed6cd0cbebf718448dd3bb71e28b1f4969e586ee"
+  }
+}
