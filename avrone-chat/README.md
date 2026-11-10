@@ -31,6 +31,12 @@ npm run build
 | `GET /api/cockpit` | Platform health + anomalies + graceful evidence-console probe |
 | `POST /api/chat` | Lattice-wired chat (SSE-shaped stream) |
 | `GET /api/health` | Liveness for deploy probes |
+| `POST /api/control704/login` · `logout` · `GET session` | Control704 technician sign-in (HMAC cookie) |
+| `GET /api/control704/targets` · `audit` | X/Y/Z status, recent audit (any role) |
+| `GET/POST /api/control704/override` | Dataset code override (admin; dry-run → confirm) |
+| `* /api/proxy/{x,y,z}/<path>` | Role-gated proxy to fixed upstreams |
+
+Pages: `/control704/login`, `/control704`, `/control704/override`. See [`docs/control704-access.md`](../docs/control704-access.md).
 
 When `EVIDENCE_CONSOLE_URL` is unset or the public domain returns 404/unreachable, cockpit reports local plane authority instead of failing hard.
 

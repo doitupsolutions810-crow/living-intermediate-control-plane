@@ -7,6 +7,7 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { executeTool, type ToolActivity } from './agent-tools';
 import { rememberLesson } from './operator-memory';
+import { buildControl704Tools, type ToolCaller } from './control704/agent-tools';
 
 export type ActivitySink = (a: ToolActivity) => void;
 
@@ -21,7 +22,7 @@ async function wrapExecute(
 }
 
 /** Build LangChain tools bound to an optional activity sink. */
-export function buildLangChainTools(onActivity?: ActivitySink) {
+export function buildLangChainTools(onActivity?: ActivitySink, caller?: ToolCaller | null) {
   const web_search = tool(
     async ({ query, max_results }) =>
       wrapExecute(
@@ -103,5 +104,13 @@ export function buildLangChainTools(onActivity?: ActivitySink) {
     }
   );
 
-  return [web_search, web_fetch, sandbox_js, sandbox_shell, remember_lesson];
+  // Control704 tools only exist for a verified session (role-gated inside each tool).
+  return [
+    web_search,
+    web_fetch,
+    sandbox_js,
+    sandbox_shell,
+    remember_lesson,
+    ...buildControl704Tools(caller, onActivity)
+  ];
 }
