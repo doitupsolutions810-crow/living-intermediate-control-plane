@@ -10,11 +10,12 @@ import { isTargetId } from '../../../../../lib/control704/targets';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-type Ctx = { params: { target: string; path?: string[] } };
+type Ctx = { params: Promise<{ target: string; path?: string[] }> };
 
-async function handle(req: Request, { params }: Ctx): Promise<Response> {
+async function handle(req: Request, { params: pendingParams }: Ctx): Promise<Response> {
   const caller = await getCaller(req);
   if (!caller) return json(401, { error: 'unauthenticated' });
+  const params = await pendingParams;
   const target = String(params.target || '').toLowerCase();
   if (!isTargetId(target)) return json(404, { error: 'unknown_target', allowed: ['x', 'y', 'z'] });
 

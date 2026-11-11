@@ -40,5 +40,7 @@ WORKDIR /app
 
 COPY --from=prepare --chown=65532:65532 /app /app
 
+USER 65532:65532
+
 # Distroless node image entrypoint is already `node`
 CMD ["status/doctor.mjs"]

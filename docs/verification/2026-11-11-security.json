@@ -1,0 +1,77 @@
+{
+  "schema": "avrone.security-remediation-verification.v1",
+  "date": "2026-11-11",
+  "repository": "https://github.com/doitupsolutions810-crow/living-intermediate-control-plane",
+  "base_commit": "c263c5c9e2f9e9dd31a51b5807acd6fa1839eec5",
+  "baseline": {
+    "source_run": "https://github.com/doitupsolutions810-crow/living-intermediate-control-plane/actions/runs/42919783508",
+    "high": 12,
+    "critical": 3,
+    "dockerfile_failures": 1
+  },
+  "resolved_packages": {
+    "next": "15.5.29",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "postcss": "8.5.32",
+    "source-map-js": "1.2.2",
+    "zod": "4.6.7"
+  },
+  "validation": {
+    "chat_tests": {
+      "passed": 66,
+      "failed": 0
+    },
+    "plane_platform_tests": {
+      "passed": 49,
+      "failed": 0
+    },
+    "typescript": {
+      "exit_code": 0
+    },
+    "next_production_build": {
+      "exit_code": 0
+    },
+    "production_proxy_routes": {
+      "passed": 6,
+      "exit_code": 0
+    },
+    "npm_audit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "trivy": {
+      "version": "0.70.0",
+      "exit_code": 0,
+      "high_critical_vulnerabilities": 0,
+      "misconfiguration_failures": 0,
+      "secrets": 0,
+      "local_generated_directory_exclusions": [
+        "avrone-chat/node_modules",
+        "avrone-chat/.next"
+      ],
+      "config": "trivy.yaml (unchanged)"
+    }
+  },
+  "changed_source_sha256": {
+    ".github/workflows/plane-ci.yml": "52f6c7e41540d60245abb1bb610ec036d3b7801534da9c013a1d3f59384687e1",
+    "Dockerfile": "1774754c890d05d586e8ffa9ff35cc9ded317ab3cc6f73a233dad78354db7f96",
+    "avrone-chat/app/api/proxy/[target]/[[...path]]/route.ts": "b970227f3e1f5cdfac89dcccdffcbd6845672d4093560197aa88df3bfdcf3212",
+    "avrone-chat/package-lock.json": "6eb01e2900f8eaa627694aebad14d7c9f1d9edb223b4c99510e0c92e1b534f4c",
+    "avrone-chat/package.json": "5169a063250e5970e02428a8305d08718aab308cb57ec69eec517da58373dde8",
+    "avrone-chat/scripts/verify-proxy-routes.mjs": "c6e6ed821c733be10e64854f3b7cbcd4e86cb4bce7f7700b974f5e055644de4e"
+  },
+  "limits": [
+    "Trivy scan is filesystem/lockfile verification, not a built container image scan.",
+    "No deployment, production credentials, scanner suppressions or severity policy changed."
+  ],
+  "primary_sources": [
+    "https://nextjs.org/docs/15/app/guides/upgrading/version-15",
+    "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+    "https://github.com/aquasecurity/trivy/releases/tag/v0.70.0"
+  ]
+}

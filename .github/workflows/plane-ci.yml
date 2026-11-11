@@ -20,6 +20,31 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  chat-checks:
+    name: Chat types, tests, production routes, dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: avrone-chat
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: avrone-chat/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: node scripts/verify-proxy-routes.mjs
+      - run: npm audit --audit-level=high
+
   plane-checks:
     name: Verify, doctor, test, Trivy FS, Snyk
     runs-on: ubuntu-latest
