@@ -10,6 +10,9 @@
  *   CONTROL704_PROXY_T_URL      fixed https base URL (required to enable)
  *   CONTROL704_PROXY_T_TOKEN    upstream credential, injected server-side only
  *   CONTROL704_PROXY_T_AUTH_HEADER  header for the token (default: authorization → "Bearer <token>")
+ *   CONTROL704_PROXY_T_TOKEN_MODE   "static" (default: send CONTROL704_PROXY_T_TOKEN) or
+ *        "avrone-jwt": mint a short-lived per-technician HS256 JWT (lib/control704/avrone-jwt.ts)
+ *        that control704-proxy-system verifies; needs AVRONE_ISSUER/AUDIENCE/JWT_SECRET.
  *   CONTROL704_PROXY_T_LABEL    display name (rename X/Y/Z without code changes)
  *   CONTROL704_PROXY_T_PATHS    comma list of allowed path prefixes (default "/")
  *   CONTROL704_PROXY_T_POLICY   optional JSON per-role policy:
@@ -40,6 +43,8 @@ export interface TargetConfig {
   configError?: string;
   token: string | null;
   authHeader: string;
+  /** static: inject `token`; avrone-jwt: mint a per-technician Control704 JWT per request. */
+  tokenMode: 'static' | 'avrone-jwt';
   policy: Record<Role, RolePolicy>;
 }
 
@@ -136,6 +141,7 @@ export function loadTarget(id: TargetId, e: NodeJS.ProcessEnv = process.env): Ta
     configError: error,
     token: env(`CONTROL704_PROXY_${T}_TOKEN`, e) || null,
     authHeader: HEADER_RE.test(hdr) ? hdr : 'authorization',
+    tokenMode: env(`CONTROL704_PROXY_${T}_TOKEN_MODE`, e).toLowerCase() === 'avrone-jwt' ? 'avrone-jwt' : 'static',
     policy
   };
 }
@@ -153,7 +159,8 @@ export function describeTarget(t: TargetConfig, role?: Role | null) {
     configured: t.configured,
     status: t.configured ? 'configured' : t.configError ? `misconfigured: ${t.configError}` : 'not configured',
     host: t.base ? t.base.host : null,
-    credentialInjected: Boolean(t.token),
+    credentialInjected: t.tokenMode === 'avrone-jwt' || Boolean(t.token),
+    tokenMode: t.tokenMode,
     yourAccess: role ? t.policy[role] : null
   };
 }
