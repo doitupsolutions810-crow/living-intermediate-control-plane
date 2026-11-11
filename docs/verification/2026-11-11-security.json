@@ -64,7 +64,7 @@
   },
   "changed_source_sha256": {
     ".github/workflows/plane-ci.yml": "52f6c7e41540d60245abb1bb610ec036d3b7801534da9c013a1d3f59384687e1",
-    "Dockerfile": "716afdf56dea8b53fe48c30786b5f437fc93a1345665784094c2b79bb1fe63ab",
+    "Dockerfile": "08f6ce0a56e8869d95941d2f544ec526917fb1053c5d590cf44b7cd4c283cb91",
     "avrone-chat/app/api/proxy/[target]/[[...path]]/route.ts": "b970227f3e1f5cdfac89dcccdffcbd6845672d4093560197aa88df3bfdcf3212",
     "avrone-chat/package-lock.json": "6eb01e2900f8eaa627694aebad14d7c9f1d9edb223b4c99510e0c92e1b534f4c",
     "avrone-chat/package.json": "5169a063250e5970e02428a8305d08718aab308cb57ec69eec517da58373dde8",
@@ -87,5 +87,21 @@
       "k8s/gatekeeper"
     ],
     "change": "Include existing policy files and Gatekeeper manifests in the prepare-stage COPY payload; retain non-root ownership."
+  },
+  "container_base_remediation": {
+    "source_run": "https://github.com/doitupsolutions810-crow/living-intermediate-control-plane/actions/runs/43063005390",
+    "previous_runtime": "gcr.io/distroless/nodejs20-debian12:nonroot",
+    "image_findings": {
+      "high": 6,
+      "critical": 1,
+      "package": "libssl3"
+    },
+    "prepare": "node:24-trixie-slim",
+    "runtime": "gcr.io/distroless/nodejs24-debian13:nonroot",
+    "primary_sources": [
+      "https://raw.githubusercontent.com/nodejs/docker-node/main/versions.json",
+      "https://github.com/GoogleContainerTools/distroless/blob/main/README.md"
+    ],
+    "hosted_image_scan": "pending"
   }
 }
