@@ -67,6 +67,17 @@ you set a URL**; unconfigured targets return `503 target_not_configured` and sho
 (Z is the natural home for the Control12 lattice-op API — set
 `CONTROL704_PROXY_Z_URL` to it if that's the intent; it is not wired automatically.)
 
+### Wiring to control704-proxy-system (per-technician JWT)
+
+`control704-proxy-system` verifies Avrone Due'Krey JWTs (`AVRONE_ISSUER`, `AVRONE_AUDIENCE`,
+`AVRONE_JWT_SECRET`). Point a target at it and set `CONTROL704_PROXY_<T>_TOKEN_MODE=avrone-jwt`:
+for every proxied call, `lib/control704/avrone-jwt.ts` mints an HS256 token with
+`iss`/`aud` from env, `sub` = technician id, `roles` = [session role], `exp` = now + 120 s
+(30–300 via `CONTROL704_PROXY_JWT_TTL_S`) and a random `jti`. The static `_TOKEN` is not sent in
+this mode. Missing or weak config fails closed with `503 proxy_jwt_not_configured`.
+`test/control704-avrone-jwt.test.mjs` checks the contract with a reference verifier and, when
+`CONTROL704_PROXY_SYSTEM_DIR` points at a proxy checkout, with the proxy's own verifier.
+
 ### Proxy safety
 
 - Upstream host is fixed per target from env (https only; no credentials in URL).

@@ -14,6 +14,7 @@
  *  - Request/response size limits, timeout, per-actor rate limit, audit.
  */
 
+import { mintProxyToken, proxyJwtConfig } from './avrone-jwt';
 import { appendAudit } from './audit';
 import { rateLimit } from './ratelimit';
 import type { Role } from './roles';
@@ -195,7 +196,22 @@ export async function proxyRequest(input: ProxyInput, fetchImpl: typeof fetch = 
     'x-control704-role': actor.role,
     'user-agent': 'avrone-control704-proxy/1'
   };
-  if (t.token) {
+  if (t.tokenMode === 'avrone-jwt') {
+    // Per-technician identity for control704-proxy-system: a short-lived JWT for this actor
+    // replaces the shared static credential. Fail closed when the contract is not configured.
+    const cfg = proxyJwtConfig();
+    if (!cfg) {
+      audit('denied', { path, reason: 'proxy_jwt_not_configured' });
+      return jsonResult(503, 'proxy_jwt_not_configured', { target: t.id });
+    }
+    try {
+      const { token } = await mintProxyToken(actor.sub, actor.role, { config: cfg });
+      headers.authorization = `Bearer ${token}`;
+    } catch (err) {
+      audit('denied', { path, reason: 'proxy_jwt_mint_failed', err: err instanceof Error ? err.message : 'error' });
+      return jsonResult(503, 'proxy_jwt_not_configured', { target: t.id });
+    }
+  } else if (t.token) {
     headers[t.authHeader] = t.authHeader === 'authorization' ? `Bearer ${t.token}` : t.token;
   }
 
