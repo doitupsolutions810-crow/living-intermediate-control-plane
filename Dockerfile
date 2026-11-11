@@ -23,6 +23,8 @@ COPY launchdesk/ ./launchdesk/
 COPY avrone/ ./avrone/
 COPY attestation/ ./attestation/
 COPY status/ ./status/
+COPY policy/ ./policy/
+COPY k8s/gatekeeper/ ./k8s/gatekeeper/
 COPY test/ ./test/
 COPY integrate.mjs ./
 
