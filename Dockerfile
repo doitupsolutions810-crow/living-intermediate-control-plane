@@ -8,7 +8,7 @@
 # 4. Final image is distroless (no shell, no package manager)
 
 # ── Stage 1: prepare (build tooling allowed) ─────────────────────────
-FROM node:20-bookworm-slim AS prepare
+FROM node:24-trixie-slim AS prepare
 
 WORKDIR /app
 
@@ -23,6 +23,8 @@ COPY launchdesk/ ./launchdesk/
 COPY avrone/ ./avrone/
 COPY attestation/ ./attestation/
 COPY status/ ./status/
+COPY policy/ ./policy/
+COPY k8s/gatekeeper/ ./k8s/gatekeeper/
 COPY test/ ./test/
 COPY integrate.mjs ./
 
@@ -34,11 +36,13 @@ RUN mkdir -p data \
 
 # ── Stage 2: distroless runtime ──────────────────────────────────────
 # nonroot uid 65532 — no shell, no apt, minimal attack surface
-FROM gcr.io/distroless/nodejs20-debian12:nonroot AS runtime
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runtime
 
 WORKDIR /app
 
 COPY --from=prepare --chown=65532:65532 /app /app
+
+USER 65532:65532
 
 # Distroless node image entrypoint is already `node`
 CMD ["status/doctor.mjs"]
